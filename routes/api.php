@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ListingController;
+use App\Http\Controllers\Api\ListingMediaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', fn () => response()->json(['ok' => true]));
@@ -21,6 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/listings', [ListingController::class, 'store']);
     Route::put('/listings/{listing}', [ListingController::class, 'update']);
     Route::post('/listings/{listing}/save', [ListingController::class, 'toggleSave']);
+
+    Route::post('/listings/{listing}/media', [ListingMediaController::class, 'store']);
+    Route::delete('/listings/{listing}/media/{media}', [ListingMediaController::class, 'destroy']);
 });
 
 Route::get('/listings', [ListingController::class, 'index']);
