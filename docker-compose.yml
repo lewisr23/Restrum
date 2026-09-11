@@ -1,6 +1,7 @@
 # Brings the whole stack up with `docker compose up --build`:
-#   http://localhost:8080  - the app (React bundle + Laravel API behind nginx)
-#   ws://localhost:8081    - Reverb, for the live messaging
+#   http://localhost:8080  the app (React bundle plus Laravel API behind nginx)
+#   ws://localhost:8081    Reverb, for the live messaging
+#   http://localhost:9200  Elasticsearch, which backs listing search
 #
 # The Reverb credentials below are local-only defaults. A real deployment
 # supplies its own via the environment; see .env.example.
@@ -22,6 +23,35 @@ services:
       # Exposed only so the database can be inspected from the host; nothing
       # in the stack reaches MySQL this way.
       - '3307:3306'
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      # One node, security off. This cluster holds nothing but a searchable
+      # copy of public listing data, it is only reachable inside the compose
+      # network, and running it any other way means certificates and a
+      # bootstrap password for a local development stack.
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      # Elasticsearch sizes its heap from total host RAM by default, which is
+      # far more than this index needs and enough to make the stack
+      # unpleasant to run on a laptop.
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+    healthcheck:
+      # The app waits on this: querying an index that does not exist yet is a
+      # 404, but querying a cluster that has not started is a hang.
+      test: ['CMD-SHELL', 'curl -fs http://localhost:9200/_cluster/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      # Exposed for the reindex command and for inspecting the index by hand.
+      # Overridable because 9200 is a popular port: if something else on the
+      # machine already holds it, set ELASTICSEARCH_PORT rather than editing
+      # this file.
+      - '${ELASTICSEARCH_PORT:-9200}:9200'
 
   app:
     build:
@@ -54,10 +84,14 @@ services:
       REVERB_HOST: reverb
       REVERB_PORT: '8080'
       REVERB_SCHEME: http
+      ELASTICSEARCH_ENABLED: 'true'
+      ELASTICSEARCH_HOST: http://elasticsearch:9200
     volumes:
       - storage-data:/var/www/html/storage
     depends_on:
       mysql:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
 
   nginx:
@@ -94,4 +128,5 @@ services:
 
 volumes:
   mysql-data:
+  elasticsearch-data:
   storage-data:

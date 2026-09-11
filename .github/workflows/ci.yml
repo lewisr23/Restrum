@@ -34,6 +34,22 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+      # Without this the search tests skip themselves and the analyzers go
+      # untested, which is most of what the feature actually is.
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd="curl -fs http://localhost:9200/_cluster/health || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
     steps:
       - uses: actions/checkout@v4
 
@@ -79,6 +95,8 @@ jobs:
           DB_DATABASE: ttphp_test
           DB_USERNAME: root
           DB_PASSWORD: ''
+          ELASTICSEARCH_ENABLED: 'true'
+          ELASTICSEARCH_HOST: http://127.0.0.1:9200
         run: php artisan test
 
   frontend:

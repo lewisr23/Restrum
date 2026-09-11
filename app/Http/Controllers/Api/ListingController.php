@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
 use App\Models\Listing;
+use App\Search\ListingSearch;
 use App\Services\PriceInsightService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class ListingController extends Controller
@@ -14,6 +18,8 @@ class ListingController extends Controller
     private const CATEGORIES = ['GUITAR', 'DRUMS', 'MICROPHONE', 'SYNTHS', 'AUDIO_EQUIPMENT'];
 
     private const CONDITIONS = ['MINT', 'EXCELLENT', 'GOOD', 'FAIR'];
+
+    private const PER_PAGE = 20;
 
     public function __construct(private readonly PriceInsightService $priceInsight) {}
 
@@ -32,7 +38,86 @@ class ListingController extends Controller
         // Naming the guard explicitly resolves it regardless.
         $viewerId = $request->user('sanctum')?->id;
 
+        $listings = $this->searchListings($data, $viewerId, (int) $request->input('page', 1))
+            ?? $this->databaseListings($data, $viewerId);
+
+        return ListingResource::collection($listings);
+    }
+
+    /**
+     * Elasticsearch path. Returns null when search is switched off or the
+     * cluster cannot be reached, which is the caller's signal to use SQL.
+     *
+     * Elasticsearch decides which listings match and in what order; MySQL
+     * still supplies the listings themselves. Keeping hydration in the
+     * database means the index only ever has to be right about relevance,
+     * never about the current price or whether a listing has sold.
+     */
+    private function searchListings(array $data, ?int $viewerId, int $page): ?LengthAwarePaginator
+    {
+        if (! config('elasticsearch.enabled')) {
+            return null;
+        }
+
+        try {
+            $result = app(ListingSearch::class)->search($data, $page, self::PER_PAGE);
+        } catch (\Throwable $e) {
+            // Browsing has to keep working when the cluster does not, so this
+            // is logged for whoever is on call and then forgotten about here.
+            Log::warning('Listing search failed, falling back to the database', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $models = $this->hydrate($result['ids'], $viewerId);
+
+        return new LengthAwarePaginator(
+            $models,
+            $result['total'],
+            self::PER_PAGE,
+            $page,
+            ['path' => Paginator::resolveCurrentPath()],
+        );
+    }
+
+    /**
+     * Loads the matched listings in the order Elasticsearch ranked them.
+     *
+     * One query, not one per id, and the ordering is reapplied in PHP: SQL
+     * has no memory of the relevance ordering, and doing it with a generated
+     * FIELD() clause would tie this to MySQL for no real gain.
+     */
+    private function hydrate(array $ids, ?int $viewerId)
+    {
+        if ($ids === []) {
+            return collect();
+        }
+
         $listings = Listing::query()
+            ->whereIn('id', $ids)
+            ->with('seller', 'media')
+            ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]))
+            ->get()
+            ->keyBy('id');
+
+        return collect($ids)
+            ->map(fn ($id) => $listings->get($id))
+            // A listing deleted between being indexed and being read is a
+            // gap in the results, not a null in the JSON.
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * The original SQL path, still the only one when search is switched off.
+     * LIKE '%term%' cannot use an index and matches substrings rather than
+     * words, so it is correct but does not scale and does not rank.
+     */
+    private function databaseListings(array $data, ?int $viewerId): LengthAwarePaginator
+    {
+        return Listing::query()
             ->with('seller', 'media')
             ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]))
             ->when($data['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
@@ -42,9 +127,7 @@ class ListingController extends Controller
             ->when($data['min_price'] ?? null, fn ($q, $min) => $q->where('price', '>=', $min))
             ->when($data['max_price'] ?? null, fn ($q, $max) => $q->where('price', '<=', $max))
             ->latest()
-            ->paginate(20);
-
-        return ListingResource::collection($listings);
+            ->paginate(self::PER_PAGE);
     }
 
     /**
