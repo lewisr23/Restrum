@@ -23,8 +23,21 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!--
+            Tests run against MySQL rather than the sqlite :memory: default.
+            Slower, but the app only ever runs on MySQL and the differences
+            are not cosmetic: the schema uses MySQL enum columns, and the two
+            engines disagree about the clock - MySQL's NOW() is the server's
+            local time, sqlite's CURRENT_TIMESTAMP is UTC. A real timestamp
+            bug here was invisible under sqlite for exactly that reason.
+            CI points these same variables at its MySQL service container.
+        -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="3306"/>
+        <env name="DB_DATABASE" value="ttphp_test"/>
+        <env name="DB_USERNAME" value="root"/>
+        <env name="DB_PASSWORD" value=""/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
