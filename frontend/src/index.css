@@ -1,0 +1,133 @@
+/* ============================================================
+   ToneTrade design tokens — single source of truth for colors,
+   fonts, radii. Inline styles across components reference these
+   via var(--x) so the palette can be tuned in one place.
+   ============================================================ */
+:root {
+  --bg: #121212;
+  --bg-raised: #1a1a1a;
+  --bg-card: #1e1e1e;
+  --border: #2a2a2a;
+  --border-strong: #3a3a3a;
+  --text: #f2f2f2;
+  --text-muted: #9a9a9a;
+  --text-faint: #666;
+  --accent: #4caf50;
+  --accent-hover: #5cbf60;
+  --accent-dark: #2e7d32;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --radius: 10px;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Site-wide: no text-selection caret/highlight on plain text (titles,
+     prices, chips, descriptions etc.) so clicking around the page doesn't
+     drop a blinking text cursor into it — feels like an app, not a
+     selectable document. Re-enabled below for actual inputs/textareas. */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+  cursor: text;
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: rgba(76, 175, 80, 0.35);
+}
+
+/* Subtle dark scrollbar instead of the default chrome one */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+}
+
+/* Listing card hover -- gives the grid some life instead of being static
+   flat rectangles. Inline styles can't express :hover, hence the real
+   CSS classes in an otherwise inline-styled codebase. */
+.listing-card {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.listing-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Category tiles on the homepage hero */
+.cat-tile {
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.cat-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: #202a20;
+}
+
+/* Big hero search input focus ring */
+.hero-search:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.25);
+}
+
+/* Generic button hover lift used by primary CTAs */
+.btn-primary {
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.btn-primary:hover {
+  background: var(--accent-hover) !important;
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+.btn-ghost {
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* Sticky navbar backdrop */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(18, 18, 18, 0.85) !important;
+  border-bottom: 1px solid var(--border);
+}
