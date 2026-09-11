@@ -25,10 +25,12 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'location' => fake()->randomElement(['Newcastle', 'Leeds', 'Manchester', 'Bristol', 'Glasgow']),
+            'bio' => null,
             'remember_token' => Str::random(10),
         ];
     }
@@ -40,6 +42,18 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * community_verified is normally derived from endorsement count rather
+     * than set - this state exists so tests that only care about how a
+     * verified seller RENDERS don't have to stage two endorsers first.
+     */
+    public function communityVerified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'community_verified' => true,
         ]);
     }
 }

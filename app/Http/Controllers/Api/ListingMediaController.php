@@ -42,6 +42,11 @@ class ListingMediaController extends Controller
             'url' => Storage::url($path),
             'label' => $data['label'] ?? null,
         ]);
+        // uploaded_at is a DB-level useCurrent() default, not part of this
+        // payload - without refreshing, it's silently absent from the raw
+        // model JSON below (not null, just missing entirely, which is why
+        // this didn't show up as an obvious bug the first time around).
+        $media->refresh();
 
         return response()->json($media, 201);
     }

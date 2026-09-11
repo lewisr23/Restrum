@@ -9,9 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['media_type', 'url', 'label'])]
 class ListingMedia extends Model
 {
-    // Only uploaded_at exists on this table (set via DB useCurrent()) - no
-    // updated_at, so Eloquent's default dual-timestamp management is off.
-    public $timestamps = false;
+    // Only uploaded_at exists on this table - no updated_at. Pointing
+    // CREATED_AT at it (rather than switching timestamps off entirely) keeps
+    // Eloquent writing it on the app's clock; see the Message model for why
+    // the DB's useCurrent() default is the wrong source for it.
+    const CREATED_AT = 'uploaded_at';
+
+    const UPDATED_AT = null;
 
     protected function casts(): array
     {

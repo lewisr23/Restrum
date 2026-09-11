@@ -1,13 +1,20 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "lewisr23/tonetrade",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "A peer-to-peer marketplace for secondhand musical instruments, with gear history, fair-price context and real-time messaging.",
+    "keywords": [
+        "laravel",
+        "marketplace",
+        "mysql",
+        "reverb",
+        "react"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
         "laravel/framework": "^13.17",
+        "laravel/reverb": "^1.11",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0"
     },

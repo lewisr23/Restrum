@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
 use App\Models\Listing;
+use App\Services\PriceInsightService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ListingController extends Controller
 {
     private const CATEGORIES = ['GUITAR', 'DRUMS', 'MICROPHONE', 'SYNTHS', 'AUDIO_EQUIPMENT'];
 
     private const CONDITIONS = ['MINT', 'EXCELLENT', 'GOOD', 'FAIR'];
+
+    public function __construct(private readonly PriceInsightService $priceInsight) {}
 
     public function index(Request $request)
     {
@@ -29,7 +33,7 @@ class ListingController extends Controller
         $viewerId = $request->user('sanctum')?->id;
 
         $listings = Listing::query()
-            ->with('seller')
+            ->with('seller', 'media')
             ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]))
             ->when($data['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
                 ->where('title', 'like', "%{$search}%")
@@ -51,7 +55,7 @@ class ListingController extends Controller
     public function saved(Request $request)
     {
         $listings = $request->user()->savedListings()
-            ->with('seller')
+            ->with('seller', 'media')
             ->latest('saved_listings.created_at')
             ->paginate(20);
 
@@ -73,7 +77,38 @@ class ListingController extends Controller
             $listing->load(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]);
         }
 
-        return new ListingResource($listing);
+        return (new ListingResource($listing))->additional([
+            'price_insight' => $this->priceInsight->forListing($listing),
+        ]);
+    }
+
+    /**
+     * Direct purchase at the listed price, alongside offer negotiation.
+     * Deliberately no payment processing - this is scoped as peer-to-peer
+     * (buyer and seller arrange payment directly), not a payments platform.
+     * No Order/Purchase record either, for the same reason: there is
+     * genuinely nothing to process or store beyond "this is no longer for
+     * sale" - inventing one would be building commerce infrastructure this
+     * project explicitly isn't taking on.
+     */
+    public function buy(Request $request, Listing $listing)
+    {
+        if ($request->user()->id === $listing->seller_id) {
+            throw ValidationException::withMessages([
+                'listing' => 'You cannot buy your own listing.',
+            ]);
+        }
+
+        if ($listing->status !== 'ACTIVE') {
+            throw ValidationException::withMessages([
+                'listing' => 'This listing is no longer available.',
+            ]);
+        }
+
+        $listing->status = 'SOLD';
+        $listing->save();
+
+        return new ListingResource($listing->load('seller', 'media'));
     }
 
     public function store(Request $request)
@@ -94,7 +129,11 @@ class ListingController extends Controller
         $listing->status = 'ACTIVE';
         $listing->save();
 
-        return new ListingResource($listing->load('seller'));
+        // 'media' is loaded even though a brand-new listing has none yet:
+        // ListingResource only emits that key when the relation is loaded, so
+        // leaving it off makes the field silently ABSENT rather than an empty
+        // array, and callers then have to handle two shapes for one resource.
+        return new ListingResource($listing->load('seller', 'media'));
     }
 
     public function update(Request $request, Listing $listing)
@@ -103,7 +142,7 @@ class ListingController extends Controller
 
         $listing->update($this->validated($request, forUpdate: true));
 
-        return new ListingResource($listing->load('seller'));
+        return new ListingResource($listing->load('seller', 'media'));
     }
 
     /** Toggles the current user's saved state for a listing. */
