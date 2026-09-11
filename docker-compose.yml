@@ -1,0 +1,97 @@
+# Brings the whole stack up with `docker compose up --build`:
+#   http://localhost:8080  - the app (React bundle + Laravel API behind nginx)
+#   ws://localhost:8081    - Reverb, for the live messaging
+#
+# The Reverb credentials below are local-only defaults. A real deployment
+# supplies its own via the environment; see .env.example.
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: ttphp
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '--silent']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      # Exposed only so the database can be inspected from the host; nothing
+      # in the stack reaches MySQL this way.
+      - '3307:3306'
+
+  app:
+    build:
+      context: .
+      target: app
+      args:
+        # Baked into the JS bundle at build time, so they describe how the
+        # BROWSER reaches Reverb - the host's port, not the container's.
+        REACT_APP_REVERB_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
+        REACT_APP_REVERB_HOST: ${REVERB_HOST:-localhost}
+        REACT_APP_REVERB_PORT: '8081'
+        REACT_APP_REVERB_SCHEME: http
+    environment: &app-env
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_KEY: ${APP_KEY:?set APP_KEY - generate one with `php artisan key:generate --show`}
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: '3306'
+      DB_DATABASE: ttphp
+      DB_USERNAME: root
+      DB_PASSWORD: ''
+      BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-local-development-id}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-local-development-secret}
+      # Where the SERVER reaches Reverb to publish events - the service name,
+      # unlike the browser-facing values baked into the bundle above.
+      REVERB_HOST: reverb
+      REVERB_PORT: '8080'
+      REVERB_SCHEME: http
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      target: web
+      args:
+        REACT_APP_REVERB_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
+        REACT_APP_REVERB_HOST: ${REVERB_HOST:-localhost}
+        REACT_APP_REVERB_PORT: '8081'
+        REACT_APP_REVERB_SCHEME: http
+    ports:
+      - '8080:80'
+    volumes:
+      # nginx serves uploaded media directly, so it needs read access to the
+      # same storage volume the app writes to.
+      - storage-data:/var/www/html/storage
+    depends_on:
+      - app
+
+  reverb:
+    build:
+      context: .
+      target: app
+    command: ['php', 'artisan', 'reverb:start', '--host=0.0.0.0', '--port=8080']
+    environment: *app-env
+    ports:
+      - '8081:8080'
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  storage-data:

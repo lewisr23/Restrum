@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # composer.json declares ^8.3, so both supported minors are built
+        # rather than only the one that happens to be installed locally.
+        php: ['8.3', '8.4']
+
+    services:
+      # The suite runs against MySQL rather than sqlite on purpose - see the
+      # comment in phpunit.xml. That only holds if CI provides a real one.
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: ttphp_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_mysql, gd, bcmath, intl
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ matrix.php }}-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare the application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      - name: Run migrations
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: ttphp_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan migrate --force
+
+      - name: Run tests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: ttphp_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan test
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      # CI=true makes react-scripts treat lint warnings as errors, so an
+      # unused import fails the build rather than accumulating quietly.
+      - name: Build
+        run: npm run build
+        env:
+          CI: true
+
+  docker:
+    name: Docker images
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Both targets are built, not just the default one - they share the
+      # early stages, so a break in either would otherwise go unnoticed until
+      # someone ran compose.
+      - name: Build the PHP image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: app
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build the web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: web
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Check the compose file is valid
+        run: docker compose config --quiet
+        env:
+          APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
