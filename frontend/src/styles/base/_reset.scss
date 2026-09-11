@@ -1,0 +1,58 @@
+@use '../abstracts' as *;
+
+body {
+  margin: 0;
+  background-color: $color-bg;
+  color: $color-text;
+  font-family: $font-body;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  // No text selection caret on plain page text (titles, prices, chips,
+  // descriptions), so clicking around feels like an app rather than a
+  // document. Switched back on for real inputs below.
+  user-select: none;
+  cursor: default;
+}
+
+h1,
+h2,
+h3 {
+  font-family: $font-display;
+}
+
+code {
+  font-family: $font-mono;
+}
+
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  user-select: text;
+  cursor: text;
+  font-family: $font-body;
+}
+
+::selection {
+  background: rgba($color-accent, 0.35);
+}
+
+// A dark scrollbar, since the default light one cuts straight through the
+// page on Chrome.
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: $color-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $color-border-strong;
+  border-radius: $radius-sm;
+
+  &:hover {
+    background: $color-border-input;
+  }
+}

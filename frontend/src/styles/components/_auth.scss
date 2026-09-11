@@ -1,0 +1,40 @@
+@use '../abstracts' as *;
+
+// Login and registration share one narrow centred card.
+.auth-card {
+  @include surface($color-bg-sunken);
+  max-width: 400px;
+  margin: 80px auto;
+  padding: $space-xl;
+
+  @include media-down('sm') {
+    margin: $space-xl $space-md;
+    padding: $space-lg;
+  }
+
+  &__title {
+    margin: 0 0 $space-lg;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $space-md;
+  }
+
+  &__footer {
+    margin: $space-lg 0 0;
+    text-align: center;
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+
+  &__link {
+    color: $color-accent;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

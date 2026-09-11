@@ -29,28 +29,20 @@ interface ConversationSummary {
 
 function ConversationRow({ conv, active, onClick }: { conv: ConversationSummary; active: boolean; onClick: () => void }) {
   return (
-    <div
-      onClick={onClick}
-      style={{
-        padding: '12px 16px',
-        cursor: 'pointer',
-        background: active ? '#1a1a1a' : 'transparent',
-        borderBottom: '1px solid #222',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ margin: 0, fontWeight: 600, fontSize: '14px' }}>
+    <div className={`conversation-row${active ? ' conversation-row--active' : ''}`} onClick={onClick}>
+      <div className="conversation-row__top">
+        <p className="conversation-row__name">
           {conv.other_participant.username}
-          {conv.other_participant.community_verified && <span style={{ color: '#4caf50', marginLeft: '6px', fontSize: '11px' }}>Verified</span>}
+          {conv.other_participant.community_verified && (
+            <span className="conversation-row__verified">Verified</span>
+          )}
         </p>
         {conv.unread_count > 0 && (
-          <span style={{ background: '#4caf50', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px' }}>
-            {conv.unread_count}
-          </span>
+          <span className="conversation-row__unread">{conv.unread_count}</span>
         )}
       </div>
-      <p style={{ margin: '2px 0 0', color: '#888', fontSize: '12px' }}>{conv.listing.title}</p>
-      <p style={{ margin: '2px 0 0', color: '#666', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <p className="conversation-row__listing">{conv.listing.title}</p>
+      <p className="conversation-row__preview">
         {conv.latest_message_preview || 'No messages yet'}
       </p>
     </div>
@@ -83,7 +75,7 @@ function ChatPanel({
   useEffect(() => {
     setLoading(true);
     // Fetching the conversation also marks its unread messages as read, as a
-    // side effect on the backend - there's no separate "mark read" call to
+    // side effect on the backend, so there's no separate "mark read" call to
     // make, so onActivity() (which re-pulls the sidebar's unread counts) just
     // runs straight after this resolves.
     fetch(`${API}/api/conversations/${conversationId}`, {
@@ -104,7 +96,7 @@ function ChatPanel({
       setMessages(prev => {
         const exists = prev.some(m => m.id === payload.id);
         // An offer being accepted/declined re-broadcasts the SAME message id
-        // with a new offer_status - that case needs an in-place replace, not
+        // with a new offer_status, so that case needs a replace in place, not
         // a second bubble.
         return exists ? prev.map(m => (m.id === payload.id ? payload : m)) : [...prev, payload];
       });
@@ -134,14 +126,14 @@ function ChatPanel({
         const errBody = await res.json();
         detail = errBody?.message || detail;
       } catch {
-        // response wasn't JSON -- stick with the status code
+        // response wasn't JSON, so stick with the status code
       }
       alert(`Couldn't send that: ${detail}`);
       return;
     }
     const { data } = await res.json();
     // The websocket push for this same message may or may not have already
-    // landed by the time this response comes back - the dedup-by-id in the
+    // landed by the time this response comes back. Deduplicating by id in the
     // listen() callback above handles either ordering.
     setMessages(prev => (prev.some(m => m.id === data.id) ? prev : [...prev, data]));
     onActivity();
@@ -179,7 +171,7 @@ function ChatPanel({
           const body = await res.json();
           detail = body?.message || detail;
         } catch {
-          // response wasn't JSON -- stick with the status code
+          // response wasn't JSON, so stick with the status code
         }
         console.error('Failed to respond to offer:', detail);
         alert(`Couldn't ${accept ? 'accept' : 'decline'} this offer: ${detail}`);
@@ -224,48 +216,42 @@ function ChatPanel({
     : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="chat">
       {conv && (
-        <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+        <div className="chat__header">
+          <div className="chat__header-top">
             <div>
-              <p style={{ margin: 0, fontWeight: 600 }}>
+              <p className="chat__name">
                 {conv.other_participant.username}
-                {conv.other_participant.community_verified && <span style={{ color: '#4caf50', marginLeft: '8px', fontSize: '13px' }}>Verified</span>}
+                {conv.other_participant.community_verified && (
+                  <span className="chat__verified">Verified</span>
+                )}
               </p>
-              <p style={{ margin: 0, color: '#888', fontSize: '13px' }}>
+              <p className="chat__subject">
                 {conv.listing.title} · £{conv.listing.price}
               </p>
             </div>
             {conv.has_endorsed_other ? (
-              <span style={{ fontSize: '12px', color: '#4caf50', whiteSpace: 'nowrap' }}>Endorsed ✓</span>
+              <span className="chat__endorsed">Endorsed ✓</span>
             ) : (
-              <button
-                onClick={endorseOtherUser}
-                disabled={endorsing}
-                style={{ padding: '6px 12px', background: 'none', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
-              >
+              <button className="btn-ghost btn-sm" onClick={endorseOtherUser} disabled={endorsing}>
                 {endorsing ? 'Endorsing...' : `Endorse ${conv.other_participant.username}`}
               </button>
             )}
           </div>
-          {endorseError && <p style={{ margin: '6px 0 0', color: '#f44', fontSize: '12px' }}>{endorseError}</p>}
+          {endorseError && <p className="chat__error">{endorseError}</p>}
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {loading && <p style={{ color: '#888' }}>Loading...</p>}
+      <div className="chat__body">
+        {loading && <p className="text-muted">Loading...</p>}
 
         {!loading && messages.length === 0 && (
-          <div style={{ color: '#888' }}>
-            <p style={{ fontSize: '14px' }}>No messages yet. Try one of these:</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '360px' }}>
+          <div className="chat__empty">
+            <p>No messages yet. Try one of these:</p>
+            <div className="chat__suggestions">
               {suggestions.map(s => (
-                <button
-                  key={s}
-                  onClick={() => sendText(s)}
-                  style={{ textAlign: 'left', padding: '10px 14px', background: '#1a1a1a', border: '1px solid #444', color: '#ccc', borderRadius: '8px', cursor: 'pointer' }}
-                >
+                <button key={s} className="chat__suggestion" onClick={() => sendText(s)}>
                   {s}
                 </button>
               ))}
@@ -277,54 +263,48 @@ function ChatPanel({
           const mine = m.sender_id === currentUserId;
           const isOffer = m.message_type === 'PRICE_OFFER';
           return (
-            <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
-              <div
-                style={{
-                  background: isOffer ? '#2e4d2e' : mine ? '#4caf50' : '#1a1a1a',
-                  border: isOffer ? '1px solid #4caf50' : mine ? 'none' : '1px solid #333',
-                  color: mine && !isOffer ? '#111' : 'white',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                }}
-              >
+            <div
+              key={m.id}
+              className={`bubble${mine ? ' bubble--mine' : ''}${isOffer ? ' bubble--offer' : ''}`}
+            >
+              <div className="bubble__body">
                 {isOffer && (
                   <>
-                    <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#4caf50' }}>Offer: £{m.offer_amount}</p>
-                    <p style={{ margin: 0 }}>{m.content}</p>
+                    <p className="bubble__offer-amount">Offer: £{m.offer_amount}</p>
+                    <p className="bubble__text">{m.content}</p>
 
                     {m.offer_status === 'PENDING' && !mine && (
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                      <div className="bubble__actions">
                         <button
+                          className="btn-primary btn-sm"
                           onClick={() => respondToOffer(m.id, true)}
                           disabled={respondingId === m.id}
-                          style={{ padding: '4px 10px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                         >
                           {respondingId === m.id ? '...' : 'Accept'}
                         </button>
                         <button
+                          className="btn-danger btn-sm"
                           onClick={() => respondToOffer(m.id, false)}
                           disabled={respondingId === m.id}
-                          style={{ padding: '4px 10px', background: 'none', color: '#f44', border: '1px solid #f44', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                         >
                           {respondingId === m.id ? '...' : 'Decline'}
                         </button>
                       </div>
                     )}
                     {m.offer_status === 'PENDING' && mine && (
-                      <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#aaa' }}>Awaiting response...</p>
+                      <p className="bubble__status">Awaiting response...</p>
                     )}
                     {m.offer_status === 'ACCEPTED' && (
-                      <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#4caf50', fontWeight: 600 }}>Accepted</p>
+                      <p className="bubble__status bubble__status--accepted">Accepted</p>
                     )}
                     {m.offer_status === 'DECLINED' && (
-                      <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#f44', fontWeight: 600 }}>Declined</p>
+                      <p className="bubble__status bubble__status--declined">Declined</p>
                     )}
                   </>
                 )}
-                {!isOffer && <p style={{ margin: 0 }}>{m.content}</p>}
+                {!isOffer && <p className="bubble__text">{m.content}</p>}
               </div>
-              <p style={{ margin: '2px 4px 0', fontSize: '11px', color: '#666', textAlign: mine ? 'right' : 'left' }}>
+              <p className="bubble__time">
                 {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -333,44 +313,36 @@ function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ borderTop: '1px solid #333', padding: '12px 16px' }}>
+      <div className="chat__composer">
         {offerMode ? (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ alignSelf: 'center', color: '#888' }}>£</span>
+          <>
+            <span className="chat__composer-prefix">£</span>
             <input
+              className="field chat__composer-input"
               type="number"
               autoFocus
               value={offerAmount}
               onChange={e => setOfferAmount(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendOffer()}
-              style={{ flex: 1, padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
             />
-            <button onClick={sendOffer} style={{ padding: '10px 16px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-              Send offer
-            </button>
-            <button onClick={() => setOfferMode(false)} style={{ padding: '10px 16px', background: 'none', color: '#aaa', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer' }}>
-              Cancel
-            </button>
-          </div>
+            <button className="btn-primary" onClick={sendOffer}>Send offer</button>
+            <button className="btn-ghost" onClick={() => setOfferMode(false)}>Cancel</button>
+          </>
         ) : (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <>
             <input
+              className="field chat__composer-input"
               type="text"
               placeholder="Type a message..."
               value={draft}
               onChange={e => setDraft(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendText(draft)}
-              style={{ flex: 1, padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
             />
             {!conv?.am_i_seller && (
-              <button onClick={() => setOfferMode(true)} style={{ padding: '10px 16px', background: 'none', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '4px', cursor: 'pointer' }}>
-                Make offer
-              </button>
+              <button className="btn-ghost" onClick={() => setOfferMode(true)}>Make offer</button>
             )}
-            <button onClick={() => sendText(draft)} style={{ padding: '10px 20px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-              Send
-            </button>
-          </div>
+            <button className="btn-primary" onClick={() => sendText(draft)}>Send</button>
+          </>
         )}
       </div>
     </div>
@@ -398,31 +370,29 @@ function MessagesPage() {
   }, [user]);
 
   if (!user) {
-    return <div style={{ color: 'white', padding: '24px' }}>Log in to view your messages.</div>;
+    return <div className="page">Log in to view your messages.</div>;
   }
 
   const activeId = id ? Number(id) : null;
   const activeConv = conversations.find(c => c.id === activeId);
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 90px)', color: 'white' }}>
-      <div style={{ width: '320px', borderRight: '1px solid #333', overflowY: 'auto', flexShrink: 0 }}>
-        <h2 style={{ padding: '16px', margin: 0, fontSize: '18px' }}>Messages</h2>
-        {loading && <p style={{ color: '#888', padding: '0 16px' }}>Loading...</p>}
+    <div className="inbox">
+      <div className="inbox__list">
+        <h2 className="inbox__list-title">Messages</h2>
+        {loading && <p className="inbox__list-note">Loading...</p>}
         {!loading && conversations.length === 0 && (
-          <p style={{ color: '#666', padding: '0 16px', fontSize: '14px' }}>No conversations yet. Message a seller from a listing to start one.</p>
+          <p className="inbox__list-note">No conversations yet. Message a seller from a listing to start one.</p>
         )}
         {conversations.map(c => (
           <ConversationRow key={c.id} conv={c} active={c.id === activeId} onClick={() => navigate(`/messages/${c.id}`)} />
         ))}
       </div>
-      <div style={{ flex: 1 }}>
+      <div className="inbox__thread">
         {activeId ? (
           <ChatPanel conversationId={activeId} conv={activeConv} token={user.token} currentUserId={user.id} onActivity={fetchConversations} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666' }}>
-            Select a conversation
-          </div>
+          <div className="inbox__placeholder">Select a conversation</div>
         )}
       </div>
     </div>

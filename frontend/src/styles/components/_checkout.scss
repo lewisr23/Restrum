@@ -1,0 +1,208 @@
+@use '../abstracts' as *;
+
+.checkout {
+  @include page-container(860px);
+  padding-top: 40px;
+  padding-bottom: $space-xxl;
+
+  &__title {
+    margin: 0 0 $space-lg;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+  }
+
+  // Options on the left, order summary on the right, stacking on narrow
+  // screens so the summary follows what it is summarising.
+  &__layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-lg;
+    align-items: start;
+
+    @include media-up('lg') {
+      grid-template-columns: 1fr 320px;
+    }
+  }
+
+  &__section-title {
+    margin: 0 0 $space-md;
+    font-size: $font-size-lg - 2px;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+// A single outcome screen: already sold, your own listing, or confirmed.
+.checkout-outcome {
+  @include page-container(560px);
+  padding-top: $space-xxl;
+  padding-bottom: $space-xxl;
+
+  &__panel {
+    @include surface;
+    padding: 20px;
+  }
+
+  &__panel--centred {
+    padding: 40px $space-lg;
+    text-align: center;
+  }
+
+  &__icon {
+    font-size: 48px;
+  }
+
+  &__title {
+    margin: 0 0 $space-xs;
+    font-size: 22px;
+  }
+
+  &__title--large {
+    margin: $space-md 0 $space-xs;
+    font-size: $font-size-xl;
+  }
+
+  &__text {
+    margin: 0 auto $space-xs;
+    max-width: 400px;
+    color: $color-text-muted;
+    font-size: $font-size-md;
+    line-height: 1.6;
+  }
+
+  &__text--spaced {
+    margin-bottom: $space-lg;
+    font-size: 14px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  &__strong {
+    color: $color-text;
+  }
+
+  &__price {
+    color: $color-accent;
+  }
+}
+
+// Collection or delivery choice.
+.delivery-option {
+  display: block;
+  padding: 14px $space-md;
+  margin-bottom: 10px;
+  background: $color-bg-raised;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm + 2px;
+  cursor: pointer;
+
+  &--selected {
+    background: mix($color-accent, $color-bg-card, 12%);
+    border-color: $color-accent;
+  }
+
+  &__radio {
+    margin-right: 10px;
+  }
+
+  &__title {
+    font-size: 14px;
+  }
+
+  &__desc {
+    margin: 6px 0 0 $space-lg;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    line-height: 1.5;
+  }
+}
+
+// Standing note that no money moves through the site.
+.payment-note {
+  margin-top: 20px;
+  padding: 14px $space-md;
+  background: $color-bg-raised;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm + 2px;
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    line-height: 1.6;
+  }
+
+  strong {
+    color: $color-text;
+  }
+}
+
+// Order summary beside the options.
+.order-summary {
+  @include surface;
+  padding: 20px;
+
+  &__image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: $radius-sm;
+    margin-bottom: 14px;
+  }
+
+  &__seller {
+    margin: 0 0 $space-xxs;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__verified {
+    margin-left: 6px;
+    color: $color-accent;
+  }
+
+  &__title {
+    margin: 0 0 $space-sm;
+    font-size: 17px;
+    line-height: 1.35;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    padding: $space-sm 0;
+    border-top: 1px solid $color-border;
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+
+  &__row--total {
+    margin-bottom: $space-md;
+    border-bottom: 1px solid $color-border;
+    color: $color-text;
+    font-size: $font-size-md;
+    font-weight: 700;
+  }
+
+  &__total-value {
+    font-family: $font-display;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $color-accent;
+  }
+
+  &__caveat {
+    margin: 10px 0 0;
+    font-size: $font-size-xs;
+    color: $color-text-faint;
+    text-align: center;
+  }
+}

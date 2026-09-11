@@ -19,10 +19,9 @@ function Register() {
       const res = await fetch(`${API}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        // password_confirmation matches password directly - there's no
-        // separate confirm-password field in this form, so this just
-        // satisfies the API's 'confirmed' validation rule silently rather
-        // than changing the UX to add one.
+        // password_confirmation mirrors password directly. This form has no
+        // separate confirmation field, so this satisfies the API's
+        // 'confirmed' validation rule without changing the UX to add one.
         body: JSON.stringify({ ...form, password_confirmation: form.password }),
       });
       if (!res.ok) {
@@ -42,52 +41,48 @@ function Register() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '80px auto', padding: '32px', background: '#111', borderRadius: '8px', color: 'white' }}>
-      <h2 style={{ marginTop: 0 }}>Create account</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="auth-card">
+      <h2 className="auth-card__title">Create account</h2>
+      <form className="auth-card__form" onSubmit={handleSubmit}>
         <input
+          className="field"
           type="text"
           placeholder="Username"
           value={form.username}
           onChange={e => setForm({ ...form, username: e.target.value })}
           required
-          style={{ padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
         />
         <input
+          className="field"
           type="email"
           placeholder="Email"
           value={form.email}
           onChange={e => setForm({ ...form, email: e.target.value })}
           required
-          style={{ padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
         />
         <input
+          className="field"
           type="password"
           placeholder="Password (min 8 characters)"
           value={form.password}
           onChange={e => setForm({ ...form, password: e.target.value })}
           required
-          style={{ padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
         />
         <input
+          className="field"
           type="text"
           placeholder="Location (e.g. Newcastle)"
           value={form.location}
           onChange={e => setForm({ ...form, location: e.target.value })}
           required
-          style={{ padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
         />
-        {error && <p style={{ color: '#f44', margin: 0 }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: '12px', background: '#4caf50', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}
-        >
+        {error && <p className="field-error">{error}</p>}
+        <button className="btn-primary btn-block btn-lg" type="submit" disabled={loading}>
           {loading ? 'Creating account...' : 'Create account'}
         </button>
       </form>
-      <p style={{ color: '#888', marginTop: '24px', textAlign: 'center' }}>
-        Already have an account? <Link to="/login" style={{ color: '#4caf50' }}>Log in</Link>
+      <p className="auth-card__footer">
+        Already have an account? <Link className="auth-card__link" to="/login">Log in</Link>
       </p>
     </div>
   );

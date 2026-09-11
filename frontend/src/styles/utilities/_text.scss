@@ -1,0 +1,31 @@
+@use '../abstracts' as *;
+
+// Small single purpose helpers. Deliberately few: anything that grows past a
+// line or two belongs in a component partial with a name of its own.
+
+.text-muted {
+  color: $color-text-muted;
+}
+
+.text-faint {
+  color: $color-text-faint;
+}
+
+.text-error {
+  color: $color-danger;
+}
+
+.text-accent {
+  color: $color-accent;
+}
+
+// An inline word or phrase that behaves as a link but is not an anchor,
+// usually because it triggers client side navigation.
+.link-inline {
+  color: $color-accent;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

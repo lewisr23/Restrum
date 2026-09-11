@@ -1,0 +1,105 @@
+@use '../abstracts' as *;
+
+// Shared button skeleton. A placeholder rather than a .btn class, so the
+// markup carries one meaningful class (.btn-primary) instead of two.
+%button-base {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-xxs + 2px;
+  padding: 10px $space-md;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    background $transition,
+    border-color $transition,
+    color $transition,
+    transform $transition-fast;
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Filled green. The primary action on any given screen, used once per view.
+.btn-primary {
+  @extend %button-base;
+  padding: 10px $space-lg - 4px;
+  background: $color-accent;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: $color-accent-hover;
+  }
+}
+
+// Outlined. Secondary actions sitting next to a primary one.
+.btn-ghost {
+  @extend %button-base;
+  background: none;
+  border-color: $color-border-input;
+  color: $color-text;
+
+  &:hover:not(:disabled) {
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+}
+
+// Destructive, for delete and remove.
+.btn-danger {
+  @extend %button-base;
+  background: none;
+  border-color: rgba($color-danger, 0.5);
+  color: $color-danger;
+
+  &:hover:not(:disabled) {
+    background: rgba($color-danger, 0.12);
+    border-color: $color-danger;
+  }
+}
+
+// Quiet "go back" control at the top of a subpage.
+.back-link {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: $space-lg;
+  padding: $space-xs $space-md;
+  border: 1px solid $color-border-input;
+  border-radius: $radius-sm;
+  color: $color-text-soft;
+  font-size: 14px;
+  transition: border-color $transition, color $transition;
+
+  &:hover {
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+}
+
+// Modifiers, combined with any of the above.
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+.btn-lg {
+  padding: $space-md $space-lg;
+  font-size: $font-size-md;
+}
+
+.btn-sm {
+  padding: 6px $space-sm;
+  font-size: $font-size-xs;
+}

@@ -1,0 +1,72 @@
+@use '../abstracts' as *;
+
+.hero {
+  // Two soft green pools of light over a vertical fade, so the top of the
+  // page has some depth without an image to load.
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba($color-accent, 0.12), transparent),
+    radial-gradient(ellipse 60% 50% at 90% 10%, rgba($color-accent, 0.07), transparent),
+    linear-gradient(180deg, #161616 0%, $color-bg 100%);
+  border-bottom: 1px solid $color-border;
+
+  &__inner {
+    @include page-container(1300px);
+    padding-top: 64px;
+    padding-bottom: $space-xxl;
+  }
+
+  &__title {
+    margin: 0;
+    max-width: 720px;
+    // Scales with the viewport instead of stepping at a breakpoint.
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  &__title-accent {
+    color: $color-accent;
+  }
+
+  &__lede {
+    margin: $space-md 0 0;
+    max-width: 560px;
+    color: $color-text-muted;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  &__search {
+    display: block;
+    max-width: 520px;
+    margin-top: 28px;
+  }
+
+  &__points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-lg;
+    margin-top: $space-lg;
+  }
+
+  &__point {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  &__tick {
+    color: $color-accent;
+    font-weight: 700;
+  }
+
+  &__categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: $space-sm;
+    margin-top: 40px;
+  }
+}

@@ -1,0 +1,119 @@
+@use '../abstracts' as *;
+
+// Gear history: a vertical timeline of what has happened to an instrument.
+.passport {
+  margin-top: $space-xl;
+  padding-top: $space-lg;
+  border-top: 1px solid $color-border-strong;
+
+  &__heading {
+    margin: 0 0 $space-xxs;
+    font-size: $font-size-lg;
+  }
+
+  &__serial {
+    margin: $space-xxs 0;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  &__empty {
+    margin: $space-md 0;
+    font-size: 14px;
+    color: $color-text-faint;
+  }
+
+  &__timeline {
+    margin-top: $space-md;
+  }
+
+  &__entry {
+    display: flex;
+    gap: $space-md;
+    margin-bottom: 20px;
+  }
+
+  // Dot and connecting line down the left of each entry.
+  &__marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__dot {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    margin-top: $space-xxs;
+    border-radius: 50%;
+    background: $color-accent;
+  }
+
+  &__line {
+    flex: 1;
+    width: 2px;
+    margin-top: $space-xxs;
+    background: $color-border-strong;
+  }
+
+  &__body {
+    padding-bottom: $space-xs;
+  }
+
+  &__type {
+    margin: 0 0 2px;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $color-accent;
+  }
+
+  &__date {
+    color: $color-text-muted;
+    font-weight: 400;
+  }
+
+  &__description {
+    margin: 0;
+    font-size: 14px;
+    color: $color-text-soft;
+    line-height: 1.5;
+  }
+
+  &__edit {
+    @include button-reset;
+    margin-top: $space-xxs;
+    padding: 2px $space-xs;
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-sm - 2px;
+    color: $color-text-muted;
+    font-size: 11px;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+
+  &__add {
+    margin-top: $space-xs;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+    max-width: 400px;
+    margin-top: $space-md;
+  }
+
+  &__form-label {
+    margin: 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+
+  &__form-actions {
+    display: flex;
+    gap: $space-xs;
+  }
+}

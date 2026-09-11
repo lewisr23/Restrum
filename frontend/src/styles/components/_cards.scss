@@ -1,0 +1,171 @@
+@use '../abstracts' as *;
+
+// Listing tile in the browse grid.
+.listing-card {
+  @include surface;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(#000, 0.25);
+  transition:
+    transform $transition,
+    border-color $transition,
+    box-shadow $transition;
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: $color-accent;
+    box-shadow: 0 10px 24px rgba(#000, 0.4);
+  }
+
+  &--sold {
+    opacity: 0.55;
+  }
+
+  &__image,
+  &__placeholder {
+    display: block;
+    width: 100%;
+    height: 170px;
+  }
+
+  &__image {
+    object-fit: cover;
+  }
+
+  // Shown when a listing has no photo, so the tile still reads as gear
+  // rather than as a broken image.
+  &__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #232323, $color-bg-raised);
+    font-size: 40px;
+    opacity: 0.5;
+  }
+
+  &__badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    padding: 2px $space-xs;
+    background: $color-accent;
+    border-radius: $radius-sm - 2px;
+    color: $color-bg;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  // Plays the listing's first audio demo without leaving the grid.
+  &__audio-toggle {
+    @include button-reset;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(#000, 0.65);
+    color: #fff;
+    font-size: 14px;
+    transition: background $transition;
+
+    &:hover {
+      background: rgba(#000, 0.85);
+    }
+  }
+
+  &__body {
+    padding: $space-sm 14px 14px;
+  }
+
+  &__category {
+    margin: 0 0 3px;
+    font-size: 11px;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+
+  &__title {
+    margin: 0 0 6px;
+    font-size: $font-size-md;
+    font-weight: 600;
+    line-height: 1.35;
+    @include truncate(2);
+  }
+
+  &__price {
+    margin: 0 0 $space-xxs;
+    font-family: $font-display;
+    font-size: $font-size-lg;
+    font-weight: 700;
+    color: $color-accent;
+  }
+
+  &__location {
+    margin: 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+}
+
+// Category tile on the homepage hero.
+.cat-tile {
+  @include surface($color-bg-card);
+  padding: $space-md;
+  cursor: pointer;
+  text-align: left;
+  // A button, so it needs the colour spelled out: without this it falls
+  // back to the browser's dark default text and vanishes on the dark card.
+  color: $color-text;
+  font-family: inherit;
+  transition:
+    transform $transition,
+    border-color $transition,
+    background $transition;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: $color-accent;
+    background: mix($color-accent, $color-bg-card, 8%);
+  }
+
+  // The tile for the category currently being browsed.
+  &--active {
+    background: mix($color-accent, $color-bg-card, 12%);
+    border-color: $color-accent;
+  }
+
+  &__icon {
+    display: block;
+    font-size: $font-size-xl;
+  }
+
+  &__name {
+    display: block;
+    margin-top: 10px;
+    font-family: $font-display;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &__blurb {
+    display: block;
+    margin-top: 3px;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+}
+
+// Generic panel used by forms, detail sidebars and empty states.
+.panel {
+  @include surface;
+  padding: $space-lg;
+}

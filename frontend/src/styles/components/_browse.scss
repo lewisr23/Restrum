@@ -1,0 +1,138 @@
+@use '../abstracts' as *;
+
+// The results section under the hero: heading, filter bar, and the grid.
+.browse {
+  @include page-container(1300px);
+  padding-top: 40px;
+  padding-bottom: 64px;
+  // Clears the sticky navbar when a category tile scrolls this into view.
+  scroll-margin-top: 80px;
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $space-sm;
+    margin-bottom: 20px;
+  }
+
+  &__heading {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  &__count {
+    margin-left: 10px;
+    font-family: $font-body;
+    font-size: 14px;
+    font-weight: 500;
+    color: $color-text-muted;
+  }
+
+  &__filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $space-xs;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 20px;
+  }
+
+  // Dashed box rather than the solid card border, so an empty result reads
+  // as "nothing matched" instead of a broken card.
+  &__empty {
+    padding: $space-xxl $space-lg;
+    text-align: center;
+    border: 1px dashed $color-border-strong;
+    border-radius: $radius;
+    color: $color-text-muted;
+    font-size: $font-size-md;
+  }
+}
+
+// Pill toggle for the category row.
+.filter-pill {
+  @include button-reset;
+  padding: 7px 14px;
+  background: $color-bg-card;
+  border: 1px solid $color-border;
+  border-radius: $radius-pill;
+  color: $color-text;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  transition: background $transition, color $transition, border-color $transition;
+
+  &:hover {
+    border-color: $color-border-strong;
+  }
+
+  &--active {
+    background: #fff;
+    border-color: transparent;
+    color: #000;
+  }
+}
+
+// Min and max price inputs, split off from the category pills by a rule.
+.price-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: $space-xxs;
+  padding-left: $space-sm;
+  border-left: 1px solid $color-border;
+
+  &__symbol,
+  &__separator {
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  &__input {
+    width: 70px;
+    padding: 6px $space-xs;
+    background: $color-bg-card;
+    color: $color-text;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    font-size: $font-size-sm;
+
+    &:focus {
+      @include focus-ring;
+    }
+  }
+
+  &__clear {
+    @include button-reset;
+    padding: 6px 10px;
+    background: none;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+}
+
+// Column layout holding the navbar, routed page and footer, so the footer
+// sits at the bottom of short pages instead of floating mid screen.
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+
+  &__main {
+    flex: 1;
+  }
+}

@@ -36,36 +36,32 @@ function Login() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '80px auto', padding: '32px', background: '#111', borderRadius: '8px', color: 'white' }}>
-      <h2 style={{ marginTop: 0 }}>Log in</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="auth-card">
+      <h2 className="auth-card__title">Log in</h2>
+      <form className="auth-card__form" onSubmit={handleSubmit}>
         <input
+          className="field"
           type="text"
           placeholder="Email or username"
           value={form.login}
           onChange={e => setForm({ ...form, login: e.target.value })}
           required
-          style={{ padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
         />
         <input
+          className="field"
           type="password"
           placeholder="Password"
           value={form.password}
           onChange={e => setForm({ ...form, password: e.target.value })}
           required
-          style={{ padding: '10px', background: '#1a1a1a', border: '1px solid #444', color: 'white', borderRadius: '4px' }}
         />
-        {error && <p style={{ color: '#f44', margin: 0 }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: '12px', background: '#4caf50', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}
-        >
+        {error && <p className="field-error">{error}</p>}
+        <button className="btn-primary btn-block btn-lg" type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Log in'}
         </button>
       </form>
-      <p style={{ color: '#888', marginTop: '24px', textAlign: 'center' }}>
-        Don't have an account? <Link to="/register" style={{ color: '#4caf50' }}>Register</Link>
+      <p className="auth-card__footer">
+        Don't have an account? <Link className="auth-card__link" to="/register">Register</Link>
       </p>
     </div>
   );

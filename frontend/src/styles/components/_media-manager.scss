@@ -1,0 +1,64 @@
+@use '../abstracts' as *;
+
+// The "existing media" list on the edit listing form: one row per attached
+// photo, audio clip or video, each removable.
+.media-manager {
+  margin-top: $space-xs;
+  padding-top: 20px;
+  border-top: 1px solid $color-border-strong;
+
+  &__heading {
+    margin: 0 0 $space-xxs;
+    font-size: $font-size-lg - 2px;
+  }
+
+  &__intro {
+    margin: 0 0 $space-md;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: $space-xs;
+    margin-bottom: 20px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: $space-xs 10px;
+    background: $color-bg-raised;
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-sm - 2px;
+  }
+
+  &__thumb {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: $radius-sm - 2px;
+  }
+
+  // Stand in for audio and video, which have no thumbnail of their own.
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    background: $color-bg-elevated;
+    border-radius: $radius-sm - 2px;
+    font-size: $font-size-lg - 2px;
+  }
+
+  &__label {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: $color-text-soft;
+  }
+}

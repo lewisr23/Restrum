@@ -1,0 +1,280 @@
+@use '../abstracts' as *;
+
+// Inbox: conversation list beside the open thread. The navbar is roughly
+// 90px, so the two panes fill what is left and scroll independently rather
+// than the whole page scrolling.
+.inbox {
+  display: flex;
+  height: calc(100vh - 90px);
+
+  &__list {
+    flex-shrink: 0;
+    width: 320px;
+    overflow-y: auto;
+    border-right: 1px solid $color-border-strong;
+  }
+
+  &__list-title {
+    margin: 0;
+    padding: $space-md;
+    font-size: $font-size-lg;
+  }
+
+  &__list-note {
+    padding: 0 $space-md;
+    font-size: 14px;
+    color: $color-text-faint;
+  }
+
+  &__thread {
+    flex: 1;
+  }
+
+  &__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: $color-text-faint;
+  }
+
+  // On narrow screens the list takes the full width and the thread opens
+  // beneath it, since side by side at 320px leaves nothing for the chat.
+  @include media-down('md') {
+    flex-direction: column;
+    height: auto;
+
+    &__list {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid $color-border-strong;
+    }
+  }
+}
+
+.conversation-row {
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid $color-bg-elevated;
+  cursor: pointer;
+  transition: background $transition;
+
+  &:hover {
+    background: rgba($color-bg-raised, 0.6);
+  }
+
+  &--active {
+    background: $color-bg-raised;
+  }
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &__verified {
+    margin-left: 6px;
+    font-size: 11px;
+    color: $color-accent;
+  }
+
+  &__unread {
+    padding: 1px 7px;
+    background: $color-accent;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 11px;
+  }
+
+  &__listing {
+    margin: 2px 0 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+
+  &__preview {
+    margin: 2px 0 0;
+    font-size: $font-size-xs;
+    color: $color-text-faint;
+    @include truncate;
+  }
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__header {
+    padding: $space-md;
+    border-bottom: 1px solid $color-border-strong;
+  }
+
+  &__header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $space-sm;
+  }
+
+  &__name {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  &__verified {
+    margin-left: $space-xs;
+    font-size: $font-size-sm;
+    color: $color-accent;
+  }
+
+  &__subject {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  &__endorsed {
+    font-size: $font-size-xs;
+    color: $color-accent;
+    white-space: nowrap;
+  }
+
+  &__error {
+    margin: 6px 0 0;
+    font-size: $font-size-xs;
+    color: $color-danger;
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: $space-xs;
+    padding: $space-md;
+    overflow-y: auto;
+  }
+
+  &__empty {
+    color: $color-text-muted;
+  }
+
+  &__suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: $space-xs;
+    max-width: 360px;
+  }
+
+  &__suggestion {
+    @include button-reset;
+    padding: 10px 14px;
+    background: $color-bg-raised;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-sm + 2px;
+    color: $color-text-soft;
+    text-align: left;
+    transition: border-color $transition, color $transition;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+
+  &__composer {
+    display: flex;
+    gap: $space-xs;
+    padding: $space-sm $space-md;
+    border-top: 1px solid $color-border-strong;
+  }
+
+  &__composer-prefix {
+    align-self: center;
+    color: $color-text-muted;
+  }
+
+  &__composer-input {
+    flex: 1;
+  }
+}
+
+// One message. Mine sit right and green, theirs left and dark; an offer is
+// its own colour again so it never reads as ordinary chat.
+.bubble {
+  align-self: flex-start;
+  max-width: 70%;
+
+  &--mine {
+    align-self: flex-end;
+  }
+
+  &__body {
+    padding: 10px 14px;
+    background: $color-bg-raised;
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-lg - 4px;
+    font-size: 14px;
+  }
+
+  &--mine &__body {
+    background: $color-accent;
+    border-color: transparent;
+    color: $color-bg;
+  }
+
+  &--offer &__body,
+  &--mine.bubble--offer &__body {
+    background: mix($color-accent, $color-bg, 25%);
+    border: 1px solid $color-accent;
+    color: $color-text;
+  }
+
+  &__offer-amount {
+    margin: 0 0 $space-xxs;
+    font-weight: 700;
+    color: $color-accent;
+  }
+
+  &__text {
+    margin: 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 6px;
+    margin-top: $space-xs;
+  }
+
+  &__status {
+    margin: 6px 0 0;
+    font-size: $font-size-xs;
+    color: $color-text-soft;
+
+    &--accepted {
+      color: $color-accent;
+      font-weight: 600;
+    }
+
+    &--declined {
+      color: $color-danger;
+      font-weight: 600;
+    }
+  }
+
+  &__time {
+    margin: 2px $space-xxs 0;
+    font-size: 11px;
+    color: $color-text-faint;
+  }
+
+  &--mine &__time {
+    text-align: right;
+  }
+}

@@ -26,8 +26,8 @@ interface MediaItem {
 }
 
 
-// Same upload helper/pattern as CreateListing.tsx's uploadMedia -- one
-// multipart request per file, against an already-existing listing ID. Kept
+// Same upload helper and pattern as CreateListing.tsx's uploadMedia: one
+// multipart request per file, against a listing ID that already exists. Kept
 // as a duplicate here rather than a shared import since these two
 // components don't otherwise share a module and it's a small function.
 async function uploadNewMedia(listingId: string, file: File, mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO', token: string) {
@@ -116,7 +116,7 @@ function EditListing() {
           const body = await res.json();
           detail = body?.message || detail;
         } catch {
-          // response wasn't JSON -- stick with the status code
+          // response wasn't JSON, so stick with the status code
         }
         window.alert(`Couldn't remove this file: ${detail}`);
       }
@@ -129,15 +129,17 @@ function EditListing() {
 
   if (!user) {
     return (
-      <div style={{ padding: '24px', color: 'white' }}>
-        <p>You need to <span style={{ color: '#4caf50', cursor: 'pointer' }} onClick={() => navigate('/login')}>log in</span> to edit a listing.</p>
+      <div className="page">
+        <p>
+          You need to <span className="link-inline" onClick={() => navigate('/login')}>log in</span> to edit a listing.
+        </p>
       </div>
     );
   }
 
-  if (loading) return <div style={{ color: 'white', padding: '24px' }}>Loading...</div>;
-  if (notAllowed) return <div style={{ color: 'white', padding: '24px' }}>You can only edit your own listings.</div>;
-  if (error) return <div style={{ color: 'white', padding: '24px' }}>{error}</div>;
+  if (loading) return <div className="page text-muted">Loading...</div>;
+  if (notAllowed) return <div className="page">You can only edit your own listings.</div>;
+  if (error) return <div className="page text-error">{error}</div>;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -170,8 +172,8 @@ function EditListing() {
         return;
       }
 
-      // Text fields saved -- now upload any newly selected media against
-      // the same listing, same best-effort pattern as CreateListing: a
+      // Text fields saved, so now upload any newly selected media against
+      // the same listing, same best effort pattern as CreateListing: a
       // failed file doesn't block the rest of the save.
       const failed: string[] = [];
       const allUploads: { file: File; mediaType: 'IMAGE' | 'AUDIO' | 'VIDEO' }[] = [
@@ -200,84 +202,74 @@ function EditListing() {
     }
   };
 
-  const fileInputStyle = {
-    width: '100%',
-    padding: '10px',
-    marginBottom: '8px',
-    background: '#1a1a1a',
-    color: 'white',
-    border: '1px solid #444',
-    borderRadius: '4px',
-    boxSizing: 'border-box' as const,
-  };
-
   const mediaTypeIcon: Record<string, string> = { IMAGE: '🖼️', AUDIO: '♪', VIDEO: '▶' };
 
   return (
-    <div style={{ padding: '24px', color: 'white', maxWidth: '500px' }}>
-      <button
-        onClick={() => navigate(`/listing/${id}`)}
-        style={{ background: 'none', border: '1px solid #444', color: 'white', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', marginBottom: '24px' }}
-      >
-        ← Back
-      </button>
-      <h1 style={{ marginBottom: '24px' }}>Edit Listing</h1>
+    <div className="page page--form">
+      <button className="back-link" onClick={() => navigate(`/listing/${id}`)}>← Back</button>
+      <h1 className="page__title">Edit Listing</h1>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Title *</label>
-        <input name="title" value={form.title} onChange={handleChange} required
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', boxSizing: 'border-box' }} />
+      <form className="form" onSubmit={handleSubmit}>
+        <div className="field-group">
+          <label className="field-label" htmlFor="title">Title *</label>
+          <input className="field" id="title" name="title" value={form.title} onChange={handleChange} required />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Price (£) *</label>
-        <input name="price" value={form.price} onChange={handleChange} type="number" required
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', boxSizing: 'border-box' }} />
+        <div className="field-group">
+          <label className="field-label" htmlFor="price">Price (£) *</label>
+          <input className="field" id="price" name="price" type="number" value={form.price} onChange={handleChange} required />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Location *</label>
-        <input name="location" value={form.location} onChange={handleChange} required
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', boxSizing: 'border-box' }} />
+        <div className="field-group">
+          <label className="field-label" htmlFor="location">Location *</label>
+          <input className="field" id="location" name="location" value={form.location} onChange={handleChange} required />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Category</label>
-        <select name="category" value={form.category} onChange={handleChange}
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px' }}>
-          {Object.keys(categoryToEnum).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
+        <div className="field-group">
+          <label className="field-label" htmlFor="category">Category</label>
+          <select className="field field--select" id="category" name="category" value={form.category} onChange={handleChange}>
+            {Object.keys(categoryToEnum).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Condition</label>
-        <select name="condition" value={form.condition} onChange={handleChange}
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px' }}>
-          {conditionOptions.map(c => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
-        </select>
+        <div className="field-group">
+          <label className="field-label" htmlFor="condition">Condition</label>
+          <select className="field field--select" id="condition" name="condition" value={form.condition} onChange={handleChange}>
+            {conditionOptions.map(c => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
+          </select>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Description</label>
-        <textarea name="description" value={form.description} onChange={handleChange}
-          rows={4}
-          style={{ width: '100%', padding: '10px', marginBottom: '8px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box' }} />
-        <div style={{ borderTop: '1px solid #333', paddingTop: '20px', marginTop: '8px' }}>
-          <h3 style={{ margin: '0 0 4px', fontSize: '16px' }}>Media</h3>
-          <p style={{ margin: '0 0 16px', color: '#888', fontSize: '13px' }}>
+        <div className="field-group">
+          <label className="field-label" htmlFor="description">Description</label>
+          <textarea className="field field--textarea" id="description" name="description" value={form.description} onChange={handleChange} rows={4} />
+        </div>
+
+        <div className="media-manager">
+          <h3 className="media-manager__heading">Media</h3>
+          <p className="media-manager__intro">
             Remove existing photos, audio, or video, or add more below.
           </p>
 
           {existingMedia.length === 0 && (
-            <p style={{ color: '#666', fontSize: '13px', marginBottom: '16px' }}>No media on this listing yet.</p>
+            <p className="media-manager__intro">No media on this listing yet.</p>
           )}
           {existingMedia.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+            <div className="media-manager__list">
               {existingMedia.map(m => (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: '#1a1a1a', border: '1px solid #333', borderRadius: '4px' }}>
+                <div key={m.id} className="media-manager__row">
                   {m.media_type === 'IMAGE' ? (
-                    <img src={mediaUrl(m.url)} alt="" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }} />
+                    <img className="media-manager__thumb" src={mediaUrl(m.url)} alt="" />
                   ) : (
-                    <span style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#222', borderRadius: '4px', fontSize: '16px', flexShrink: 0 }}>
-                      {mediaTypeIcon[m.media_type]}
-                    </span>
+                    <span className="media-manager__icon">{mediaTypeIcon[m.media_type]}</span>
                   )}
-                  <span style={{ flex: 1, fontSize: '13px', color: '#ccc' }}>{m.media_type.charAt(0) + m.media_type.slice(1).toLowerCase()}</span>
+                  <span className="media-manager__label">
+                    {m.media_type.charAt(0) + m.media_type.slice(1).toLowerCase()}
+                  </span>
                   <button
+                    className="btn-danger btn-sm"
                     type="button"
                     onClick={() => handleRemoveMedia(m.id)}
                     disabled={removingId === m.id}
-                    style={{ padding: '5px 12px', background: 'none', color: '#f44', border: '1px solid #f44', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
                   >
                     {removingId === m.id ? '...' : 'Remove'}
                   </button>
@@ -286,36 +278,38 @@ function EditListing() {
             </div>
           )}
 
-          <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Add photos</label>
-          <input type="file" accept="image/*" multiple
-            onChange={e => setNewImages(e.target.files ? Array.from(e.target.files) : [])}
-            style={fileInputStyle} />
-          <p style={{ margin: '0 0 16px', color: '#666', fontSize: '12px' }}>
-            {newImages.length > 0 ? `${newImages.length} photo(s) selected` : 'Optional.'}
-          </p>
+          <div className="field-group">
+            <label className="field-label" htmlFor="photos">Add photos</label>
+            <input className="field field--file" id="photos" type="file" accept="image/*" multiple
+              onChange={e => setNewImages(e.target.files ? Array.from(e.target.files) : [])} />
+            <p className="field-hint">
+              {newImages.length > 0 ? `${newImages.length} photo(s) selected` : 'Optional.'}
+            </p>
+          </div>
 
-          <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Add audio demo</label>
-          <input type="file" accept="audio/*" multiple
-            onChange={e => setNewAudioFiles(e.target.files ? Array.from(e.target.files) : [])}
-            style={fileInputStyle} />
-          <p style={{ margin: '0 0 16px', color: '#666', fontSize: '12px' }}>
-            {newAudioFiles.length > 0 ? `${newAudioFiles.length} audio file(s) selected` : 'Optional.'}
-          </p>
+          <div className="field-group">
+            <label className="field-label" htmlFor="audio">Add audio demo</label>
+            <input className="field field--file" id="audio" type="file" accept="audio/*" multiple
+              onChange={e => setNewAudioFiles(e.target.files ? Array.from(e.target.files) : [])} />
+            <p className="field-hint">
+              {newAudioFiles.length > 0 ? `${newAudioFiles.length} audio file(s) selected` : 'Optional.'}
+            </p>
+          </div>
 
-          <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Add video demo</label>
-          <input type="file" accept="video/*" multiple
-            onChange={e => setNewVideoFiles(e.target.files ? Array.from(e.target.files) : [])}
-            style={fileInputStyle} />
-          <p style={{ margin: '0 0 24px', color: '#666', fontSize: '12px' }}>
-            {newVideoFiles.length > 0 ? `${newVideoFiles.length} video file(s) selected` : 'Optional.'}
-          </p>
+          <div className="field-group">
+            <label className="field-label" htmlFor="video">Add video demo</label>
+            <input className="field field--file" id="video" type="file" accept="video/*" multiple
+              onChange={e => setNewVideoFiles(e.target.files ? Array.from(e.target.files) : [])} />
+            <p className="field-hint">
+              {newVideoFiles.length > 0 ? `${newVideoFiles.length} video file(s) selected` : 'Optional.'}
+            </p>
+          </div>
         </div>
 
-        {error && <p style={{ color: '#f44', margin: '0 0 16px' }}>{error}</p>}
-        {uploadStatus && <p style={{ color: '#4caf50', margin: '0 0 16px', fontSize: '13px' }}>{uploadStatus}</p>}
+        {error && <p className="field-error">{error}</p>}
+        {uploadStatus && <p className="form__status">{uploadStatus}</p>}
 
-        <button type="submit" disabled={saving}
-          style={{ width: '100%', padding: '12px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}>
+        <button className="btn-primary btn-block btn-lg" type="submit" disabled={saving}>
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </form>

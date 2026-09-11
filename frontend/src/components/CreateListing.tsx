@@ -48,8 +48,10 @@ function CreateListing() {
 
   if (!user) {
     return (
-      <div style={{ padding: '24px', color: 'white' }}>
-        <p>You need to <span style={{ color: '#4caf50', cursor: 'pointer' }} onClick={() => navigate('/login')}>log in</span> to create a listing.</p>
+      <div className="page">
+        <p>
+          You need to <span className="link-inline" onClick={() => navigate('/login')}>log in</span> to create a listing.
+        </p>
       </div>
     );
   }
@@ -87,8 +89,8 @@ function CreateListing() {
       // Wrapped in {data: {...listing}} by Laravel's JsonResource.
       const { data } = await res.json();
 
-      // Listing exists now — upload any media against it. Best-effort: if a
-      // file fails (too big, wrong type, network blip) we still take the
+      // Listing exists now, so upload any media against it. Best effort: if
+      // a file fails (too big, wrong type, network blip) we still take the
       // user to their new listing rather than stranding them on this form,
       // but we tell them what didn't make it.
       const failed: string[] = [];
@@ -110,8 +112,8 @@ function CreateListing() {
       setUploadStatus('');
 
       if (failed.length > 0) {
-        // Still navigate — the listing was created successfully, media is
-        // secondary. Just let them know before we leave.
+        // Still navigate. The listing was created successfully and media is
+        // secondary, so just let them know before we leave.
         window.alert(`Listing posted, but these files failed to upload: ${failed.join(', ')}`);
       }
 
@@ -122,86 +124,85 @@ function CreateListing() {
     setLoading(false);
   };
 
-  const fileInputStyle = {
-    width: '100%',
-    padding: '10px',
-    marginBottom: '8px',
-    background: '#1a1a1a',
-    color: 'white',
-    border: '1px solid #444',
-    borderRadius: '4px',
-    boxSizing: 'border-box' as const,
-  };
-
   return (
-    <div style={{ padding: '24px', color: 'white', maxWidth: '500px' }}>
-      <button
-        onClick={() => navigate('/')}
-        style={{ background: 'none', border: '1px solid #444', color: 'white', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', marginBottom: '24px' }}
-      >
-        ← Back
-      </button>
-      <h1 style={{ marginBottom: '24px' }}>Create a Listing</h1>
+    <div className="page page--form">
+      <button className="back-link" onClick={() => navigate('/')}>← Back</button>
+      <h1 className="page__title">Create a Listing</h1>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Title *</label>
-        <input name="title" value={form.title} onChange={handleChange} placeholder="e.g. Fender Stratocaster" required
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', boxSizing: 'border-box' }} />
+      <form className="form" onSubmit={handleSubmit}>
+        <div className="field-group">
+          <label className="field-label" htmlFor="title">Title *</label>
+          <input className="field" id="title" name="title" value={form.title} onChange={handleChange} placeholder="e.g. Fender Stratocaster" required />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Price (£) *</label>
-        <input name="price" value={form.price} onChange={handleChange} placeholder="e.g. 450" type="number" required
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', boxSizing: 'border-box' }} />
+        <div className="field-group">
+          <label className="field-label" htmlFor="price">Price (£) *</label>
+          <input className="field" id="price" name="price" type="number" value={form.price} onChange={handleChange} placeholder="e.g. 450" required />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Location *</label>
-        <input name="location" value={form.location} onChange={handleChange} placeholder="e.g. Newcastle" required
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', boxSizing: 'border-box' }} />
+        <div className="field-group">
+          <label className="field-label" htmlFor="location">Location *</label>
+          <input className="field" id="location" name="location" value={form.location} onChange={handleChange} placeholder="e.g. Newcastle" required />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Category</label>
-        <select name="category" value={form.category} onChange={handleChange}
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px' }}>
-          {Object.keys(categoryToEnum).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
+        <div className="field-group">
+          <label className="field-label" htmlFor="category">Category</label>
+          <select className="field field--select" id="category" name="category" value={form.category} onChange={handleChange}>
+            {Object.keys(categoryToEnum).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Condition</label>
-        <select name="condition" value={form.condition} onChange={handleChange}
-          style={{ width: '100%', padding: '10px', marginBottom: '16px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px' }}>
-          {conditionOptions.map(c => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
-        </select>
+        <div className="field-group">
+          <label className="field-label" htmlFor="condition">Condition</label>
+          <select className="field field--select" id="condition" name="condition" value={form.condition} onChange={handleChange}>
+            {conditionOptions.map(c => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
+          </select>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Description</label>
-        <textarea name="description" value={form.description} onChange={handleChange} placeholder="Describe the item, condition, what's included..."
-          rows={4}
-          style={{ width: '100%', padding: '10px', marginBottom: '24px', background: '#1a1a1a', color: 'white', border: '1px solid #444', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box' }} />
+        <div className="field-group">
+          <label className="field-label" htmlFor="description">Description</label>
+          <textarea
+            className="field field--textarea"
+            id="description"
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            placeholder="Describe the item, condition, what's included..."
+            rows={4}
+          />
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Photos</label>
-        <input type="file" accept="image/*" multiple
-          onChange={e => setImages(e.target.files ? Array.from(e.target.files) : [])}
-          style={fileInputStyle} />
-        <p style={{ margin: '0 0 16px', color: '#666', fontSize: '12px' }}>
-          {images.length > 0 ? `${images.length} photo(s) selected` : 'Optional, but listings with photos get more interest.'}
-        </p>
+        <div className="field-group">
+          <label className="field-label" htmlFor="photos">Photos</label>
+          <input className="field field--file" id="photos" type="file" accept="image/*" multiple
+            onChange={e => setImages(e.target.files ? Array.from(e.target.files) : [])} />
+          <p className="field-hint">
+            {images.length > 0 ? `${images.length} photo(s) selected` : 'Optional, but listings with photos get more interest.'}
+          </p>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Audio demo</label>
-        <input type="file" accept="audio/*" multiple
-          onChange={e => setAudioFiles(e.target.files ? Array.from(e.target.files) : [])}
-          style={fileInputStyle} />
-        <p style={{ margin: '0 0 16px', color: '#666', fontSize: '12px' }}>
-          {audioFiles.length > 0 ? `${audioFiles.length} audio file(s) selected` : 'A short clip proving it actually sounds good.'}
-        </p>
+        <div className="field-group">
+          <label className="field-label" htmlFor="audio">Audio demo</label>
+          <input className="field field--file" id="audio" type="file" accept="audio/*" multiple
+            onChange={e => setAudioFiles(e.target.files ? Array.from(e.target.files) : [])} />
+          <p className="field-hint">
+            {audioFiles.length > 0 ? `${audioFiles.length} audio file(s) selected` : 'A short clip proving it actually sounds good.'}
+          </p>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>Video demo</label>
-        <input type="file" accept="video/*" multiple
-          onChange={e => setVideoFiles(e.target.files ? Array.from(e.target.files) : [])}
-          style={fileInputStyle} />
-        <p style={{ margin: '0 0 24px', color: '#666', fontSize: '12px' }}>
-          {videoFiles.length > 0 ? `${videoFiles.length} video file(s) selected` : 'Show it being played, and show any cosmetic damage up close.'}
-        </p>
+        <div className="field-group">
+          <label className="field-label" htmlFor="video">Video demo</label>
+          <input className="field field--file" id="video" type="file" accept="video/*" multiple
+            onChange={e => setVideoFiles(e.target.files ? Array.from(e.target.files) : [])} />
+          <p className="field-hint">
+            {videoFiles.length > 0 ? `${videoFiles.length} video file(s) selected` : 'Show it being played, and show any cosmetic damage up close.'}
+          </p>
+        </div>
 
-        {error && <p style={{ color: '#f44', margin: '0 0 16px' }}>{error}</p>}
-        {uploadStatus && <p style={{ color: '#4caf50', margin: '0 0 16px', fontSize: '13px' }}>{uploadStatus}</p>}
+        {error && <p className="field-error">{error}</p>}
+        {uploadStatus && <p className="form__status">{uploadStatus}</p>}
 
-        <button type="submit" disabled={loading}
-          style={{ width: '100%', padding: '12px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}>
+        <button className="btn-primary btn-block btn-lg" type="submit" disabled={loading}>
           {loading ? 'Posting...' : 'Post Listing'}
         </button>
       </form>

@@ -1,0 +1,38 @@
+// SCSS variables exist only at build time, but plenty of the app still sets
+// colours from TypeScript. Re-publishing the palette as CSS custom
+// properties keeps both able to read the same values, with the SCSS
+// definitions in abstracts/_variables.scss as the one source.
+
+@use '../abstracts' as *;
+
+:root {
+  --bg: #{$color-bg};
+  --bg-sunken: #{$color-bg-sunken};
+  --bg-raised: #{$color-bg-raised};
+  --bg-card: #{$color-bg-card};
+  --bg-elevated: #{$color-bg-elevated};
+
+  --border: #{$color-border};
+  --border-strong: #{$color-border-strong};
+  --border-input: #{$color-border-input};
+
+  --text: #{$color-text};
+  --text-soft: #{$color-text-soft};
+  --text-muted: #{$color-text-muted};
+  --text-faint: #{$color-text-faint};
+
+  --accent: #{$color-accent};
+  --accent-hover: #{$color-accent-hover};
+  --accent-dark: #{$color-accent-dark};
+
+  --good: #{$color-good};
+  --warning: #{$color-warning};
+  --danger: #{$color-danger};
+
+  --font-body: #{$font-body};
+  --font-display: #{$font-display};
+
+  --radius-sm: #{$radius-sm};
+  --radius: #{$radius};
+  --radius-lg: #{$radius-lg};
+}

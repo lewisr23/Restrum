@@ -39,21 +39,23 @@ function SavedListings() {
 
   if (!user) {
     return (
-      <div style={{ padding: '24px', color: 'white' }}>
-        <p>You need to <span style={{ color: '#4caf50', cursor: 'pointer' }} onClick={() => navigate('/login')}>log in</span> to see your saved listings.</p>
+      <div className="page">
+        <p>
+          You need to <span className="link-inline" onClick={() => navigate('/login')}>log in</span> to see your saved listings.
+        </p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '24px', color: 'white', maxWidth: '1300px', margin: '0 auto' }}>
-      <h1 style={{ marginBottom: '24px' }}>Saved Listings</h1>
-      {loading && <p style={{ color: '#888' }}>Loading...</p>}
-      {error && <p style={{ color: '#f44' }}>{error}</p>}
+    <div className="page">
+      <h1 className="page__title">Saved Listings</h1>
+      {loading && <p className="text-muted">Loading...</p>}
+      {error && <p className="text-error">{error}</p>}
       {!loading && !error && listings.length === 0 && (
-        <p style={{ color: '#888' }}>Nothing saved yet — bookmark a listing from its page to see it here.</p>
+        <p className="empty-state">Nothing saved yet. Bookmark a listing from its page to see it here.</p>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+      <div className="listing-grid">
         {listings.map(listing => (
           <ListingCard
             key={listing.id}

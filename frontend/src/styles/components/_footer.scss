@@ -1,0 +1,77 @@
+@use '../abstracts' as *;
+
+.site-footer {
+  margin-top: $space-xxl;
+  background: mix($color-bg, $color-bg-raised, 50%);
+  border-top: 1px solid $color-bg-elevated;
+
+  &__inner {
+    @include page-container(1100px);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-xl;
+    padding-top: 40px;
+    padding-bottom: 40px;
+
+    @include media-up('md') {
+      grid-template-columns: 1.4fr 1fr 1fr;
+    }
+  }
+
+  &__brand {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  &__brand-accent {
+    color: $color-accent;
+  }
+
+  &__blurb {
+    margin: 10px 0 0;
+    max-width: 320px;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    line-height: 1.6;
+  }
+
+  &__heading {
+    margin: 0 0 14px;
+    font-size: $font-size-sm;
+    color: $color-text-faint;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  &__link {
+    @include button-reset;
+    display: block;
+    margin-bottom: 10px;
+    text-align: left;
+    font-size: 14px;
+    color: $color-text-soft;
+    transition: color $transition;
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+
+  &__note {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: $color-text-soft;
+    line-height: 1.6;
+  }
+
+  &__legal {
+    @include page-container(1100px);
+    padding-top: $space-md;
+    padding-bottom: $space-md;
+    border-top: 1px solid $color-bg-elevated;
+    font-size: $font-size-xs;
+    color: #555;
+  }
+}

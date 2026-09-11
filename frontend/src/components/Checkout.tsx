@@ -5,12 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { API, mediaUrl } from '../lib/config';
 
 // Checkout page for the direct Buy Now flow. Deliberately does NOT process
-// real payment — this is peer-to-peer (like Gumtree/Facebook Marketplace):
-// the platform records the sale and the buyer and seller arrange payment and
-// collection/delivery between themselves via the existing messaging feature.
+// real payment. This is peer to peer, in the style of Gumtree or Facebook
+// Marketplace: the platform records the sale, and buyer and seller arrange
+// payment and collection between themselves through the messaging feature.
 // This is a documented scope decision, not a missing feature: real card
 // processing would need a payment processor integration, live card-data
-// compliance, and webhook handling — out of proportion for this project.
+// compliance, and webhook handling, all out of proportion for this project.
 function Checkout() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -21,9 +21,9 @@ function Checkout() {
   const [error, setError] = useState('');
   const [buying, setBuying] = useState(false);
   const [purchased, setPurchased] = useState(false);
-  // Collection preference is cosmetic context for the seller conversation —
-  // it isn't persisted server-side (no order entity exists; the listing
-  // simply becomes SOLD).
+  // Collection preference is cosmetic context for the seller conversation.
+  // It isn't persisted on the server, since no order entity exists and the
+  // listing simply becomes SOLD.
   const [method, setMethod] = useState<'collection' | 'delivery'>('collection');
 
   useEffect(() => {
@@ -60,7 +60,7 @@ function Checkout() {
           const body = await res.json();
           detail = body?.message || detail;
         } catch {
-          // response wasn't JSON -- stick with the status code
+          // response wasn't JSON, so stick with the status code
         }
         alert(`Couldn't complete the purchase: ${detail}`);
       }
@@ -79,8 +79,8 @@ function Checkout() {
   const openChatWithSeller = async () => {
     if (!user) return;
     const starter = method === 'collection'
-      ? "Hi! Just bought this - what times work for me to come and collect it?"
-      : "Hi! Just bought this - could we sort out delivery / postage?";
+      ? "Hi! Just bought this, what times work for me to come and collect it?"
+      : "Hi! Just bought this, could we sort out delivery or postage?";
     try {
       const res = await fetch(`${API}/api/listings/${id}/messages`, {
         method: 'POST',
@@ -106,37 +106,24 @@ function Checkout() {
     navigate('/messages');
   };
 
-  if (loading) return <div style={{ color: 'white', padding: '24px' }}>Loading...</div>;
-  if (error || !listing) return <div style={{ color: 'white', padding: '24px' }}>{error || 'Listing not found.'}</div>;
+  if (loading) return <div className="page text-muted">Loading...</div>;
+  if (error || !listing) return <div className="page text-error">{error || 'Listing not found.'}</div>;
 
   const imageUrl = listing.media?.find((m: any) => m.media_type === 'IMAGE')?.url ?? null;
   const imgSrc = imageUrl ? mediaUrl(imageUrl) : null;
   const isSeller = user?.id === listing.seller.id;
   const isSold = listing.status === 'SOLD';
 
-  const panelStyle: React.CSSProperties = {
-    background: 'var(--bg-card)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
-    padding: '20px',
-  };
-
-  // Already sold and we didn't just buy it here — dead end politely.
+  // Already sold and we didn't just buy it here, so dead end politely.
   if (isSold && !purchased) {
     return (
-      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '48px 24px', color: 'white' }}>
-        <div style={panelStyle}>
-          <h1 style={{ margin: '0 0 8px', fontSize: '22px' }}>This listing has already sold</h1>
-          <p style={{ margin: '0 0 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
-            Someone got there first — {listing.title} is no longer available.
+      <div className="checkout-outcome">
+        <div className="checkout-outcome__panel">
+          <h1 className="checkout-outcome__title">This listing has already sold</h1>
+          <p className="checkout-outcome__text checkout-outcome__text--spaced">
+            Someone got there first. {listing.title} is no longer available.
           </p>
-          <button
-            className="btn-primary"
-            onClick={() => navigate('/')}
-            style={{ padding: '12px 24px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-          >
-            Browse more gear
-          </button>
+          <button className="btn-primary" onClick={() => navigate('/')}>Browse more gear</button>
         </div>
       </div>
     );
@@ -144,19 +131,13 @@ function Checkout() {
 
   if (isSeller) {
     return (
-      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '48px 24px', color: 'white' }}>
-        <div style={panelStyle}>
-          <h1 style={{ margin: '0 0 8px', fontSize: '22px' }}>This is your own listing</h1>
-          <p style={{ margin: '0 0 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
+      <div className="checkout-outcome">
+        <div className="checkout-outcome__panel">
+          <h1 className="checkout-outcome__title">This is your own listing</h1>
+          <p className="checkout-outcome__text checkout-outcome__text--spaced">
             You can't buy gear you're selling.
           </p>
-          <button
-            className="btn-ghost"
-            onClick={() => navigate(`/listing/${id}`)}
-            style={{ padding: '12px 24px', background: 'none', color: '#ccc', border: '1px solid #444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-          >
-            Back to listing
-          </button>
+          <button className="btn-ghost" onClick={() => navigate(`/listing/${id}`)}>Back to listing</button>
         </div>
       </div>
     );
@@ -164,34 +145,24 @@ function Checkout() {
 
   if (purchased) {
     return (
-      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '48px 24px', color: 'white' }}>
-        <div style={{ ...panelStyle, textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ fontSize: '48px' }}>✅</div>
-          <h1 style={{ margin: '16px 0 8px', fontSize: '24px' }}>Purchase confirmed</h1>
-          <p style={{ margin: '0 auto 8px', color: 'var(--text-muted)', fontSize: '15px', maxWidth: '400px', lineHeight: 1.6 }}>
-            <strong style={{ color: 'var(--text)' }}>{listing.title}</strong> is yours for{' '}
-            <strong style={{ color: 'var(--accent)' }}>£{listing.price}</strong>.
+      <div className="checkout-outcome">
+        <div className="checkout-outcome__panel checkout-outcome__panel--centred">
+          <div className="checkout-outcome__icon">✅</div>
+          <h1 className="checkout-outcome__title checkout-outcome__title--large">Purchase confirmed</h1>
+          <p className="checkout-outcome__text">
+            <strong className="checkout-outcome__strong">{listing.title}</strong> is yours for{' '}
+            <strong className="checkout-outcome__price">£{listing.price}</strong>.
           </p>
-          <p style={{ margin: '0 auto 24px', color: 'var(--text-muted)', fontSize: '14px', maxWidth: '400px', lineHeight: 1.6 }}>
+          <p className="checkout-outcome__text checkout-outcome__text--spaced">
             Message {listing.seller.username} to arrange payment and{' '}
-            {method === 'collection' ? 'collection' : 'delivery'} — this doesn't hold
+            {method === 'collection' ? 'collection' : 'delivery'}. This doesn't hold
             funds or process payment.
           </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              className="btn-primary"
-              onClick={openChatWithSeller}
-              style={{ padding: '12px 24px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-            >
+          <div className="checkout-outcome__actions">
+            <button className="btn-primary" onClick={openChatWithSeller}>
               Message {listing.seller.username}
             </button>
-            <button
-              className="btn-ghost"
-              onClick={() => navigate('/')}
-              style={{ padding: '12px 24px', background: 'none', color: '#ccc', border: '1px solid #444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-            >
-              Back to browsing
-            </button>
+            <button className="btn-ghost" onClick={() => navigate('/')}>Back to browsing</button>
           </div>
         </div>
       </div>
@@ -199,86 +170,66 @@ function Checkout() {
   }
 
   return (
-    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 24px', color: 'white' }}>
-      <button
-        onClick={() => navigate(`/listing/${id}`)}
-        style={{ background: 'none', border: '1px solid #444', color: 'white', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', marginBottom: '24px' }}
-      >
-        Back to listing
-      </button>
+    <div className="checkout">
+      <button className="back-link" onClick={() => navigate(`/listing/${id}`)}>Back to listing</button>
 
-      <h1 style={{ margin: '0 0 24px', fontSize: '26px', letterSpacing: '-0.01em' }}>Checkout</h1>
+      <h1 className="checkout__title">Checkout</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', alignItems: 'start' }}>
-        <div style={panelStyle}>
-          <h2 style={{ margin: '0 0 16px', fontSize: '16px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            How you'll get it
-          </h2>
+      <div className="checkout__layout">
+        <div className="panel">
+          <h2 className="checkout__section-title">How you'll get it</h2>
           {([
-            { key: 'collection', title: 'Collect in person', desc: `Meet the seller and pick it up — they're in ${listing.location}. You can inspect the gear before handing anything over.` },
+            { key: 'collection', title: 'Collect in person', desc: `Meet the seller and pick it up, since they're in ${listing.location}. You can inspect the gear before handing anything over.` },
             { key: 'delivery', title: 'Arrange delivery', desc: 'Agree postage or a courier with the seller in chat. Check the gear on arrival.' },
           ] as const).map(opt => (
             <label
               key={opt.key}
-              style={{
-                display: 'block',
-                padding: '14px 16px',
-                marginBottom: '10px',
-                background: method === opt.key ? '#1d2b1d' : 'var(--bg-raised)',
-                border: method === opt.key ? '1px solid var(--accent)' : '1px solid var(--border)',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
+              className={`delivery-option${method === opt.key ? ' delivery-option--selected' : ''}`}
             >
               <input
+                className="delivery-option__radio"
                 type="radio"
                 name="method"
                 checked={method === opt.key}
                 onChange={() => setMethod(opt.key)}
-                style={{ marginRight: '10px' }}
               />
-              <strong style={{ fontSize: '14px' }}>{opt.title}</strong>
-              <p style={{ margin: '6px 0 0 24px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{opt.desc}</p>
+              <strong className="delivery-option__title">{opt.title}</strong>
+              <p className="delivery-option__desc">{opt.desc}</p>
             </label>
           ))}
 
-          <div style={{ marginTop: '20px', padding: '14px 16px', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              <strong style={{ color: 'var(--text)' }}>Payment is arranged directly with the seller.</strong>{' '}
-              This site doesn't hold funds or take a cut — confirming reserves the
+          <div className="payment-note">
+            <p>
+              <strong>Payment is arranged directly with the seller.</strong>{' '}
+              This site doesn't hold funds or take a cut. Confirming reserves the
               listing for you and marks it sold, then you settle up in person or
               however you both agree in chat.
             </p>
           </div>
         </div>
 
-        <div style={panelStyle}>
+        <div className="order-summary">
           {imgSrc ? (
-            <img src={imgSrc} alt={listing.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '6px', marginBottom: '14px' }} />
+            <img className="order-summary__image" src={imgSrc} alt={listing.title} />
           ) : null}
-          <p style={{ margin: '0 0 4px', fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <p className="order-summary__seller">
             Sold by {listing.seller.username}
-            {listing.seller.community_verified && <span style={{ color: 'var(--accent)', marginLeft: '6px' }}>✓ Verified</span>}
+            {listing.seller.community_verified && <span className="order-summary__verified">✓ Verified</span>}
           </p>
-          <h2 style={{ margin: '0 0 12px', fontSize: '17px', lineHeight: 1.35 }}>{listing.title}</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Item price</span>
-            <span style={{ fontSize: '14px' }}>£{listing.price}</span>
+          <h2 className="order-summary__title">{listing.title}</h2>
+          <div className="order-summary__row">
+            <span>Item price</span>
+            <span>£{listing.price}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: '16px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 700 }}>Total</span>
-            <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>£{listing.price}</span>
+          <div className="order-summary__row order-summary__row--total">
+            <span>Total</span>
+            <span className="order-summary__total-value">£{listing.price}</span>
           </div>
-          <button
-            className="btn-primary"
-            onClick={handleConfirm}
-            disabled={buying}
-            style={{ width: '100%', padding: '14px 24px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '15px', fontWeight: 700 }}
-          >
+          <button className="btn-primary btn-block btn-lg" onClick={handleConfirm} disabled={buying}>
             {buying ? 'Confirming...' : 'Confirm purchase'}
           </button>
-          <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-faint)', textAlign: 'center' }}>
-            This can't be undone — the listing is marked sold immediately.
+          <p className="order-summary__caveat">
+            This can't be undone. The listing is marked sold immediately.
           </p>
         </div>
       </div>

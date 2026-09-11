@@ -1,0 +1,43 @@
+@use '../abstracts' as *;
+
+// Standard page wrapper: centred, capped, padded away from the edges.
+.page {
+  @include page-container;
+  padding-top: $space-lg;
+  padding-bottom: $space-xxl;
+}
+
+.page--narrow {
+  @include page-container(560px);
+  padding-top: $space-xl;
+  padding-bottom: $space-xxl;
+}
+
+// Single column form pages (create and edit a listing). Left aligned rather
+// than centred, so the eye has one starting edge to follow down the form.
+.page--form {
+  max-width: 560px;
+  margin: 0;
+  padding-top: $space-lg;
+  padding-bottom: $space-xxl;
+}
+
+.page__title {
+  margin: 0 0 $space-lg;
+  font-size: $font-size-xl;
+}
+
+// Responsive grid for listing tiles. auto-fill rather than fixed columns,
+// so it reflows without a breakpoint per screen size.
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: $space-md;
+}
+
+// Centred message for "nothing here yet" states.
+.empty-state {
+  padding: $space-xxl $space-md;
+  text-align: center;
+  color: $color-text-muted;
+}

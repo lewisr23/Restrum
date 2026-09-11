@@ -2,11 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Account dropdown — consolidates "My Listings" (new — the only way to reach
-// your own listings before this was hunting the homepage grid, same as a
-// stranger would), Saved, and Messages under one menu instead of loose
-// navbar buttons, so the navbar doesn't just keep growing sideways as more
-// account-level pages get added.
+// Account dropdown. Consolidates "My Listings", Saved and Messages under one
+// menu rather than loose navbar buttons, so the navbar doesn't keep growing
+// sideways as more account pages get added.
 function AccountMenu({ username, userId }: { username: string; userId: number }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -34,59 +32,35 @@ function AccountMenu({ username, userId }: { username: string; userId: number })
     navigate('/');
   };
 
-  const itemStyle: React.CSSProperties = {
-    display: 'block',
-    width: '100%',
-    textAlign: 'left',
-    padding: '10px 16px',
-    background: 'none',
-    border: 'none',
-    color: '#ddd',
-    cursor: 'pointer',
-    fontSize: '14px',
-  };
-
   return (
-    <div ref={menuRef} style={{ position: 'relative' }}>
+    <div ref={menuRef} className="account-menu">
       <button
+        className="account-menu__trigger"
         onClick={() => setOpen(!open)}
-        style={{ padding: '10px 16px', background: 'none', color: 'white', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+        aria-expanded={open}
+        aria-haspopup="true"
       >
-        Hi, {username} <span style={{ fontSize: '10px', color: '#888' }}>{open ? '▲' : '▼'}</span>
+        Hi, {username} <span className="account-menu__caret">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 6px)',
-            right: 0,
-            background: '#1a1a1a',
-            border: '1px solid #444',
-            borderRadius: '6px',
-            minWidth: '180px',
-            overflow: 'hidden',
-            zIndex: 10,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-          }}
-        >
-          <button style={itemStyle} onClick={() => go(`/seller/${userId}`)}>My Listings</button>
-          <button style={itemStyle} onClick={() => go('/saved')}>Saved</button>
-          <button style={itemStyle} onClick={() => go('/messages')}>Messages</button>
-          <div style={{ borderTop: '1px solid #333' }} />
-          <button style={{ ...itemStyle, color: '#f44' }} onClick={handleLogout}>Log out</button>
+        <div className="account-menu__panel">
+          <button className="account-menu__item" onClick={() => go(`/seller/${userId}`)}>My Listings</button>
+          <button className="account-menu__item" onClick={() => go('/saved')}>Saved</button>
+          <button className="account-menu__item" onClick={() => go('/messages')}>Messages</button>
+          <div className="account-menu__divider" />
+          <button className="account-menu__item account-menu__item--danger" onClick={handleLogout}>Log out</button>
         </div>
       )}
     </div>
   );
 }
 
-// Logo mark -- a guitar pick (plectrum) with an audio waveform cut through
-// it. Ties both halves of what ToneTrade actually is: instruments, and the
-// audio/video demo feature that's the project's main differentiator.
-// Deliberately a solid silhouette with hard geometric strokes rather than
-// stacked circles -- the previous mark turned into an indistinct blob at
-// navbar size, which is the only size it's ever rendered at.
+// Logo mark: a guitar pick with an audio waveform cut through it, tying
+// together both halves of what ToneTrade is, instruments and the audio and
+// video demos. A solid silhouette with hard strokes rather than stacked
+// circles, because anything finer turns into a blob at navbar size, which is
+// the only size it ever renders at.
 function LogoMark() {
   return (
     <svg width="40" height="40" viewBox="0 0 44 44" fill="none" aria-hidden="true">
@@ -110,46 +84,27 @@ function Navbar() {
   const { user } = useAuth();
 
   return (
-    <nav className="site-nav" style={{ padding: '12px 24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <nav className="site-nav">
+      <div className="site-nav__brand" onClick={() => navigate('/')}>
         <LogoMark />
         <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>
-            Tone<span style={{ color: '#4caf50' }}>Trade</span>
+          <h1 className="site-nav__title">
+            Tone<span className="site-nav__title-accent">Trade</span>
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            UK Secondhand Instrument &amp; Gear Marketplace
-          </p>
+          <p className="site-nav__tagline">UK Secondhand Instrument &amp; Gear Marketplace</p>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+      <div className="site-nav__actions">
         {user ? (
           <>
-            <button
-              className="btn-primary"
-              onClick={() => navigate('/create')}
-              style={{ padding: '10px 20px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-            >
-              + Sell Gear
-            </button>
+            <button className="btn-primary" onClick={() => navigate('/create')}>+ Sell Gear</button>
             <AccountMenu username={user.username} userId={user.id} />
           </>
         ) : (
           <>
-            <button
-              className="btn-ghost"
-              onClick={() => navigate('/login')}
-              style={{ padding: '10px 16px', background: 'none', color: 'white', border: '1px solid #444', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-            >
-              Log in
-            </button>
-            <button
-              className="btn-primary"
-              onClick={() => navigate('/register')}
-              style={{ padding: '10px 20px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
-            >
-              Register
-            </button>
+            <button className="btn-ghost" onClick={() => navigate('/login')}>Log in</button>
+            <button className="btn-primary" onClick={() => navigate('/register')}>Register</button>
           </>
         )}
       </div>

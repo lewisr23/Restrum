@@ -26,9 +26,9 @@ const categoryToEnum: Record<string, string> = {
   "Audio Equipment": "AUDIO_EQUIPMENT",
 };
 
-// Icon + short blurb per category tile on the homepage. Emoji instead of an
-// icon library — deliberate: no new npm packages in this codebase without
-// Lewis running the install himself (standing sandbox constraint).
+// Icon plus short blurb per category tile on the homepage. Emoji instead of
+// an icon library, deliberately: not worth a new npm dependency for a
+// handful of glyphs.
 const categoryTiles: { name: string; icon: string; blurb: string }[] = [
   { name: 'Guitar', icon: '🎸', blurb: 'Electric, acoustic & bass' },
   { name: 'Drums', icon: '🥁', blurb: 'Kits, snares & cymbals' },
@@ -49,94 +49,46 @@ function Hero({
   selectedCategory: string;
 }) {
   return (
-    <div
-      style={{
-        background:
-          'radial-gradient(ellipse 80% 60% at 20% 0%, rgba(76,175,80,0.12), transparent), radial-gradient(ellipse 60% 50% at 90% 10%, rgba(76,175,80,0.07), transparent), linear-gradient(180deg, #161616 0%, #121212 100%)',
-        borderBottom: '1px solid var(--border)',
-      }}
-    >
-      <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '64px 24px 48px' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 'clamp(32px, 5vw, 52px)',
-            fontWeight: 700,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.1,
-            maxWidth: '720px',
-          }}
-        >
+    <div className="hero">
+      <div className="hero__inner">
+        <h1 className="hero__title">
           Find your next instrument.{' '}
-          <span style={{ color: 'var(--accent)' }}>Know its story.</span>
+          <span className="hero__title-accent">Know its story.</span>
         </h1>
-        <p style={{ margin: '16px 0 0', color: 'var(--text-muted)', fontSize: '17px', maxWidth: '560px', lineHeight: 1.6 }}>
-          Secondhand gear from sellers across the UK — with real condition
+        <p className="hero__lede">
+          Secondhand gear from sellers across the UK, with real condition
           history, honest price context, and sellers vouched for by the people
           who've actually dealt with them.
         </p>
 
         <input
           type="text"
-          className="hero-search"
-          placeholder="Search gear — Stratocaster, SM58, OP-1..."
+          className="hero-search hero__search"
+          placeholder="Search gear: Stratocaster, SM58, OP-1..."
           value={search}
           onChange={e => onSearch(e.target.value)}
-          style={{
-            marginTop: '28px',
-            padding: '16px 20px',
-            width: '100%',
-            maxWidth: '520px',
-            display: 'block',
-            background: 'var(--bg-card)',
-            color: 'var(--text)',
-            border: '1px solid var(--border-strong)',
-            borderRadius: '12px',
-            fontSize: '16px',
-            boxSizing: 'border-box',
-          }}
         />
 
-        <div style={{ display: 'flex', gap: '24px', marginTop: '24px', flexWrap: 'wrap' }}>
-          {['Gear history on every listing', 'Fair price context', 'Community-verified sellers'].map(t => (
-            <span key={t} style={{ color: 'var(--text-muted)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <span style={{ color: 'var(--accent)', fontWeight: 700 }}>✓</span> {t}
+        <div className="hero__points">
+          {['Gear history on every listing', 'Fair price context', 'Sellers vouched for by the community'].map(t => (
+            <span key={t} className="hero__point">
+              <span className="hero__tick">✓</span> {t}
             </span>
           ))}
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-            gap: '12px',
-            marginTop: '40px',
-          }}
-        >
+        <div className="hero__categories">
           {categoryTiles.map(tile => {
             const active = selectedCategory === tile.name;
             return (
               <button
                 key={tile.name}
-                className="cat-tile"
+                className={`cat-tile${active ? ' cat-tile--active' : ''}`}
                 onClick={() => onPickCategory(active ? 'All' : tile.name)}
-                style={{
-                  textAlign: 'left',
-                  padding: '16px',
-                  background: active ? '#1d2b1d' : 'var(--bg-card)',
-                  border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
-                  borderRadius: 'var(--radius)',
-                  cursor: 'pointer',
-                  color: 'var(--text)',
-                }}
               >
-                <span style={{ fontSize: '24px', display: 'block' }}>{tile.icon}</span>
-                <span style={{ display: 'block', marginTop: '10px', fontWeight: 600, fontSize: '14px', fontFamily: 'var(--font-display)' }}>
-                  {tile.name}
-                </span>
-                <span style={{ display: 'block', marginTop: '3px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {tile.blurb}
-                </span>
+                <span className="cat-tile__icon">{tile.icon}</span>
+                <span className="cat-tile__name">{tile.name}</span>
+                <span className="cat-tile__blurb">{tile.blurb}</span>
               </button>
             );
           })}
@@ -149,10 +101,10 @@ function Hero({
 function HomePage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  // Price range filter — added 2026-07-28. Usability testing (P1-P4) showed
-  // people expect to be able to narrow browsing by price, not just category
-  // + free-text search; there was no way to do that before this. Kept as
-  // plain strings (not numbers) so an empty input reads naturally as "no
+  // Price range filter, added 28 July 2026. Usability testing (P1 to P4)
+  // showed people expect to narrow browsing by price, not just category and
+  // free text search; there was no way to do that before. Kept as plain
+  // strings rather than numbers, so an empty input reads naturally as "no
   // bound" instead of coercing to 0.
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -195,61 +147,50 @@ function HomePage() {
         selectedCategory={selectedCategory}
       />
 
-      <div ref={gridRef} style={{ maxWidth: '1300px', margin: '0 auto', padding: '40px 24px 64px', scrollMarginTop: '80px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 700, letterSpacing: '-0.01em' }}>
+      <div ref={gridRef} className="browse">
+        <div className="browse__header">
+          <h2 className="browse__heading">
             {selectedCategory === 'All' ? 'Latest gear' : selectedCategory}
             {!loading && !error && (
-              <span style={{ marginLeft: '10px', fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>
-                {activeCount} for sale
-              </span>
+              <span className="browse__count">{activeCount} for sale</span>
             )}
           </h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="browse__filters">
             {categories.map(cat => (
               <button
                 key={cat}
+                className={`filter-pill${selectedCategory === cat ? ' filter-pill--active' : ''}`}
                 onClick={() => setSelectedCategory(cat)}
-                style={{
-                  padding: '7px 14px',
-                  background: selectedCategory === cat ? 'white' : 'var(--bg-card)',
-                  color: selectedCategory === cat ? 'black' : 'var(--text)',
-                  border: selectedCategory === cat ? 'none' : '1px solid var(--border)',
-                  borderRadius: '999px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                }}
               >
                 {cat}
               </button>
             ))}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', paddingLeft: '12px', borderLeft: '1px solid var(--border)' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>£</span>
+            <div className="price-filter">
+              <span className="price-filter__symbol">£</span>
               <input
+                className="price-filter__input"
                 type="number"
                 min={0}
                 placeholder="Min"
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
                 aria-label="Minimum price"
-                style={{ width: '70px', padding: '6px 8px', background: 'var(--bg-card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px' }}
               />
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>–</span>
+              <span className="price-filter__separator">to</span>
               <input
+                className="price-filter__input"
                 type="number"
                 min={0}
                 placeholder="Max"
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
                 aria-label="Maximum price"
-                style={{ width: '70px', padding: '6px 8px', background: 'var(--bg-card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px' }}
               />
               {(minPrice || maxPrice) && (
                 <button
+                  className="price-filter__clear"
                   onClick={() => { setMinPrice(''); setMaxPrice(''); }}
-                  style={{ padding: '6px 10px', background: 'none', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
                 >
                   Clear
                 </button>
@@ -258,16 +199,14 @@ function HomePage() {
           </div>
         </div>
 
-        {loading && <p style={{ color: 'var(--text-muted)' }}>Loading...</p>}
-        {error && <p style={{ color: '#f44' }}>{error}</p>}
+        {loading && <p className="text-muted">Loading...</p>}
+        {error && <p className="text-error">{error}</p>}
         {!loading && !error && listings.length === 0 && (
-          <div style={{ padding: '48px 24px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 'var(--radius)' }}>
-            <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
-              Nothing here yet{selectedCategory !== 'All' ? ` in ${selectedCategory}` : ''}{search ? ` matching “${search}”` : ''}.
-            </p>
+          <div className="browse__empty">
+            Nothing here yet{selectedCategory !== 'All' ? ` in ${selectedCategory}` : ''}{search ? ` matching “${search}”` : ''}.
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '20px' }}>
+        <div className="browse__grid">
           {listings.map(listing => (
             <ListingCard
               key={listing.id}
@@ -291,9 +230,9 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="app-shell">
           <Navbar />
-          <div style={{ flex: 1 }}>
+          <div className="app-shell__main">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/listing/:id" element={<ListingDetail />} />

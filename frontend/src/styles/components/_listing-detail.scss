@@ -1,0 +1,311 @@
+@use '../abstracts' as *;
+
+.listing-detail {
+  @include page-container(1100px);
+  padding-top: $space-lg;
+  padding-bottom: $space-xxl;
+
+  // Media takes the dominant column, purchase panel sits beside it, and the
+  // two stack on anything narrower than a laptop.
+  &__layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-lg;
+    align-items: start;
+
+    @include media-up('lg') {
+      grid-template-columns: 1.3fr 380px;
+      gap: 40px;
+    }
+  }
+
+  &__description {
+    @include surface(mix($color-bg, $color-bg-raised, 50%), $radius-sm + 2px);
+    margin-top: $space-xl;
+    padding: $space-md;
+  }
+
+  &__description-label {
+    margin: 0 0 $space-xs;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__description-body {
+    margin: 0;
+    color: $color-text-soft;
+    line-height: 1.6;
+  }
+}
+
+// Photos, video and audio in one gallery rather than three stacked blocks.
+.gallery {
+  &__stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    overflow: hidden;
+    background: $color-bg-sunken;
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-sm + 2px;
+  }
+
+  &__image,
+  &__video {
+    width: 100%;
+    max-height: 460px;
+  }
+
+  &__image {
+    object-fit: cover;
+  }
+
+  &__audio {
+    width: 100%;
+    padding: $space-xl $space-lg;
+  }
+
+  &__audio-label {
+    margin: 0 0 $space-sm;
+    text-align: center;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  &__audio-player {
+    width: 100%;
+  }
+
+  &__arrow {
+    @include button-reset;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(#000, 0.55);
+    color: #fff;
+    font-size: $font-size-lg - 2px;
+    line-height: 1;
+
+    &:hover {
+      background: rgba(#000, 0.75);
+    }
+
+    &--prev {
+      left: $space-xs;
+    }
+
+    &--next {
+      right: $space-xs;
+    }
+  }
+
+  &__thumbs {
+    display: flex;
+    gap: $space-xs;
+    margin-top: $space-xs;
+    overflow-x: auto;
+  }
+
+  &__thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    background: $color-bg-raised;
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-sm - 2px;
+    color: $color-text-muted;
+    font-size: 20px;
+    cursor: pointer;
+    object-fit: cover;
+
+    &--active {
+      border: 2px solid $color-accent;
+    }
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: mix($color-bg, $color-bg-raised, 50%);
+    border: 1px solid $color-border-strong;
+    border-radius: $radius-sm + 2px;
+    color: #555;
+    font-size: 14px;
+  }
+}
+
+// Title, price, actions and seller, to the right of the gallery.
+.purchase-panel {
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $space-sm;
+  }
+
+  &__category {
+    margin: 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__title {
+    margin: $space-xs 0;
+    font-size: $font-size-xl;
+  }
+
+  &__price {
+    margin: $space-md 0 0;
+    font-size: 28px;
+    color: $color-accent;
+  }
+
+  &__sold {
+    margin-left: $space-sm;
+    padding: 3px 10px;
+    background: $color-accent;
+    border-radius: $radius-sm - 2px;
+    color: $color-bg;
+    font-size: $font-size-sm;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  &__action {
+    margin-top: $space-xs;
+  }
+
+  &__action--primary {
+    margin-top: $space-md;
+  }
+
+  &__sold-note {
+    margin-top: $space-md;
+    color: $color-text-faint;
+    font-size: 14px;
+  }
+
+  &__compose {
+    margin-top: $space-xs;
+  }
+
+  &__compose-actions {
+    display: flex;
+    gap: $space-xs;
+    margin-top: 6px;
+  }
+
+  &__seller {
+    @include surface(mix($color-bg, $color-bg-raised, 50%), $radius-sm + 2px);
+    margin-top: 20px;
+    padding: $space-md;
+    cursor: pointer;
+    transition: border-color $transition;
+
+    &:hover {
+      border-color: $color-accent;
+    }
+  }
+
+  &__seller-line {
+    margin: 0;
+    font-size: 14px;
+    color: $color-text-soft;
+  }
+
+  &__seller-verified {
+    margin-left: $space-xs;
+    color: $color-accent;
+    font-weight: 700;
+  }
+
+  &__seller-link {
+    margin-left: $space-xs;
+    font-size: $font-size-sm;
+    color: $color-text-faint;
+  }
+
+  &__seller-location {
+    margin: 6px 0 0;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+}
+
+// Save for later, which turns green once saved.
+.save-toggle {
+  margin-top: $space-xs;
+
+  &--saved {
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+}
+
+// Standing note that nothing here is really for sale.
+.demo-notice {
+  margin: $space-md 0 0;
+  padding: 10px $space-sm;
+  background: mix($color-warning, $color-bg, 12%);
+  border: 1px solid mix($color-warning, $color-bg, 30%);
+  border-radius: $radius-sm;
+  color: #d8b463;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+}
+
+// Where this listing's price sits against others in its category. The
+// threshold itself is decided on the server, so this is purely presentation.
+.price-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: $space-xxs 0 $space-sm;
+  padding: $space-xxs 10px;
+  border-radius: $radius-sm - 2px;
+  font-size: $font-size-sm;
+
+  &--below {
+    @include tinted($color-accent);
+    border: none;
+  }
+
+  &--typical {
+    @include tinted($color-good);
+    border: none;
+  }
+
+  &--above {
+    @include tinted($color-warning);
+    border: none;
+  }
+}
+
+.reference-price {
+  margin: 0 0 $space-xs;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+
+  &__caveat {
+    color: $color-text-faint;
+  }
+}

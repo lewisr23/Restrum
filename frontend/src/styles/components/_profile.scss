@@ -1,0 +1,70 @@
+@use '../abstracts' as *;
+
+// Seller profile header: identity and stats on the left, follow and endorse
+// on the right, stacking on narrow screens.
+.profile-header {
+  @include surface(mix($color-bg, $color-bg-raised, 50%));
+  padding: $space-lg;
+  margin-bottom: $space-xl;
+
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $space-md;
+  }
+
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 $space-xs;
+  }
+
+  &__verified {
+    font-size: $font-size-sm;
+    font-weight: 700;
+    color: $color-accent;
+  }
+
+  &__location {
+    margin: 0 0 $space-xxs;
+    color: $color-text-soft;
+  }
+
+  &__stats {
+    margin: 0 0 $space-sm;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
+  &__bio {
+    margin: $space-sm 0 0;
+    color: $color-text-soft;
+    line-height: 1.6;
+  }
+
+  &__actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: $space-xs;
+  }
+}
+
+// Endorse button. Once endorsed it stays on screen as a green confirmation
+// rather than disappearing, so the action visibly took effect.
+.endorse-btn {
+  &--done {
+    color: $color-accent;
+    border-color: rgba($color-accent, 0.5);
+    cursor: default;
+  }
+
+  // Endorsing requires a prior conversation, so the button is visible but
+  // dimmed, with a title explaining why.
+  &--locked {
+    opacity: 0.5;
+    cursor: default;
+  }
+}

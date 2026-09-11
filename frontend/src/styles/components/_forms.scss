@@ -1,0 +1,114 @@
+@use '../abstracts' as *;
+
+// Every text input, textarea and select in the app. Sizing and focus
+// behaviour live here so forms cannot drift apart screen by screen.
+%field-base {
+  width: 100%;
+  padding: $space-sm;
+  background: $color-bg-raised;
+  color: $color-text;
+  border: 1px solid $color-border-input;
+  border-radius: $radius-sm;
+  font-size: 14px;
+  transition: border-color $transition, box-shadow $transition;
+
+  &::placeholder {
+    color: $color-text-faint;
+  }
+
+  &:focus {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.field {
+  @extend %field-base;
+
+  &--textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  // Select needs the cursor back: the reset gives form controls a text
+  // caret, which is wrong for a dropdown.
+  &--select {
+    cursor: pointer;
+  }
+
+  &--file {
+    padding: $space-xs 10px;
+    cursor: pointer;
+
+    &::file-selector-button {
+      margin-right: $space-sm;
+      padding: 6px $space-sm;
+      background: $color-bg-elevated;
+      border: 1px solid $color-border-input;
+      border-radius: $radius-sm - 2px;
+      color: $color-text-soft;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    &:hover::file-selector-button {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+
+  &--invalid {
+    border-color: $color-danger;
+
+    &:focus {
+      @include focus-ring($color-danger);
+    }
+  }
+}
+
+// A label, its control, and any hint or error, kept together as one block.
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xxs + 2px;
+  margin-bottom: $space-md;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form__status {
+  margin: 0 0 $space-md;
+  font-size: $font-size-sm;
+  color: $color-accent;
+}
+
+.field-label {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $color-text-soft;
+}
+
+.field-hint {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+}
+
+.field-error {
+  font-size: $font-size-sm;
+  color: $color-danger;
+}
+
+// The oversized search box on the homepage hero.
+.hero-search {
+  @extend %field-base;
+  padding: $space-md $space-lg;
+  font-size: $font-size-lg;
+  border-radius: $radius-pill;
+}

@@ -1,0 +1,89 @@
+// Design tokens for ToneTrade.
+//
+// Every colour, space and radius in the app resolves back to something in
+// this file. base/_tokens.scss turns these into CSS custom properties, so a
+// value is written once here and reachable from both SCSS and inline styles.
+
+@use 'sass:map';
+
+// Surfaces, darkest to lightest.
+$color-bg:          #121212;
+$color-bg-sunken:   #0f0f0f;
+$color-bg-raised:   #1a1a1a;
+$color-bg-card:     #1e1e1e;
+$color-bg-elevated: #262626;
+
+// Lines and dividers.
+$color-border:        #2a2a2a;
+$color-border-strong: #3a3a3a;
+$color-border-input:  #444444;
+
+// Text, brightest to dimmest.
+$color-text:       #f2f2f2;
+$color-text-soft:  #cccccc;
+$color-text-muted: #9a9a9a;
+$color-text-faint: #666666;
+
+// Brand.
+$color-accent:       #4caf50;
+$color-accent-hover: #5cbf60;
+$color-accent-dark:  #2e7d32;
+
+// Status. Used by the fair price indicator, condition dots and error text.
+$color-good:    #8bc34a;
+$color-warning: #ff9800;
+$color-danger:  #f44336;
+
+// Typography.
+$font-body:    ('Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+$font-display: ('Space Grotesk', 'Inter', sans-serif);
+$font-mono:    (source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace);
+
+$font-size-xs: 12px;
+$font-size-sm: 13px;
+$font-size-md: 15px;
+$font-size-lg: 18px;
+$font-size-xl: 24px;
+
+// Spacing scale. Multiples of 4, named so layout code reads in intent
+// rather than pixels.
+$space-xxs: 4px;
+$space-xs:  8px;
+$space-sm:  12px;
+$space-md:  16px;
+$space-lg:  24px;
+$space-xl:  32px;
+$space-xxl: 48px;
+
+// Radii.
+$radius-sm: 6px;
+$radius:    10px;
+$radius-lg: 16px;
+$radius-pill: 999px;
+
+// Motion. Kept short: this is a marketplace, not a showreel.
+$transition-fast: 0.1s ease;
+$transition:      0.15s ease;
+
+// Stacking order, collected so two things can never silently fight.
+$z-dropdown: 40;
+$z-nav:      50;
+$z-overlay:  100;
+
+// Breakpoints, mobile first.
+$breakpoints: (
+  'sm': 480px,
+  'md': 768px,
+  'lg': 1024px,
+  'xl': 1280px,
+);
+
+@function breakpoint($name) {
+  @if not map.has-key($breakpoints, $name) {
+    @error 'Unknown breakpoint `#{$name}`. Known: #{map.keys($breakpoints)}.';
+  }
+  @return map.get($breakpoints, $name);
+}
+
+// Widest the content ever gets, so pages line up with each other.
+$page-max-width: 1200px;

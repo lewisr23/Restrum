@@ -1,7 +1,7 @@
 // Single source of truth for where the backend lives.
 //
 // Create React App inlines process.env.REACT_APP_* at BUILD time, not at
-// runtime — so this is baked into the bundle by `npm run build` and cannot be
+// runtime, so this is baked into the bundle by `npm run build` and cannot be
 // changed by setting an env var on the server afterwards.
 //
 // Three cases:
@@ -30,7 +30,7 @@ export function mediaUrl(url: string): string {
 
 /**
  * Reverb connection details for Laravel Echo (see lib/socket.ts). The app
- * key is not a secret — it identifies which Reverb app to connect to, the
+ * key is not a secret. It identifies which Reverb app to connect to, and the
  * same way a Pusher app key works; the actual channel authorization is what
  * keeps private channels private, not this value being hidden.
  */

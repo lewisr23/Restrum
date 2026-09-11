@@ -1,0 +1,40 @@
+@use '../abstracts' as *;
+
+// Small rounded label: location, condition, verified badge, media type.
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-xxs + 2px;
+  padding: $space-xxs 10px;
+  background: $color-bg-raised;
+  border: 1px solid $color-border;
+  border-radius: $radius-pill;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  white-space: nowrap;
+
+  &--accent {
+    @include tinted($color-accent);
+  }
+
+  &--good {
+    @include tinted($color-good);
+  }
+
+  &--warning {
+    @include tinted($color-warning);
+  }
+
+  &--danger {
+    @include tinted($color-danger);
+  }
+}
+
+// Coloured dot preceding a condition or status label.
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}

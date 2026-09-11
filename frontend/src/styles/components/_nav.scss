@@ -1,0 +1,123 @@
+@use '../abstracts' as *;
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: $z-nav;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+  padding: $space-sm $space-lg;
+  // Translucent so content scrolling underneath stays faintly visible.
+  background: rgba($color-bg, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid $color-border;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: $space-xs + 2px;
+    cursor: pointer;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  &__title-accent {
+    color: $color-accent;
+  }
+
+  &__tagline {
+    margin: $space-xxs 0 0;
+    font-size: 11px;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    // The strapline is the first thing to go when space is tight.
+    @include media-down('md') {
+      display: none;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+  }
+}
+
+.account-menu {
+  position: relative;
+
+  &__trigger {
+    @include button-reset;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px $space-md;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-sm - 2px;
+    color: $color-text;
+    font-size: 14px;
+    transition: border-color $transition;
+
+    &:hover {
+      border-color: $color-border-strong;
+    }
+  }
+
+  &__caret {
+    font-size: 10px;
+    color: $color-text-muted;
+  }
+
+  &__panel {
+    position: absolute;
+    top: calc(100% + #{$space-xxs + 2px});
+    right: 0;
+    z-index: $z-dropdown;
+    min-width: 180px;
+    overflow: hidden;
+    background: $color-bg-raised;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-sm;
+    box-shadow: 0 4px 12px rgba(#000, 0.4);
+  }
+
+  &__item {
+    @include button-reset;
+    display: block;
+    width: 100%;
+    padding: 10px $space-md;
+    text-align: left;
+    color: $color-text-soft;
+    font-size: 14px;
+    transition: background $transition, color $transition;
+
+    &:hover {
+      background: $color-bg-elevated;
+      color: $color-text;
+    }
+
+    &--danger {
+      color: $color-danger;
+
+      &:hover {
+        background: rgba($color-danger, 0.12);
+        color: $color-danger;
+      }
+    }
+  }
+
+  &__divider {
+    height: 1px;
+    background: $color-border-strong;
+  }
+}
