@@ -158,6 +158,11 @@ The search tests need a live Elasticsearch and skip themselves when there
 isn't one, so a clone with no Docker still gets a green suite. CI provides a
 service container so they run there for real.
 
+`QueryCountTest` guards the busiest endpoints against N+1 queries. It runs
+each request with one row and then with four and fails if the query count
+moved, which is deterministic in a way a timing threshold is not. It caught
+one straight away: the inbox ran an endorsement lookup per conversation.
+
 Search is switched off for the suite by default and pinned to a throwaway
 index, both forced in `phpunit.xml` so a developer's own `.env` cannot
 override them. The tests that need search turn it on themselves. Without

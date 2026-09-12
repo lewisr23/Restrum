@@ -37,7 +37,14 @@ class ConversationResource extends JsonResource
             // Mirrors the check in EndorsementController::store - whether the
             // viewer has already vouched for the other participant, so the
             // inbox/chat UI can hide an already-used endorse action.
-            'has_endorsed_other' => $viewer->endorsementsGiven()->where('users.id', $otherParticipant->id)->exists(),
+            //
+            // Read through the relation rather than as ->endorsementsGiven()
+            // ->where(...)->exists(). The query builder form runs a query for
+            // every row in the inbox; the relation loads once on the viewer
+            // model and every later row reads the cached collection. A person
+            // endorses a handful of people at most, so holding them in memory
+            // costs nothing.
+            'has_endorsed_other' => $viewer->endorsementsGiven->contains($otherParticipant),
             // Set by the controller via withCount(['messages as unread_count'
             // => ...]) - the condition depends on who's viewing, which a
             // static model relation can't parameterize, so it's built as a
