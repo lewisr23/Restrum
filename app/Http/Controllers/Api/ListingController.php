@@ -151,6 +151,36 @@ class ListingController extends Controller
         return ListingResource::collection($listings);
     }
 
+    /**
+     * Listings similar to this one, for the "you might also like" rail.
+     *
+     * Its own endpoint rather than part of show(): recommendations are the
+     * least important thing on the page, and the listing itself should not
+     * wait on a second search round trip, nor fail to render if that round
+     * trip fails.
+     */
+    public function similar(Request $request, Listing $listing)
+    {
+        if (! config('elasticsearch.enabled')) {
+            // No SQL fallback here on purpose. "Other things in the same
+            // category" is not the same feature wearing a different hat,
+            // and a worse version of a recommendation is worse than none.
+            return ListingResource::collection(collect());
+        }
+
+        try {
+            $ids = app(ListingSearch::class)->similarTo($listing->id, $listing->category);
+        } catch (\Throwable $e) {
+            Log::warning('Similar listings lookup failed', ['error' => $e->getMessage()]);
+
+            return ListingResource::collection(collect());
+        }
+
+        return ListingResource::collection(
+            $this->hydrate($ids, $request->user('sanctum')?->id)
+        );
+    }
+
     public function show(Request $request, Listing $listing)
     {
         $listing->load('seller', 'media');

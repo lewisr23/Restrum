@@ -1,0 +1,22 @@
+@use '../abstracts' as *;
+
+// "You might also like" under the gear history. Deliberately quiet: it is
+// the last thing on the page and should not compete with the listing.
+.similar {
+  margin-top: $space-xl;
+  padding-top: $space-lg;
+  border-top: 1px solid $color-border-strong;
+
+  &__heading {
+    margin: 0 0 $space-md;
+    font-size: $font-size-lg;
+  }
+
+  // Narrower columns than the browse grid: these are suggestions, not the
+  // main event, so more of them fit across without dominating.
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: $space-md;
+  }
+}

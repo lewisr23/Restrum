@@ -95,7 +95,8 @@ jobs:
           DB_DATABASE: ttphp_test
           DB_USERNAME: root
           DB_PASSWORD: ''
-          ELASTICSEARCH_ENABLED: 'true'
+          # Only the host: whether search is on is decided per test, see
+          # phpunit.xml.
           ELASTICSEARCH_HOST: http://127.0.0.1:9200
         run: php artisan test
 

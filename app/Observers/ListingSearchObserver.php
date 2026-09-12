@@ -20,6 +20,10 @@ class ListingSearchObserver
 
     public function saved(Listing $listing): void
     {
+        if (! config('elasticsearch.enabled')) {
+            return;
+        }
+
         // seller_username is part of the document, and on a freshly created
         // listing the relation has not been loaded yet.
         $listing->loadMissing('seller');
@@ -29,6 +33,10 @@ class ListingSearchObserver
 
     public function deleted(Listing $listing): void
     {
+        if (! config('elasticsearch.enabled')) {
+            return;
+        }
+
         $this->index->remove($listing->id);
     }
 }

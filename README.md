@@ -8,7 +8,7 @@ Work in progress.
 
 **Backend:** PHP 8.3, Laravel 12, Sanctum for token auth, Reverb for WebSockets, MySQL 8, Elasticsearch 8
 
-**Frontend:** React 19 with TypeScript, SCSS, `@stomp` free (Laravel Echo over Reverb), no UI framework
+**Frontend:** React 19 with TypeScript, SCSS, Laravel Echo over Reverb for live messaging, no UI framework
 
 **Tooling:** Composer, Docker Compose, GitHub Actions, PHPUnit, Pint
 
@@ -100,6 +100,38 @@ open. The `microphone` row is the more honest argument for the change. SQL
 returns nothing because no title contains the word, while Elasticsearch
 returns every microphone listing.
 
+### Similar listings
+
+The listing page carries a "you might also like" rail, fed by a
+`more_like_this` query against the same index rather than by "other things
+in this category". Elasticsearch picks out the terms that make a listing
+distinctive, judged by how rare they are across the corpus, so a
+Stratocaster is pulled towards other Stratocasters rather than towards
+everything with "Fender" in the title, and none of it is hand tuned.
+
+Suggestions are filtered to the same category and to listings that are still
+for sale, and the source listing is excluded. The endpoint is separate from
+`show` on purpose: recommendations are the least important thing on the page
+and should never delay it, and when search is off or failing the rail
+returns nothing and disappears rather than falling back to a worse guess.
+
+Worth knowing when trying it locally: `more_like_this` needs a corpus. With
+the handful of listings in a development database almost no term is rare
+enough to clear the threshold, so results are sparse or empty. At 2,000
+listings it behaves as intended, which is what `SimilarListingsTest` and a
+seeded run were used to confirm.
+
+### Media storage
+
+Uploads go to whichever disk `MEDIA_DISK` names, defaulting to the local
+public disk. Anywhere with a container filesystem it must point at object
+storage, because local disk does not survive a restart and a seller's photos
+vanishing on the next deploy is data loss the app cannot detect.
+
+The database stores the path, not the URL, and the URL is computed from the
+disk in use. Moving media to a bucket or behind a CDN is a config change
+rather than a rewrite of every row.
+
 ### When the cluster is down
 
 Search degrades rather than breaks. `ELASTICSEARCH_ENABLED=false` puts the
@@ -126,6 +158,12 @@ The search tests need a live Elasticsearch and skip themselves when there
 isn't one, so a clone with no Docker still gets a green suite. CI provides a
 service container so they run there for real.
 
+Search is switched off for the suite by default and pinned to a throwaway
+index, both forced in `phpunit.xml` so a developer's own `.env` cannot
+override them. The tests that need search turn it on themselves. Without
+that, every factory listing made an indexing round trip, and worse, wrote
+into the index the development app was reading from.
+
 ## Configuration
 
 | Variable | Purpose | Default |
@@ -135,3 +173,4 @@ service container so they run there for real.
 | `ELASTICSEARCH_INDEX` | Index name, so environments can share a cluster | `listings` |
 | `ELASTICSEARCH_TIMEOUT` | Request timeout in seconds | `2.0` |
 | `ELASTICSEARCH_PORT` | Host port Compose publishes the cluster on | `9200` |
+| `MEDIA_DISK` | Disk uploaded media is written to | `public` |

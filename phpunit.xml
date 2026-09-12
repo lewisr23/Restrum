@@ -38,6 +38,16 @@
         <env name="DB_DATABASE" value="ttphp_test"/>
         <env name="DB_USERNAME" value="root"/>
         <env name="DB_PASSWORD" value=""/>
+        <!--
+            Search is off by default in tests, and forced so a developer's
+            own .env cannot switch it on. The tests that need it turn it on
+            themselves, which keeps every other test off the network, and
+            the index name is pinned to a throwaway so a test run can never
+            write into the index the development app is reading from. That
+            is not hypothetical: it happened.
+        -->
+        <env name="ELASTICSEARCH_ENABLED" value="false" force="true"/>
+        <env name="ELASTICSEARCH_INDEX" value="listings_test" force="true"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

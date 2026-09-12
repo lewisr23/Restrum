@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+import ListingCard from './ListingCard';
 import { API, mediaUrl } from '../lib/config';
 
 interface PassportEntry {
@@ -533,6 +534,52 @@ function PurchasePanel({
   );
 }
 
+// "You might also like", fed by Elasticsearch more_like_this rather than a
+// category listing, so the suggestions share what makes this item what it
+// is rather than merely what shelf it sits on.
+//
+// Fetched separately from the listing and rendered only when it returns
+// something: recommendations are the least important thing on the page, and
+// they should never delay it or leave an empty heading behind if the search
+// cluster is unavailable.
+function SimilarListings({ listingId }: { listingId: string }) {
+  const [listings, setListings] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`${API}/api/listings/${listingId}/similar`, { headers: { Accept: 'application/json' } })
+      .then(res => (res.ok ? res.json() : { data: [] }))
+      .then(body => { if (!cancelled) setListings(body.data ?? []); })
+      .catch(() => { if (!cancelled) setListings([]); });
+
+    return () => { cancelled = true; };
+  }, [listingId]);
+
+  if (listings.length === 0) return null;
+
+  return (
+    <section className="similar">
+      <h3 className="similar__heading">You might also like</h3>
+      <div className="similar__grid">
+        {listings.map(listing => (
+          <ListingCard
+            key={listing.id}
+            id={listing.id}
+            title={listing.title}
+            price={listing.price}
+            location={listing.location}
+            category={listing.category}
+            status={listing.status}
+            imageUrl={listing.media?.find((m: any) => m.media_type === 'IMAGE')?.url ?? null}
+            audioUrls={listing.media?.filter((m: any) => m.media_type === 'AUDIO').map((m: any) => m.url)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -680,6 +727,8 @@ function ListingDetail() {
       </div>
 
       <PassportSection listingId={id!} isSeller={isSeller} />
+
+      <SimilarListings listingId={id!} />
     </div>
   );
 }

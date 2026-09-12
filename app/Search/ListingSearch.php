@@ -130,6 +130,69 @@ class ListingSearch
         ];
     }
 
+    /**
+     * Listings similar to the one being viewed.
+     *
+     * more_like_this asks Elasticsearch which documents share the terms that
+     * make this one distinctive, judged by how rare those terms are across
+     * the whole index. So "Fender Stratocaster Sunburst" is pulled towards
+     * other Strats rather than towards everything with "Fender" in it, and
+     * none of that has to be hand tuned.
+     *
+     * @return int[]
+     */
+    public function similarTo(int $listingId, string $category, int $limit = 6): array
+    {
+        $body = [
+            'query' => [
+                'bool' => [
+                    'must' => [[
+                        'more_like_this' => [
+                            'fields' => ['title', 'description', 'category_text'],
+                            'like' => [[
+                                '_index' => $this->index,
+                                '_id' => (string) $listingId,
+                            ]],
+                            // A term has to appear in the source document at
+                            // least once and in at least two documents
+                            // overall. The defaults are 2 and 5, which on an
+                            // index this size discard almost everything.
+                            'min_term_freq' => 1,
+                            'min_doc_freq' => 2,
+                            // Enough terms to describe the item, few enough
+                            // that the query stays cheap.
+                            'max_query_terms' => 20,
+                        ],
+                    ]],
+                    'filter' => [
+                        // Same category: a delay pedal is not a useful
+                        // suggestion under a drum kit however many words the
+                        // two descriptions happen to share.
+                        ['term' => ['category' => $category]],
+                        // Nobody wants to be recommended something they
+                        // cannot buy.
+                        ['term' => ['status' => 'ACTIVE']],
+                    ],
+                    'must_not' => [
+                        ['ids' => ['values' => [(string) $listingId]]],
+                    ],
+                ],
+            ],
+            'size' => $limit,
+            '_source' => false,
+        ];
+
+        $response = $this->client->search([
+            'index' => $this->index,
+            'body' => $body,
+        ]);
+
+        return array_map(
+            static fn ($hit) => (int) $hit['_id'],
+            $response['hits']['hits'] ?? [],
+        );
+    }
+
     private function priceRange(array $filters): ?array
     {
         $range = array_filter([

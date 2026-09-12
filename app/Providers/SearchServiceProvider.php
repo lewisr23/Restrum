@@ -36,10 +36,11 @@ class SearchServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Only observe when search is on. With it off nothing reads the
-        // index, so writing to it would be pure latency on every save.
-        if (config('elasticsearch.enabled')) {
-            Listing::observe(ListingSearchObserver::class);
-        }
+        // Registered unconditionally, with the observer itself checking
+        // whether search is on each time it fires. Deciding here instead
+        // would bake the answer in at boot, before a test has had any
+        // chance to change it, which is how the test suite ended up
+        // writing factory listings into the development index.
+        Listing::observe(ListingSearchObserver::class);
     }
 }

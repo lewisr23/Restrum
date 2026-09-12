@@ -49,5 +49,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/listings', [ListingController::class, 'index']);
 Route::get('/listings/{listing}', [ListingController::class, 'show']);
+Route::get('/listings/{listing}/similar', [ListingController::class, 'similar']);
 Route::get('/listings/{listing}/passport', [PassportController::class, 'show']);
 Route::get('/users/{user}', [UserController::class, 'show']);

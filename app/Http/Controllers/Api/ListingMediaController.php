@@ -35,11 +35,23 @@ class ListingMediaController extends Controller
             'file' => ['required', 'file', ...self::RULES[$data['media_type']]],
         ]);
 
-        $path = $request->file('file')->store("listings/{$listing->id}", 'public');
+        // The disk is configuration, not something this controller decides:
+        // local in development, object storage anywhere with a container
+        // filesystem. See config/media.php.
+        $path = $request->file('file')->store(
+            "listings/{$listing->id}",
+            config('media.disk'),
+        );
+
+        if ($path === false) {
+            // A failed upload that returns 201 with a broken URL is worse
+            // than an error, because nothing downstream can tell.
+            return response()->json(['message' => 'Could not store the uploaded file.'], 500);
+        }
 
         $media = $listing->media()->create([
             'media_type' => $data['media_type'],
-            'url' => Storage::url($path),
+            'path' => $path,
             'label' => $data['label'] ?? null,
         ]);
         // uploaded_at is a DB-level useCurrent() default, not part of this
@@ -59,11 +71,10 @@ class ListingMediaController extends Controller
             abort(404);
         }
 
-        // url is the public URL (e.g. /storage/listings/4/x.jpg) - strip the
-        // "/storage/" prefix Storage::url() adds to get back the path the
-        // 'public' disk actually stores files under, which is what delete()
-        // needs.
-        Storage::disk('public')->delete(str($media->url)->after('/storage/')->toString());
+        // The stored path is the path on the disk, so deleting needs no
+        // string surgery on a URL the way it did when URLs were what the
+        // table held.
+        Storage::disk(config('media.disk'))->delete($media->path);
 
         $media->delete();
 
