@@ -2,33 +2,31 @@
 
 namespace App\Observers;
 
+use App\Jobs\IndexListing;
+use App\Jobs\RemoveListingFromIndex;
 use App\Models\Listing;
-use App\Search\ListingIndex;
 
 /**
  * Keeps the search index in step with the listings table.
  *
- * Writing synchronously rather than through a queue is a deliberate choice
- * at this size: there is no queue worker in the stack, the write is a single
- * small document, and ListingIndex swallows its own failures so a cluster
- * being down can never stop a seller saving a listing. A queued job is the
- * right answer once indexing volume makes the added latency measurable.
+ * Dispatches rather than indexing inline, so a save returns without waiting
+ * on Elasticsearch. The index is therefore eventually consistent with the
+ * database, by however long the queue is: acceptable here, because a
+ * listing being searchable a moment late is not something anyone can
+ * perceive, while the request being slower is.
+ *
+ * The enabled check is deliberately here as well as inside the jobs. There
+ * is no point queueing work that will do nothing when it runs.
  */
 class ListingSearchObserver
 {
-    public function __construct(private readonly ListingIndex $index) {}
-
     public function saved(Listing $listing): void
     {
         if (! config('elasticsearch.enabled')) {
             return;
         }
 
-        // seller_username is part of the document, and on a freshly created
-        // listing the relation has not been loaded yet.
-        $listing->loadMissing('seller');
-
-        $this->index->index($listing);
+        IndexListing::dispatch($listing);
     }
 
     public function deleted(Listing $listing): void
@@ -37,6 +35,6 @@ class ListingSearchObserver
             return;
         }
 
-        $this->index->remove($listing->id);
+        RemoveListingFromIndex::dispatch($listing->id);
     }
 }

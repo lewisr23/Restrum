@@ -3,6 +3,9 @@
 #   ws://localhost:8081    Reverb, for the live messaging
 #   http://localhost:9200  Elasticsearch, which backs listing search
 #
+# A queue worker runs alongside these, indexing listings into Elasticsearch
+# off the request. It has no port of its own.
+#
 # The Reverb credentials below are local-only defaults. A real deployment
 # supplies its own via the environment; see .env.example.
 
@@ -23,6 +26,14 @@ services:
       # Exposed only so the database can be inspected from the host; nothing
       # in the stack reaches MySQL this way.
       - '3307:3306'
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
@@ -86,12 +97,19 @@ services:
       REVERB_SCHEME: http
       ELASTICSEARCH_ENABLED: 'true'
       ELASTICSEARCH_HOST: http://elasticsearch:9200
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      # predis, so the image needs no phpredis extension built into it.
+      REDIS_CLIENT: predis
     volumes:
       - storage-data:/var/www/html/storage
     depends_on:
       mysql:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   nginx:
@@ -111,6 +129,22 @@ services:
       - storage-data:/var/www/html/storage
     depends_on:
       - app
+
+  queue-worker:
+    build:
+      context: .
+      target: app
+    command: ['php', 'artisan', 'queue:work', '--tries=3', '--max-time=3600']
+    environment: *app-env
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
 
   reverb:
     build:

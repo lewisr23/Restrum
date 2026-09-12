@@ -6,7 +6,7 @@ Work in progress.
 
 ## Stack
 
-**Backend:** PHP 8.3, Laravel 12, Sanctum for token auth, Reverb for WebSockets, MySQL 8, Elasticsearch 8
+**Backend:** PHP 8.3, Laravel 12, Sanctum for token auth, Reverb for WebSockets, MySQL 8, Elasticsearch 8, Redis for queued work
 
 **Frontend:** React 19 with TypeScript, SCSS, Laravel Echo over Reverb for live messaging, no UI framework
 
@@ -23,6 +23,8 @@ docker compose up --build
 * `http://localhost:8080` the app
 * `ws://localhost:8081` Reverb, for live messaging
 * `http://localhost:9200` Elasticsearch
+
+Redis and a queue worker run alongside, with no ports of their own.
 
 Set `ELASTICSEARCH_PORT` if something already holds 9200 on your machine.
 
@@ -132,6 +134,22 @@ The database stores the path, not the URL, and the URL is computed from the
 disk in use. Moving media to a bucket or behind a CDN is a config change
 rather than a rewrite of every row.
 
+### Indexing happens on a queue
+
+A save dispatches `IndexListing` rather than writing to Elasticsearch
+inline, and a delete dispatches `RemoveListingFromIndex`. The index write
+asks the cluster to make the document searchable before returning, which is
+the slowest way to index on purpose: worth having, but not while somebody
+waits for their page. The worker does the waiting instead.
+
+The index is therefore eventually consistent with the database, by however
+long the queue is. That is the right trade here, since a listing becoming
+searchable a moment late is imperceptible and a slower save is not.
+
+The Compose stack runs Redis and a `queue-worker` service for this. Locally
+the default is Laravel's database queue, so nothing extra is needed to run
+the app, and `php artisan queue:work` processes the jobs.
+
 ### When the cluster is down
 
 Search degrades rather than breaks. `ELASTICSEARCH_ENABLED=false` puts the
@@ -179,3 +197,4 @@ into the index the development app was reading from.
 | `ELASTICSEARCH_TIMEOUT` | Request timeout in seconds | `2.0` |
 | `ELASTICSEARCH_PORT` | Host port Compose publishes the cluster on | `9200` |
 | `MEDIA_DISK` | Disk uploaded media is written to | `public` |
+| `QUEUE_CONNECTION` | Queue backend. Compose uses `redis`. | `database` |
