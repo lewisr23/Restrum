@@ -9,7 +9,9 @@
 # and proxies /api to PHP on the same origin, which is the "same origin" case
 # frontend/src/lib/config.ts documents.
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS frontend
+# Node 24 to match CI and development. npm 10 and npm 11 disagree
+# about lock files, and the mismatch fails `npm ci` outright.
+FROM node:24-alpine AS frontend
 
 ARG REACT_APP_REVERB_APP_KEY=""
 ARG REACT_APP_REVERB_HOST="localhost"
@@ -68,6 +70,11 @@ RUN { \
 
 WORKDIR /var/www/html
 
+# The composer binary itself, not only the packages. The autoloader is
+# generated below, once the full application tree is present, and this
+# runtime image has no composer of its own.
+COPY --from=vendor /usr/bin/composer /usr/bin/composer
+
 COPY --from=vendor /build/vendor ./vendor
 COPY . .
 
@@ -77,6 +84,7 @@ COPY . .
 COPY --from=frontend /build/build /var/www/frontend
 
 RUN composer dump-autoload --optimize --no-dev --no-interaction \
+    && rm /usr/bin/composer \
     && chown -R www-data:www-data storage bootstrap/cache
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
