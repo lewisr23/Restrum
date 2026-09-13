@@ -1,12 +1,17 @@
-# TTPHP
+# ToneTrade
 
-A peer to peer marketplace for buying and selling secondhand musical instruments in the UK. Laravel API, React frontend, MySQL, Elasticsearch.
+A peer to peer marketplace for buying and selling secondhand musical
+instruments in the UK. Sellers list gear with photos, audio and video, buyers
+search it, and the two talk in real time. Every instrument carries a service
+history that moves with it between owners.
 
-Work in progress.
+This is the PHP build. The parts worth reading are the Elasticsearch analyzers
+behind gear search, the queued indexing, and how search degrades to SQL when
+the cluster is unavailable. All three are explained below.
 
 ## Stack
 
-**Backend:** PHP 8.3, Laravel 12, Sanctum for token auth, Reverb for WebSockets, MySQL 8, Elasticsearch 8, Redis for queued work
+**Backend:** PHP 8.3, Laravel 13, Sanctum for token auth, Reverb for WebSockets, MySQL 8, Elasticsearch 8, Redis for queued work
 
 **Frontend:** React 19 with TypeScript, SCSS, Laravel Echo over Reverb for live messaging, no UI framework
 
@@ -31,10 +36,13 @@ Set `ELASTICSEARCH_PORT` if something already holds 9200 on your machine.
 Running the pieces directly instead:
 
 ```bash
-php artisan serve
+php artisan serve --port=8500
 php artisan reverb:start
 cd frontend && npm start
 ```
+
+Port 8500 rather than Laravel's default 8000 because that is what the frontend
+looks for when `REACT_APP_API_BASE_URL` is unset, in `frontend/src/lib/config.ts`.
 
 ## Search
 
@@ -198,3 +206,12 @@ into the index the development app was reading from.
 | `ELASTICSEARCH_PORT` | Host port Compose publishes the cluster on | `9200` |
 | `MEDIA_DISK` | Disk uploaded media is written to | `public` |
 | `QUEUE_CONNECTION` | Queue backend. Compose uses `redis`. | `database` |
+| `REDIS_CLIENT` | Redis client. `predis`, since no phpredis extension is built. | `predis` |
+| `BROADCAST_CONNECTION` | Broadcaster for live messaging. `log` silently discards events. | `reverb` |
+| `REVERB_HOST` / `REVERB_PORT` | Where the server reaches Reverb to publish events | `localhost` / `8080` |
+
+The browser reaches Reverb through its own `REACT_APP_REVERB_*` values, which
+need not match the pair above: under Compose the server publishes to the
+container while the browser connects to the published port. Those are listed in
+`frontend/.env.example`, and Create React App bakes them into the bundle at
+build time, which is why `docker-compose.yml` passes them as build arguments.
