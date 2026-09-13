@@ -57,7 +57,7 @@ function AccountMenu({ username, userId }: { username: string; userId: number })
 }
 
 // Logo mark: a guitar pick with an audio waveform cut through it, tying
-// together both halves of what ToneTrade is, instruments and the audio and
+// together both halves of what Restrum is, instruments and the audio and
 // video demos. A solid silhouette with hard strokes rather than stacked
 // circles, because anything finer turns into a blob at navbar size, which is
 // the only size it ever renders at.
@@ -89,7 +89,7 @@ function Navbar() {
         <LogoMark />
         <div>
           <h1 className="site-nav__title">
-            Tone<span className="site-nav__title-accent">Trade</span>
+            Re<span className="site-nav__title-accent">strum</span>
           </h1>
           <p className="site-nav__tagline">UK Secondhand Instrument &amp; Gear Marketplace</p>
         </div>

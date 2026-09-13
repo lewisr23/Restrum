@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "lewisr23/tonetrade",
+    "name": "lewisr23/restrum",
     "type": "project",
     "description": "A peer-to-peer marketplace for secondhand musical instruments, with gear history, fair-price context and real-time messaging.",
     "keywords": [

@@ -37,7 +37,7 @@ function Footer() {
         </div>
       </div>
 
-      <div className="site-footer__legal">© 2026 ToneTrade</div>
+      <div className="site-footer__legal">© 2026 Restrum</div>
     </footer>
   );
 }

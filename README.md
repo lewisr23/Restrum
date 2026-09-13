@@ -1,4 +1,4 @@
-# ToneTrade
+# Restrum
 
 A peer to peer marketplace for buying and selling secondhand musical
 instruments in the UK. Sellers list gear with photos, audio and video, buyers
