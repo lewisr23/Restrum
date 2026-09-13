@@ -29,6 +29,17 @@
     color: $color-text-muted;
   }
 
+  // Sits directly under the submit button, smaller and quieter than the
+  // "already have an account" line below it: it is a notice rather than
+  // something the reader has to act on.
+  &__terms {
+    margin: $space-md 0 0;
+    text-align: center;
+    font-size: $font-size-xs;
+    line-height: 1.6;
+    color: $color-text-faint;
+  }
+
   &__link {
     color: $color-accent;
     text-decoration: none;

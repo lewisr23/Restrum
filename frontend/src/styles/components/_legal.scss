@@ -1,0 +1,94 @@
+@use '../abstracts' as *;
+
+// Terms and Privacy Policy.
+//
+// Narrower than the rest of the site and with a taller line height, because
+// these are the only pages here anyone reads a paragraph at a time. Around 70
+// characters a line is where continuous prose stops being tiring.
+.legal {
+  @include page-container(720px);
+  padding-top: 40px;
+  padding-bottom: $space-xxl;
+
+  &__title {
+    margin: 0 0 $space-xxs;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+  }
+
+  &__updated {
+    margin: 0 0 $space-lg;
+    color: $color-text-faint;
+    font-size: $font-size-sm;
+  }
+
+  &__intro {
+    margin: 0 0 $space-xl;
+    padding-bottom: $space-lg;
+    border-bottom: 1px solid $color-border;
+    color: $color-text-soft;
+    font-size: $font-size-md + 1px;
+    line-height: 1.7;
+  }
+
+  &__body {
+    color: $color-text-muted;
+    font-size: $font-size-md;
+    line-height: 1.75;
+
+    p {
+      margin: 0 0 $space-md;
+    }
+
+    ul {
+      margin: 0 0 $space-md;
+      padding-left: $space-lg;
+    }
+
+    li {
+      margin-bottom: $space-xs;
+    }
+
+    strong {
+      color: $color-text;
+    }
+
+    a {
+      color: $color-accent;
+
+      &:hover {
+        color: $color-accent-hover;
+      }
+    }
+
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: $color-bg-sunken;
+      font-size: $font-size-sm;
+    }
+  }
+
+  &__clause {
+    margin-bottom: $space-xl;
+
+    // The last clause needs no gap below it: the page padding is the gap.
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__clause-title {
+    margin: 0 0 $space-sm;
+    color: $color-text;
+    font-size: $font-size-lg;
+    line-height: 1.4;
+  }
+
+  // Hanging number, so the clause headings line up down the left edge and a
+  // reader scanning for "clause 7" can find it without reading the titles.
+  &__clause-number {
+    color: $color-accent;
+    font-variant-numeric: tabular-nums;
+  }
+}

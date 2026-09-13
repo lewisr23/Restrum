@@ -80,6 +80,17 @@ function Register() {
         <button className="btn-primary btn-block btn-lg" type="submit" disabled={loading}>
           {loading ? 'Creating account...' : 'Create account'}
         </button>
+
+        {/* Terms nobody was ever shown are terms that bind nobody, so the
+            link sits on the button that accepts them rather than only in the
+            footer. Notice rather than a tickbox: a tickbox implies the terms
+            are optional, and it is one more thing between a new seller and an
+            account. */}
+        <p className="auth-card__terms">
+          By creating an account you agree to our{' '}
+          <Link className="auth-card__link" to="/terms">Terms of Service</Link> and{' '}
+          <Link className="auth-card__link" to="/privacy">Privacy Policy</Link>.
+        </p>
       </form>
       <p className="auth-card__footer">
         Already have an account? <Link className="auth-card__link" to="/login">Log in</Link>

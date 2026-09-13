@@ -68,10 +68,34 @@
 
   &__legal {
     @include page-container(1100px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: $space-sm;
     padding-top: $space-md;
     padding-bottom: $space-md;
     border-top: 1px solid $color-bg-elevated;
     font-size: $font-size-xs;
     color: #555;
+  }
+
+  &__legal-links {
+    display: flex;
+    gap: $space-md;
+  }
+
+  // Brighter than the copyright line beside it. These are links people
+  // sometimes genuinely need to find, and footer grey is where text goes to
+  // become unreadable.
+  &__legal-link {
+    @include button-reset;
+    font-size: $font-size-xs;
+    color: $color-text-faint;
+    transition: color $transition;
+
+    &:hover {
+      color: $color-accent;
+    }
   }
 }

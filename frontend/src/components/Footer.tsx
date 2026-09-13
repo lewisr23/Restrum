@@ -1,9 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 
 // Site footer. Deliberately narrower in scope than something like Reverb's:
-// no news section, no app download promo, no social or legal links to pages
-// that don't exist. Every link here goes somewhere real, since a footer full
-// of dead links looks worse than no footer at all.
+// no news section, no app download promo, no social links. Every link here
+// goes somewhere real, since a footer full of dead links looks worse than no
+// footer at all.
+//
+// The legal links are in the bottom bar rather than in a column of their own,
+// which is where people look for them and, more to the point, where Stripe
+// looks for them: a business website has to make its terms and its privacy
+// policy reachable from every page.
 function Footer() {
   const navigate = useNavigate();
 
@@ -25,6 +30,7 @@ function Footer() {
           <button className="site-footer__link" onClick={() => navigate('/')}>Browse gear</button>
           <button className="site-footer__link" onClick={() => navigate('/create')}>Sell gear</button>
           <button className="site-footer__link" onClick={() => navigate('/saved')}>Saved listings</button>
+          <button className="site-footer__link" onClick={() => navigate('/orders')}>Your orders</button>
           <button className="site-footer__link" onClick={() => navigate('/messages')}>Messages</button>
         </div>
 
@@ -37,7 +43,13 @@ function Footer() {
         </div>
       </div>
 
-      <div className="site-footer__legal">© 2026 Restrum</div>
+      <div className="site-footer__legal">
+        <span>© 2026 Restrum</span>
+        <span className="site-footer__legal-links">
+          <button className="site-footer__legal-link" onClick={() => navigate('/terms')}>Terms of Service</button>
+          <button className="site-footer__legal-link" onClick={() => navigate('/privacy')}>Privacy Policy</button>
+        </span>
+      </div>
     </footer>
   );
 }

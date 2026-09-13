@@ -10,6 +10,8 @@ import Checkout from './components/Checkout';
 import Orders from './components/Orders';
 import OrderDetail from './components/OrderDetail';
 import SellerPayments from './components/SellerPayments';
+import Terms from './components/Terms';
+import Privacy from './components/Privacy';
 import Login from './components/Login';
 import Register from './components/Register';
 import MessagesPage from './components/Messages';
@@ -249,6 +251,8 @@ function App() {
               <Route path="/create" element={<CreateListing />} />
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/messages/:id" element={<MessagesPage />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
             </Routes>

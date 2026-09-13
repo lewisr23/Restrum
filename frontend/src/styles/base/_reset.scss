@@ -1,5 +1,16 @@
 @use '../abstracts' as *;
 
+// Border-box everywhere. Without it, the page-container mixin's `width: 100%`
+// and its horizontal padding add up to more than the viewport, so every page
+// on the site was wider than the window by exactly its own padding and
+// scrolled sideways by 48px. That is a hard bug to see on a desktop with a
+// wide window and an obvious one on a phone.
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background-color: $color-bg;
