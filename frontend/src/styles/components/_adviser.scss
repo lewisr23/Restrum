@@ -1,0 +1,341 @@
+@use '../abstracts' as *;
+
+// The gear adviser: launcher pinned bottom right, panel above it.
+//
+// Fixed rather than docked into the page, because it is useful in the middle
+// of browsing and should not scroll away with the results it is talking
+// about. On a phone it goes nearly full width, since a 380px panel on a
+// 375px screen is a panel with no room for the listings it recommends.
+
+.adviser-launch {
+  @include button-reset;
+  position: fixed;
+  right: $space-lg;
+  bottom: $space-lg;
+  z-index: $z-overlay;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: 11px $space-md 11px 14px;
+  border-radius: $radius-pill;
+  background: linear-gradient(135deg, $color-accent, $color-accent-dark);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(#000, 0.45), 0 0 0 1px rgba($color-accent, 0.4);
+  transition:
+    transform $transition,
+    box-shadow $transition,
+    background $transition;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(#000, 0.5), 0 0 0 1px rgba($color-accent, 0.6);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &__icon {
+    display: flex;
+  }
+
+  // Once the panel is open the button is only there to close it, and the
+  // panel's own heading already says what it is.
+  &--open &__label {
+    @include media-down('sm') {
+      display: none;
+    }
+  }
+}
+
+.adviser {
+  position: fixed;
+  right: $space-lg;
+  bottom: 76px;
+  z-index: $z-overlay;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  max-width: calc(100vw - #{$space-lg * 2});
+  max-height: min(560px, calc(100vh - 140px));
+  overflow: hidden;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-lg;
+  background: $color-bg-raised;
+  box-shadow: 0 20px 50px rgba(#000, 0.55);
+
+  // Rises into place rather than appearing. Short, and the panel is opened
+  // by a deliberate click, so there is no risk of it being missed.
+  animation: adviser-in 180ms ease-out;
+
+  @include media-down('sm') {
+    right: $space-sm;
+    left: $space-sm;
+    width: auto;
+    max-width: none;
+  }
+
+  &__head {
+    padding: 14px $space-md;
+    border-bottom: 1px solid $color-border;
+    background: linear-gradient(180deg, mix($color-accent, $color-bg-raised, 10%), $color-bg-raised);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-md;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin: 2px 0 0;
+    color: $color-text-faint;
+    font-size: $font-size-xs;
+  }
+
+  &__scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: $space-md;
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+  }
+
+  &__intro-text {
+    margin: 0 0 $space-md;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+  }
+
+  &__openers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  // Example questions, which double as the fastest way to find out what the
+  // thing is for.
+  &__opener {
+    @include button-reset;
+    padding: 8px 10px;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    background: $color-bg-card;
+    color: $color-text-soft;
+    font-size: $font-size-sm;
+    text-align: left;
+    transition: border-color $transition, color $transition;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-text;
+    }
+  }
+
+  &__error {
+    margin: 0;
+    padding: $space-xs $space-sm;
+    border-radius: $radius-sm;
+    background: mix($color-danger, $color-bg, 12%);
+    color: mix($color-danger, $color-text, 40%);
+    font-size: $font-size-sm;
+  }
+
+  &__compose {
+    display: flex;
+    gap: $space-xs;
+    padding: $space-sm $space-md;
+    border-top: 1px solid $color-border;
+  }
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+    padding: 9px $space-sm;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-sm;
+    background: $color-bg-sunken;
+    color: $color-text;
+    font-family: inherit;
+    font-size: $font-size-sm;
+
+    &:focus {
+      @include focus-ring;
+    }
+  }
+
+  &__send {
+    @include button-reset;
+    padding: 9px $space-md;
+    border-radius: $radius-sm;
+    background: $color-accent;
+    color: #fff;
+    font-size: $font-size-sm;
+    font-weight: 600;
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+      background: $color-accent-hover;
+    }
+  }
+
+  &__footnote {
+    margin: 0;
+    padding: 0 $space-md $space-sm;
+    color: $color-text-faint;
+    font-size: 11px;
+  }
+}
+
+.adviser-msg {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  max-width: 100%;
+
+  &__text {
+    margin: 0;
+    padding: 9px $space-sm;
+    border-radius: $radius;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+    // Long model names and URLs should wrap rather than widen the panel.
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  &--user {
+    align-items: flex-end;
+
+    .adviser-msg__text {
+      background: mix($color-accent, $color-bg-raised, 22%);
+      color: $color-text;
+      border-bottom-right-radius: $radius-sm - 2px;
+    }
+  }
+
+  &--assistant .adviser-msg__text {
+    background: $color-bg-card;
+    color: $color-text-soft;
+    border-bottom-left-radius: $radius-sm - 2px;
+  }
+
+  &__listings {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+// A recommended listing. Deliberately a real link to the real listing rather
+// than a summary: the answer is only worth anything if it takes you there.
+.adviser-listing {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: 6px;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-bg-card;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color $transition, transform $transition;
+
+  &:hover {
+    border-color: $color-accent;
+    transform: translateX(2px);
+  }
+
+  &__image {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    object-fit: cover;
+    border-radius: $radius-sm - 2px;
+    background: $color-bg-sunken;
+
+    &--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: $color-text-faint;
+    }
+  }
+
+  &__body {
+    min-width: 0;
+  }
+
+  &__title {
+    display: block;
+    @include truncate;
+    font-size: $font-size-sm;
+    font-weight: 600;
+  }
+
+  &__meta {
+    display: block;
+    color: $color-accent;
+    font-size: $font-size-xs;
+  }
+}
+
+// Three dots while Claude searches. It can take a few seconds, and a still
+// panel in that window reads as a panel that has broken.
+.adviser-typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 12px $space-sm;
+
+  span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $color-text-faint;
+    animation: adviser-blink 1.2s infinite ease-in-out;
+
+    &:nth-child(2) { animation-delay: 0.15s; }
+    &:nth-child(3) { animation-delay: 0.3s; }
+  }
+}
+
+@keyframes adviser-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes adviser-blink {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adviser {
+    animation: none;
+  }
+
+  .adviser-launch:hover,
+  .adviser-listing:hover {
+    transform: none;
+  }
+
+  .adviser-typing span {
+    animation: none;
+    opacity: 0.6;
+  }
+}

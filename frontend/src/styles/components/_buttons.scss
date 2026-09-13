@@ -31,14 +31,26 @@
 }
 
 // Filled green. The primary action on any given screen, used once per view.
+//
+// A gradient rather than a flat fill, and a shadow tinted with the accent
+// rather than black: on a dark background a black shadow reads as a smudge,
+// where a coloured one reads as glow.
 .btn-primary {
   @extend %button-base;
   padding: 10px $space-lg - 4px;
-  background: $color-accent;
+  background: linear-gradient(135deg, $color-accent-hover, $color-accent-dark);
   color: #fff;
+  box-shadow: 0 2px 10px rgba($color-accent, 0.22);
 
   &:hover:not(:disabled) {
-    background: $color-accent-hover;
+    background: linear-gradient(135deg, mix(#fff, $color-accent-hover, 8%), $color-accent);
+    box-shadow: 0 6px 18px rgba($color-accent, 0.34);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba($color-accent, 0.24);
   }
 }
 
@@ -52,6 +64,7 @@
   &:hover:not(:disabled) {
     border-color: $color-accent;
     color: $color-accent;
+    background: rgba($color-accent, 0.07);
   }
 }
 

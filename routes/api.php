@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ListingMediaController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PassportController;
+use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\StripeConnectController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\UserController;
@@ -69,6 +70,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/listings/{listing}/passport/entries', [PassportController::class, 'addEntry']);
     Route::put('/listings/{listing}/passport/entries/{entry}', [PassportController::class, 'updateEntry']);
 });
+
+// The gear adviser. Public, because someone deciding what to buy has usually
+// not signed up yet, and that is the moment it is useful. Rate limited per IP
+// because unlike everything else here, each request costs real money: see the
+// gear-adviser limiter in AppServiceProvider.
+Route::get('/recommendations/status', [RecommendationController::class, 'status']);
+Route::post('/recommendations', [RecommendationController::class, 'chat'])
+    ->middleware('throttle:gear-adviser');
 
 // The category tree and brand lists. Public, cached, and read by both the
 // filter panel and the sell form.

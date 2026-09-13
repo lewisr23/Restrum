@@ -64,4 +64,25 @@ return [
         'auto_release_days' => env('STRIPE_AUTO_RELEASE_DAYS', 14),
     ],
 
+    /*
+     * The gear adviser. Off unless a key is present, so a fork of this
+     * project runs perfectly well with no Anthropic account and the widget
+     * simply does not appear.
+     */
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+
+        'model' => env('ANTHROPIC_MODEL', 'claude-opus-5'),
+
+        // How many times Claude may call a tool before the reply is forced.
+        // Each pass is a billed request, so this is the ceiling on what one
+        // question can cost.
+        'max_tool_rounds' => env('ANTHROPIC_MAX_TOOL_ROUNDS', 4),
+
+        // How many turns of a conversation are sent back. Old turns are the
+        // bulk of what a chat costs, and nobody's taste in guitars depends on
+        // what they asked twenty messages ago.
+        'max_history' => env('ANTHROPIC_MAX_HISTORY', 12),
+    ],
+
 ];

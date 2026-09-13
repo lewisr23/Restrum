@@ -9,6 +9,8 @@ import Checkout from './components/Checkout';
 import Orders from './components/Orders';
 import OrderDetail from './components/OrderDetail';
 import SellerPayments from './components/SellerPayments';
+import About from './components/About';
+import Faq from './components/Faq';
 import Terms from './components/Terms';
 import Privacy from './components/Privacy';
 import Login from './components/Login';
@@ -17,6 +19,7 @@ import MessagesPage from './components/Messages';
 import SellerProfile from './components/SellerProfile';
 import SavedListings from './components/SavedListings';
 import Footer from './components/Footer';
+import GearAdviser from './components/GearAdviser';
 
 // Routing and nothing else.
 //
@@ -44,6 +47,8 @@ function App() {
               <Route path="/create" element={<CreateListing />} />
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/messages/:id" element={<MessagesPage />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/faq" element={<Faq />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
@@ -51,6 +56,10 @@ function App() {
             </Routes>
           </div>
           <Footer />
+
+          {/* Outside the routes: the adviser is useful on any page, and it
+              renders nothing at all unless the server has an API key. */}
+          <GearAdviser />
         </div>
       </BrowserRouter>
     </AuthProvider>

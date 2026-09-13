@@ -36,6 +36,8 @@ function Footer() {
 
         <div>
           <p className="site-footer__heading">About</p>
+          <button className="site-footer__link" onClick={() => navigate('/about')}>What Restrum is</button>
+          <button className="site-footer__link" onClick={() => navigate('/faq')}>Questions, answered</button>
           <p className="site-footer__note">
             Verified sellers are confirmed through real buyer and seller endorsements,
             not badges people hand themselves.

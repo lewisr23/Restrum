@@ -35,10 +35,11 @@ function Hero({
           <span className="hero__title-accent">Know its story.</span>
         </h1>
         <p className="hero__lede">
-          Secondhand gear from sellers across the UK, with real condition
-          history, honest price context, and sellers vouched for by the people
+          Secondhand gear from across the UK, with real condition history,
+          honest price context, and sellers vouched for by the people
           who've actually dealt with them. We recognise that the history of an
-          instrument defines how you play.
+          instrument defines how you play. So we built the perfect marketplace
+          for that.
         </p>
 
         <input

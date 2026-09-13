@@ -87,6 +87,10 @@ function Navbar() {
 
   return (
     <nav className="site-nav">
+      {/* An inner wrapper on the same container as every page below it, so
+          the logo lines up with the hero text and the listing grid instead
+          of floating out at the window edge on its own. */}
+      <div className="site-nav__inner">
       <div className="site-nav__brand" onClick={() => navigate('/')}>
         <LogoMark />
         <div>
@@ -109,6 +113,7 @@ function Navbar() {
             <button className="btn-primary" onClick={() => navigate('/register')}>Register</button>
           </>
         )}
+      </div>
       </div>
     </nav>
   );
