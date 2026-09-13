@@ -15,7 +15,10 @@ use Laravel\Sanctum\HasApiTokens;
 // community_verified is deliberately NOT fillable - it is derived by
 // EndorsementService from user_endorsements, never set directly by request input.
 #[Fillable(['username', 'email', 'password', 'location', 'bio'])]
-#[Hidden(['password', 'remember_token'])]
+// stripe_account_id is hidden rather than merely unused by the resources: it
+// identifies a real Stripe account, and a marketplace has no reason to put one
+// seller's account id in front of another user.
+#[Hidden(['password', 'remember_token', 'stripe_account_id'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -27,7 +30,26 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'community_verified' => 'boolean',
+            'stripe_charges_enabled' => 'boolean',
+            'stripe_payouts_enabled' => 'boolean',
+            'stripe_synced_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this seller can actually be paid for a sale.
+     *
+     * All three conditions, not just the account existing. Stripe creates an
+     * account the moment onboarding starts, long before it will let money
+     * move, so an account id on its own says only that somebody began filling
+     * in a form. Checking it alone is how a marketplace ends up taking a
+     * buyer's money for an instrument whose seller can never receive it.
+     */
+    public function canReceivePayments(): bool
+    {
+        return $this->stripe_account_id !== null
+            && $this->stripe_charges_enabled
+            && $this->stripe_payouts_enabled;
     }
 
     public function listings(): HasMany
@@ -43,6 +65,18 @@ class User extends Authenticatable
     public function conversationsAsSeller(): HasMany
     {
         return $this->hasMany(Conversation::class, 'seller_id');
+    }
+
+    /** Orders this user is buying. */
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
+
+    /** Orders this user is selling. */
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Order::class, 'seller_id');
     }
 
     public function messagesSent(): HasMany

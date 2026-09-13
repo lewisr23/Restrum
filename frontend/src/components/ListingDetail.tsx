@@ -460,13 +460,17 @@ function PurchasePanel({
       </div>
       <ReferencePrice listing={listing} />
 
-      {/* Unconditional rather than scoped to any particular id range: this
-          is a demo deployment, so it's equally true of a listing a visitor
-          created themselves. */}
-      <p className="demo-notice">
-        Demo listing: this item is not really for sale. Buy Now and offers are
-        simulated, and no payment is taken.
-      </p>
+      {/* What used to be here said the listing was a demo and nothing was
+          really for sale, which stopped being true the moment checkout
+          started taking real payments. It is replaced by the thing a buyer
+          on a stranger's listing actually wants to know. */}
+      {!isSeller && !isSold && (
+        <p className="buyer-protection">
+          <span className="buyer-protection__icon" aria-hidden="true">🔒</span>
+          Your money is held by Restrum until you confirm the gear arrived as
+          described.
+        </p>
+      )}
 
       {!isSeller && !isSold && (
         <button

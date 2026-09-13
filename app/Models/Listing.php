@@ -44,6 +44,11 @@ class Listing extends Model
         return $this->hasMany(Conversation::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function savedBy(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'saved_listings')

@@ -8,14 +8,15 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\InteractsWithPayments;
 use Tests\TestCase;
 
 /**
- * Two endpoints can sell a listing: ListingController::buy and the accept
- * branch of MessageController::respond. Both used to read the listing's
- * status and then write it without holding the row, so two concurrent
- * requests could both see ACTIVE and both sell it, and a purchase racing an
- * accepted offer left the final price decided by whichever committed last.
+ * Two paths can sell a listing: starting a checkout, and the accept branch of
+ * MessageController::respond. Both used to read the listing's status and then
+ * write it without holding the row, so two concurrent requests could both see
+ * ACTIVE and both sell it, and a purchase racing an accepted offer left the
+ * final price decided by whichever committed last.
  *
  * A genuine race cannot be reproduced in a single-threaded test run, so this
  * covers it from two directions instead: the sequential cross-path cases,
@@ -24,10 +25,14 @@ use Tests\TestCase;
  * window. The second is a proxy, and is written as one on purpose - it fails
  * if someone later removes the locking, which is the regression worth
  * catching.
+ *
+ * Payment moved the boundary rather than removing it. A checkout now reserves
+ * the listing before it sells it, so there are two moments to protect instead
+ * of one, and the reservation is the earlier and busier of the two.
  */
 class ListingSaleConcurrencyTest extends TestCase
 {
-    use RefreshDatabase;
+    use InteractsWithPayments, RefreshDatabase;
 
     private User $seller;
 
@@ -39,7 +44,12 @@ class ListingSaleConcurrencyTest extends TestCase
     {
         parent::setUp();
 
-        $this->seller = User::factory()->create();
+        $this->fakePayments();
+
+        // payoutReady because a seller Stripe will not pay cannot be bought
+        // from at all, which is its own test rather than a precondition of
+        // every test in this file.
+        $this->seller = User::factory()->payoutReady()->create();
         $this->buyer = User::factory()->create();
         $this->listing = Listing::factory()->for($this->seller, 'seller')->create(['price' => 500]);
     }
@@ -67,9 +77,7 @@ class ListingSaleConcurrencyTest extends TestCase
     {
         $offer = $this->makePendingOffer(400);
 
-        $this->actingAs($this->buyer)
-            ->postJson("/api/listings/{$this->listing->id}/buy")
-            ->assertOk();
+        $this->buyOutright($this->buyer, $this->listing);
 
         $this->actingAs($this->seller)
             ->postJson("/api/messages/{$offer->id}/respond", ['action' => 'accept'])
@@ -88,9 +96,7 @@ class ListingSaleConcurrencyTest extends TestCase
     {
         $offer = $this->makePendingOffer(400);
 
-        $this->actingAs($this->buyer)
-            ->postJson("/api/listings/{$this->listing->id}/buy")
-            ->assertOk();
+        $this->buyOutright($this->buyer, $this->listing);
 
         // Declining changes nothing about the sale, so tidying up a dead
         // offer stays allowed where accepting one does not.
@@ -108,22 +114,47 @@ class ListingSaleConcurrencyTest extends TestCase
     {
         $other = User::factory()->create();
 
-        $this->actingAs($this->buyer)
-            ->postJson("/api/listings/{$this->listing->id}/buy")
-            ->assertOk();
+        $this->buyOutright($this->buyer, $this->listing);
 
         $this->actingAs($other)
-            ->postJson("/api/listings/{$this->listing->id}/buy")
+            ->postJson("/api/listings/{$this->listing->id}/checkout")
             ->assertStatus(422)
             ->assertJsonValidationErrors('listing');
     }
 
-    public function test_buying_locks_the_listing_row_before_selling_it(): void
+    /**
+     * The case the reservation exists for, and the one the old buy endpoint
+     * could not have had: money has not moved yet, the listing is still
+     * ACTIVE, and a second buyer must still be turned away.
+     *
+     * Without this they both reach Stripe, both pay, and one of them is
+     * refunded a guitar they were told they had bought.
+     */
+    public function test_a_listing_someone_is_checking_out_cannot_be_checked_out_again(): void
+    {
+        $other = User::factory()->create();
+
+        $this->startCheckout($this->buyer, $this->listing);
+
+        // Still for sale as far as the listing itself is concerned.
+        $this->assertSame('ACTIVE', $this->listing->fresh()->status);
+
+        $this->actingAs($other)
+            ->postJson("/api/listings/{$this->listing->id}/checkout")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('listing');
+
+        // And only one session was ever opened, so there is only one way to
+        // pay for it in existence.
+        $this->assertSame(1, $this->gateway->timesCalled('openCheckout'));
+    }
+
+    public function test_reserving_a_listing_locks_its_row_first(): void
     {
         $this->assertSelectsForUpdate(
             fn () => $this->actingAs($this->buyer)
-                ->postJson("/api/listings/{$this->listing->id}/buy")
-                ->assertOk(),
+                ->postJson("/api/listings/{$this->listing->id}/checkout")
+                ->assertSuccessful(),
             'listings',
         );
     }

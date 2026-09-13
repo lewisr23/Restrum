@@ -1,30 +1,31 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { API, mediaUrl } from '../lib/config';
 
-// Checkout page for the direct Buy Now flow. Deliberately does NOT process
-// real payment. This is peer to peer, in the style of Gumtree or Facebook
-// Marketplace: the platform records the sale, and buyer and seller arrange
-// payment and collection between themselves through the messaging feature.
-// This is a documented scope decision, not a missing feature: real card
-// processing would need a payment processor integration, live card-data
-// compliance, and webhook handling, all out of proportion for this project.
+// The order summary a buyer sees before they are handed over to Stripe.
+//
+// This page never touches card details. It reserves the listing, gets a
+// Stripe Checkout URL back, and redirects: card data goes straight from the
+// buyer's browser to Stripe and never passes through Restrum at all, which is
+// the difference between taking payments and taking on card-data compliance.
 function Checkout() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { user } = useAuth();
 
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [buying, setBuying] = useState(false);
-  const [purchased, setPurchased] = useState(false);
-  // Collection preference is cosmetic context for the seller conversation.
-  // It isn't persisted on the server, since no order entity exists and the
-  // listing simply becomes SOLD.
-  const [method, setMethod] = useState<'collection' | 'delivery'>('collection');
+  const [starting, setStarting] = useState(false);
+  const [problem, setProblem] = useState('');
+
+  // Stripe sends a buyer who backed out to ?checkout=cancelled. Worth saying
+  // out loud, because otherwise returning to this page looks like the button
+  // simply did nothing.
+  const cancelled = params.get('checkout') === 'cancelled';
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -42,68 +43,40 @@ function Checkout() {
       .catch(() => { setError('Listing not found.'); setLoading(false); });
   }, [id, user, navigate]);
 
-  const handleConfirm = async () => {
+  const handlePay = async () => {
     if (!user || !listing) return;
-    setBuying(true);
+    setStarting(true);
+    setProblem('');
+
     try {
-      const res = await fetch(`${API}/api/listings/${id}/buy`, {
+      const res = await fetch(`${API}/api/listings/${id}/checkout`, {
         method: 'POST',
         headers: { Accept: 'application/json', Authorization: `Bearer ${user.token}` },
       });
-      if (res.ok) {
-        const body = await res.json();
-        setListing(body.data);
-        setPurchased(true);
-      } else {
-        let detail = `Server responded ${res.status}`;
-        try {
-          const body = await res.json();
-          detail = body?.message || detail;
-        } catch {
-          // response wasn't JSON, so stick with the status code
-        }
-        alert(`Couldn't complete the purchase: ${detail}`);
-      }
-    } catch {
-      alert('Could not reach the server. Is the backend running?');
-    } finally {
-      setBuying(false);
-    }
-  };
 
-  // Unlike the old API, there's no "create an empty conversation" endpoint -
-  // starting one requires sending an actual first message. Auto-sending a
-  // sensible one here (rather than showing yet another text box right after
-  // a purchase confirmation) is the most natural one-click way to get the
-  // buyer and seller actually talking about collection/delivery.
-  const openChatWithSeller = async () => {
-    if (!user) return;
-    const starter = method === 'collection'
-      ? "Hi! Just bought this, what times work for me to come and collect it?"
-      : "Hi! Just bought this, could we sort out delivery or postage?";
-    try {
-      const res = await fetch(`${API}/api/listings/${id}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${user.token}`,
-        },
-        body: JSON.stringify({ content: starter }),
-      });
+      const body = await res.json().catch(() => null);
+
       if (res.ok) {
-        const body = await res.json();
-        navigate(`/messages/${body.conversation.id}`);
+        // A full page navigation rather than a router push: the destination
+        // is Stripe's domain, not ours.
+        window.location.href = body.checkout_url;
         return;
       }
-      console.error('Could not open a chat with the seller:', await res.text());
-    } catch (err) {
-      console.error('Could not open a chat with the seller:', err);
+
+      // 422 carries a specific reason - someone else is mid-checkout, the
+      // seller has not finished setting up payments - and the specific
+      // reason is the only useful thing to show. Anything else gets the
+      // generic line, since the buyer can do nothing about it either way.
+      setProblem(
+        body?.errors?.listing?.[0]
+        || body?.message
+        || 'Something went wrong starting the payment. Nothing has been charged.',
+      );
+    } catch {
+      setProblem('Could not reach the server. Nothing has been charged.');
+    } finally {
+      setStarting(false);
     }
-    // Only reached if that call genuinely failed. The inbox is still the best
-    // place to land: the purchase itself already went through, so leaving the
-    // buyer stranded on the checkout screen would be worse.
-    navigate('/messages');
   };
 
   if (loading) return <div className="page text-muted">Loading...</div>;
@@ -114,8 +87,7 @@ function Checkout() {
   const isSeller = user?.id === listing.seller.id;
   const isSold = listing.status === 'SOLD';
 
-  // Already sold and we didn't just buy it here, so dead end politely.
-  if (isSold && !purchased) {
+  if (isSold) {
     return (
       <div className="checkout-outcome">
         <div className="checkout-outcome__panel">
@@ -143,67 +115,50 @@ function Checkout() {
     );
   }
 
-  if (purchased) {
-    return (
-      <div className="checkout-outcome">
-        <div className="checkout-outcome__panel checkout-outcome__panel--centred">
-          <div className="checkout-outcome__icon">✅</div>
-          <h1 className="checkout-outcome__title checkout-outcome__title--large">Purchase confirmed</h1>
-          <p className="checkout-outcome__text">
-            <strong className="checkout-outcome__strong">{listing.title}</strong> is yours for{' '}
-            <strong className="checkout-outcome__price">£{listing.price}</strong>.
-          </p>
-          <p className="checkout-outcome__text checkout-outcome__text--spaced">
-            Message {listing.seller.username} to arrange payment and{' '}
-            {method === 'collection' ? 'collection' : 'delivery'}. This doesn't hold
-            funds or process payment.
-          </p>
-          <div className="checkout-outcome__actions">
-            <button className="btn-primary" onClick={openChatWithSeller}>
-              Message {listing.seller.username}
-            </button>
-            <button className="btn-ghost" onClick={() => navigate('/')}>Back to browsing</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="checkout">
       <button className="back-link" onClick={() => navigate(`/listing/${id}`)}>Back to listing</button>
 
       <h1 className="checkout__title">Checkout</h1>
 
+      {cancelled && (
+        <div className="notice notice--muted">
+          Payment cancelled, and nothing was charged. The listing is still held
+          for you for a short while if you want another go.
+        </div>
+      )}
+
+      {problem && <div className="notice notice--error">{problem}</div>}
+
       <div className="checkout__layout">
         <div className="panel">
-          <h2 className="checkout__section-title">How you'll get it</h2>
-          {([
-            { key: 'collection', title: 'Collect in person', desc: `Meet the seller and pick it up, since they're in ${listing.location}. You can inspect the gear before handing anything over.` },
-            { key: 'delivery', title: 'Arrange delivery', desc: 'Agree postage or a courier with the seller in chat. Check the gear on arrival.' },
-          ] as const).map(opt => (
-            <label
-              key={opt.key}
-              className={`delivery-option${method === opt.key ? ' delivery-option--selected' : ''}`}
-            >
-              <input
-                className="delivery-option__radio"
-                type="radio"
-                name="method"
-                checked={method === opt.key}
-                onChange={() => setMethod(opt.key)}
-              />
-              <strong className="delivery-option__title">{opt.title}</strong>
-              <p className="delivery-option__desc">{opt.desc}</p>
-            </label>
-          ))}
+          <h2 className="checkout__section-title">How paying works</h2>
+
+          <ol className="protection-steps">
+            <li className="protection-steps__step">
+              <strong>You pay Restrum, not the seller.</strong> Your card is
+              handled by Stripe. We never see the numbers.
+            </li>
+            <li className="protection-steps__step">
+              <strong>We hold the money.</strong> The seller can see the sale
+              and send the gear, but they are not paid yet.
+            </li>
+            <li className="protection-steps__step">
+              <strong>You check the gear.</strong> When it arrives and it is
+              what was described, you confirm it from your orders page.
+            </li>
+            <li className="protection-steps__step">
+              <strong>Then the seller gets paid.</strong> If it never turns up,
+              or it is not what was described, you have not lost your money.
+            </li>
+          </ol>
 
           <div className="payment-note">
             <p>
-              <strong>Payment is arranged directly with the seller.</strong>{' '}
-              This site doesn't hold funds or take a cut. Confirming reserves the
-              listing for you and marks it sold, then you settle up in person or
-              however you both agree in chat.
+              Arrange collection or postage with {listing.seller.username} in
+              chat once you have paid. If you have not confirmed after 14 days
+              and have not told us there is a problem, the payment is released
+              to the seller automatically.
             </p>
           </div>
         </div>
@@ -225,11 +180,12 @@ function Checkout() {
             <span>Total</span>
             <span className="order-summary__total-value">£{listing.price}</span>
           </div>
-          <button className="btn-primary btn-block btn-lg" onClick={handleConfirm} disabled={buying}>
-            {buying ? 'Confirming...' : 'Confirm purchase'}
+          <button className="btn-primary btn-block btn-lg" onClick={handlePay} disabled={starting}>
+            {starting ? 'Taking you to Stripe...' : 'Pay securely with Stripe'}
           </button>
           <p className="order-summary__caveat">
-            This can't be undone. The listing is marked sold immediately.
+            You'll be taken to Stripe to pay. Your money is held until you
+            confirm the gear arrived as described.
           </p>
         </div>
       </div>

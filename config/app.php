@@ -56,6 +56,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | Where the React app is served from, which is not always where the API
+    | is: in development the two are on different ports, and Stripe has to be
+    | told a real browser URL to return a buyer or a seller to. Deployed
+    | behind one nginx these are the same origin and this simply matches
+    | APP_URL, but it cannot be derived from it, so it is configured.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

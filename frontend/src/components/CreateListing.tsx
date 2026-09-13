@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -45,6 +45,25 @@ function CreateListing() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+
+  // Whether Stripe will actually pay this seller. Asked here rather than only
+  // at checkout because of who loses out otherwise: the listing goes up, a
+  // buyer tries to pay, and the buyer is turned away by a problem the seller
+  // was never told about and the buyer cannot do anything about.
+  const [payoutReady, setPayoutReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`${API}/api/stripe/connect`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${user.token}` },
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(body => setPayoutReady(body ? Boolean(body.can_sell) : null))
+      // A failed check must not stand between someone and writing a listing.
+      // Null means unknown, and unknown shows nothing rather than a warning
+      // that may well be wrong.
+      .catch(() => setPayoutReady(null));
+  }, [user]);
 
   if (!user) {
     return (
@@ -128,6 +147,17 @@ function CreateListing() {
     <div className="page page--form">
       <button className="back-link" onClick={() => navigate('/')}>← Back</button>
       <h1 className="page__title">Create a Listing</h1>
+
+      {payoutReady === false && (
+        <div className="notice notice--muted">
+          <strong>Set up payments before anyone can buy this.</strong> Write
+          the listing by all means, but buyers cannot check out on it until
+          Stripe has verified you and knows where to pay you.{' '}
+          <button type="button" className="link-button" onClick={() => navigate('/sell/payments')}>
+            Set that up now
+          </button>
+        </div>
+      )}
 
       <form className="form" onSubmit={handleSubmit}>
         <div className="field-group">

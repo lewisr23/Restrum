@@ -261,16 +261,28 @@
   }
 }
 
-// Standing note that nothing here is really for sale.
-.demo-notice {
+// The buyer protection line above the Buy button. Reassurance rather than a
+// warning, so it reads in the accent colour the rest of the site uses for
+// good news, not the amber the demo notice it replaced was painted in.
+.buyer-protection {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   margin: $space-md 0 0;
   padding: 10px $space-sm;
-  background: mix($color-warning, $color-bg, 12%);
-  border: 1px solid mix($color-warning, $color-bg, 30%);
+  background: mix($color-accent, $color-bg, 8%);
+  border: 1px solid mix($color-accent, $color-bg, 24%);
   border-radius: $radius-sm;
-  color: #d8b463;
+  color: $color-text-muted;
   font-size: $font-size-sm;
   line-height: 1.5;
+
+  &__icon {
+    flex-shrink: 0;
+    // Nudged to sit on the first line of text rather than the box's centre,
+    // which is where it lands once the copy wraps to two lines.
+    line-height: 1.5;
+  }
 }
 
 // Where this listing's price sits against others in its category. The

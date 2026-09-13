@@ -173,41 +173,10 @@ class ListingTest extends TestCase
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Mystery pedal');
     }
 
-    public function test_a_buyer_can_buy_an_active_listing(): void
-    {
-        $listing = Listing::factory()->create();
-        $buyer = User::factory()->create();
-
-        $this->actingAs($buyer)
-            ->postJson("/api/listings/{$listing->id}/buy")
-            ->assertOk()
-            ->assertJsonPath('data.status', 'SOLD');
-
-        $this->assertSame('SOLD', $listing->fresh()->status);
-    }
-
-    public function test_a_seller_cannot_buy_their_own_listing(): void
-    {
-        $listing = Listing::factory()->create();
-
-        $this->actingAs($listing->seller)
-            ->postJson("/api/listings/{$listing->id}/buy")
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('listing');
-
-        $this->assertSame('ACTIVE', $listing->fresh()->status);
-    }
-
-    public function test_an_already_sold_listing_cannot_be_bought_again(): void
-    {
-        $listing = Listing::factory()->sold()->create();
-        $buyer = User::factory()->create();
-
-        $this->actingAs($buyer)
-            ->postJson("/api/listings/{$listing->id}/buy")
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('listing');
-    }
+    // Buying a listing moved to CheckoutTest when it started involving money.
+    // It is no longer a property of a listing that it can be sold, it is a
+    // conversation with Stripe, and testing it here would have meant every
+    // listing test carrying a payment gateway.
 
     public function test_saving_a_listing_toggles_and_shows_up_in_saved(): void
     {

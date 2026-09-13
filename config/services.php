@@ -35,4 +35,33 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+
+        /*
+         * Marketplace policy rather than credentials, kept here because it is
+         * read on every one of the Stripe calls below and splitting it into
+         * its own file would only mean two places to look.
+         */
+
+        // The platform's cut, as a percentage of the sale price. Stored onto
+        // each order at checkout, so changing it never rewrites the
+        // economics of sales that already happened.
+        'platform_fee_percent' => env('STRIPE_PLATFORM_FEE_PERCENT', '5'),
+
+        // How long a checkout holds an instrument off the market. Long enough
+        // to find a card, short enough that an abandoned checkout does not
+        // strand a listing: Stripe expires its own session at 24 hours, which
+        // is far too long to make a seller wait.
+        'reservation_minutes' => env('STRIPE_RESERVATION_MINUTES', 30),
+
+        // How long the buyer has to confirm the item arrived before the money
+        // releases to the seller anyway. Without it an order sits in escrow
+        // forever whenever a buyer simply never comes back, which punishes
+        // the seller for the buyer's silence.
+        'auto_release_days' => env('STRIPE_AUTO_RELEASE_DAYS', 14),
+    ],
+
 ];

@@ -46,8 +46,10 @@ function AccountMenu({ username, userId }: { username: string; userId: number })
       {open && (
         <div className="account-menu__panel">
           <button className="account-menu__item" onClick={() => go(`/seller/${userId}`)}>My Listings</button>
+          <button className="account-menu__item" onClick={() => go('/orders')}>Orders</button>
           <button className="account-menu__item" onClick={() => go('/saved')}>Saved</button>
           <button className="account-menu__item" onClick={() => go('/messages')}>Messages</button>
+          <button className="account-menu__item" onClick={() => go('/sell/payments')}>Getting paid</button>
           <div className="account-menu__divider" />
           <button className="account-menu__item account-menu__item--danger" onClick={handleLogout}>Log out</button>
         </div>

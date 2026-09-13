@@ -7,6 +7,9 @@ import ListingCard from './components/ListingCard';
 import CreateListing from './components/CreateListing';
 import EditListing from './components/EditListing';
 import Checkout from './components/Checkout';
+import Orders from './components/Orders';
+import OrderDetail from './components/OrderDetail';
+import SellerPayments from './components/SellerPayments';
 import Login from './components/Login';
 import Register from './components/Register';
 import MessagesPage from './components/Messages';
@@ -238,6 +241,9 @@ function App() {
               <Route path="/listing/:id" element={<ListingDetail />} />
               <Route path="/listing/:id/edit" element={<EditListing />} />
               <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/orders/:id" element={<OrderDetail />} />
+              <Route path="/sell/payments" element={<SellerPayments />} />
               <Route path="/seller/:id" element={<SellerProfile />} />
               <Route path="/saved" element={<SavedListings />} />
               <Route path="/create" element={<CreateListing />} />

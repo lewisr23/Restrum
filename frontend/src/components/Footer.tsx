@@ -12,7 +12,7 @@ function Footer() {
       <div className="site-footer__inner">
         <div>
           <h2 className="site-footer__brand">
-            Tone<span className="site-footer__brand-accent">Trade</span>
+            Re<span className="site-footer__brand-accent">strum</span>
           </h2>
           <p className="site-footer__blurb">
             A UK marketplace for buying and selling secondhand instruments and gear,

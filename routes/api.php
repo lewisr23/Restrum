@@ -1,17 +1,26 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\EndorsementController;
 use App\Http\Controllers\Api\FollowController;
 use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\ListingMediaController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PassportController;
+use App\Http\Controllers\Api\StripeConnectController;
+use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', fn () => response()->json(['ok' => true]));
+
+// Unauthenticated because Stripe has no session here, and safe because the
+// controller verifies the request's signature before anything reads it. It
+// sits outside the auth group for that reason and no other.
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,7 +37,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/listings', [ListingController::class, 'store']);
     Route::put('/listings/{listing}', [ListingController::class, 'update']);
     Route::post('/listings/{listing}/save', [ListingController::class, 'toggleSave']);
-    Route::post('/listings/{listing}/buy', [ListingController::class, 'buy']);
+
+    // Replaces the old POST /listings/{listing}/buy, which marked a listing
+    // sold without any money changing hands. This one reserves the listing
+    // and hands back a Stripe Checkout URL.
+    Route::post('/listings/{listing}/checkout', [CheckoutController::class, 'store']);
+
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);
+
+    // Seller payouts. GET reports where Stripe has got to, POST returns a
+    // fresh link into Stripe's hosted onboarding.
+    Route::get('/stripe/connect', [StripeConnectController::class, 'show']);
+    Route::post('/stripe/connect', [StripeConnectController::class, 'store']);
 
     Route::post('/listings/{listing}/media', [ListingMediaController::class, 'store']);
     Route::delete('/listings/{listing}/media/{media}', [ListingMediaController::class, 'destroy']);

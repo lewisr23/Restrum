@@ -1,0 +1,386 @@
+@use '../abstracts' as *;
+
+// Orders, order detail and seller payout setup: everything that exists
+// because money now actually moves through the site.
+
+// A one-line message at the top of a page. Neutral by default, because most
+// of what this says is context rather than trouble.
+.notice {
+  margin: 0 0 $space-lg;
+  padding: $space-sm $space-md;
+  border-radius: $radius-sm;
+  border: 1px solid $color-border;
+  background: $color-bg-raised;
+  color: $color-text-soft;
+  font-size: $font-size-sm;
+  line-height: 1.55;
+
+  &--muted {
+    border-color: mix($color-accent, $color-bg, 24%);
+    background: mix($color-accent, $color-bg, 8%);
+  }
+
+  &--error {
+    border-color: mix($color-danger, $color-bg, 34%);
+    background: mix($color-danger, $color-bg, 12%);
+    color: mix($color-danger, $color-text, 40%);
+  }
+}
+
+// The button skeleton assumes a <button>, which has no underline of its own.
+// Several of these actions are navigation and so are rendered as links.
+a.btn-primary,
+a.btn-ghost {
+  text-decoration: none;
+}
+
+// Inline "do a thing" text that is a button for accessibility reasons but
+// should not look like one, e.g. "check again" inside a sentence.
+.link-button {
+  @include button-reset;
+  color: $color-accent;
+  text-decoration: underline;
+
+  &:hover {
+    color: $color-accent-hover;
+  }
+}
+
+// The four-step explanation of escrow on the checkout page. Numbered because
+// the order is the reassurance: the money moves last.
+.protection-steps {
+  margin: 0 0 $space-lg;
+  padding-left: $space-lg;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+
+  &__step {
+    margin-bottom: $space-sm;
+
+    strong {
+      display: block;
+      color: $color-text;
+    }
+  }
+}
+
+.orders {
+  @include page-container(860px);
+  padding-top: 40px;
+  padding-bottom: $space-xxl;
+
+  &__title {
+    margin: 0 0 $space-lg;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: $space-xs;
+    margin-bottom: $space-lg;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+  }
+
+  &__empty {
+    padding: $space-xl;
+    text-align: center;
+
+    p {
+      margin: 0 0 $space-md;
+    }
+  }
+}
+
+// One order in the list. A link rather than a card with a button inside it,
+// so the whole row is the target on a phone.
+.order-row {
+  @include surface;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: $space-md;
+  align-items: center;
+  padding: $space-sm;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: $color-border-strong;
+  }
+
+  &__image {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: $radius-sm;
+    background: $color-bg-sunken;
+
+    &--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+  }
+
+  &__meta {
+    margin: 0 0 2px;
+    color: $color-text-faint;
+    font-size: $font-size-xs;
+  }
+
+  &__title {
+    @include truncate;
+    margin: 0 0 2px;
+    font-size: $font-size-md;
+  }
+
+  &__status {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  &__amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  &__price {
+    font-size: $font-size-lg;
+    font-weight: 600;
+  }
+}
+
+// Status pill. The colours carry meaning, so they are assigned by what the
+// state means for the money rather than by how far along it is: held, done,
+// stopped.
+.order-status {
+  padding: 3px 10px;
+  border-radius: $radius-pill;
+  border: 1px solid $color-border-strong;
+  background: $color-bg-elevated;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  text-transform: capitalize;
+  white-space: nowrap;
+
+  &--paid,
+  &--confirmed {
+    border-color: mix($color-accent, $color-bg, 40%);
+    background: mix($color-accent, $color-bg, 14%);
+    color: $color-accent-hover;
+  }
+
+  &--released {
+    border-color: mix($color-good, $color-bg, 40%);
+    background: mix($color-good, $color-bg, 14%);
+    color: $color-good;
+  }
+
+  &--disputed {
+    border-color: mix($color-warning, $color-bg, 40%);
+    background: mix($color-warning, $color-bg, 14%);
+    color: $color-warning;
+  }
+
+  &--refunded,
+  &--cancelled {
+    border-color: mix($color-danger, $color-bg, 30%);
+    color: mix($color-danger, $color-text, 40%);
+  }
+}
+
+.order-detail {
+  @include page-container(860px);
+  padding-top: 40px;
+  padding-bottom: $space-xxl;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+    margin-bottom: $space-lg;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+  }
+
+  &__layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-lg;
+    align-items: start;
+
+    @include media-up('lg') {
+      grid-template-columns: 1fr 320px;
+    }
+  }
+
+  &__lede {
+    margin: 0 0 $space-lg;
+    color: $color-text-soft;
+    font-size: $font-size-md;
+    line-height: 1.6;
+  }
+
+  &__action {
+    margin-top: $space-lg;
+    padding-top: $space-lg;
+    border-top: 1px solid $color-border;
+  }
+
+  &__action-text {
+    margin: 0 0 $space-md;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+  }
+
+  &__action-note {
+    margin: $space-sm 0 0;
+    color: $color-text-faint;
+    font-size: $font-size-xs;
+    line-height: 1.6;
+  }
+
+  // The summary's heading links back to the listing. It should read as the
+  // heading it is, not as a link dropped into one.
+  .order-summary__title a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+}
+
+// Where the order has got to. Deliberately not shown at all for refunded,
+// cancelled or disputed orders: those are not a step on this track.
+.order-progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+
+  &__step {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+    color: $color-text-faint;
+    font-size: $font-size-sm;
+  }
+
+  &__marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid $color-border-strong;
+    font-size: $font-size-xs;
+  }
+
+  &__step--done {
+    color: $color-text-muted;
+
+    .order-progress__marker {
+      border-color: mix($color-accent, $color-bg, 40%);
+      background: mix($color-accent, $color-bg, 20%);
+      color: $color-accent-hover;
+    }
+  }
+
+  // Listed after --done so it wins on the stage that is both: the one just
+  // reached is ticked like the others, and picked out as where things stand.
+  &__step--current {
+    color: $color-text;
+    font-weight: 600;
+
+    .order-progress__marker {
+      border-color: $color-accent;
+      background: $color-accent;
+      color: #fff;
+    }
+  }
+}
+
+.seller-payments {
+  @include page-container(640px);
+  padding-top: 40px;
+  padding-bottom: $space-xxl;
+
+  &__title {
+    margin: 0 0 $space-lg;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+  }
+
+  &__state {
+    display: flex;
+    gap: $space-md;
+    align-items: flex-start;
+  }
+
+  &__tick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: mix($color-accent, $color-bg, 20%);
+    color: $color-accent-hover;
+  }
+
+  &__state-title {
+    margin: 0 0 $space-xs;
+    font-size: $font-size-lg;
+  }
+
+  &__state-text {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+  }
+
+  &__points {
+    margin: $space-md 0 $space-lg;
+    padding-left: $space-lg;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: 1.8;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-sm;
+    margin-top: $space-lg;
+  }
+
+  &__footnote {
+    margin: $space-md 0 0;
+    color: $color-text-faint;
+    font-size: $font-size-xs;
+  }
+}

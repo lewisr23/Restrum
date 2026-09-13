@@ -10,9 +10,7 @@ use App\Services\PriceInsightService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 
 class ListingController extends Controller
 {
@@ -196,51 +194,11 @@ class ListingController extends Controller
         ]);
     }
 
-    /**
-     * Direct purchase at the listed price, alongside offer negotiation.
-     * Deliberately no payment processing - this is scoped as peer-to-peer
-     * (buyer and seller arrange payment directly), not a payments platform.
-     * No Order/Purchase record either, for the same reason: there is
-     * genuinely nothing to process or store beyond "this is no longer for
-     * sale" - inventing one would be building commerce infrastructure this
-     * project explicitly isn't taking on.
-     */
-    public function buy(Request $request, Listing $listing)
-    {
-        // Safe to check before the transaction: seller_id never changes, so
-        // unlike status it cannot be stale by the time the write happens.
-        if ($request->user()->id === $listing->seller_id) {
-            throw ValidationException::withMessages([
-                'listing' => 'You cannot buy your own listing.',
-            ]);
-        }
-
-        // The availability check and the write that depends on it have to be
-        // one atomic step. Read outside a lock, two buyers both see ACTIVE
-        // before either writes SOLD and the listing sells twice; the same
-        // race lets a purchase here interleave with an offer accepted in
-        // MessageController::respond, leaving the sale price decided by
-        // whichever transaction commits last.
-        //
-        // Every path that sells a listing takes this row lock FIRST, which is
-        // what stops the two deadlocking against each other.
-        $listing = DB::transaction(function () use ($listing) {
-            $locked = Listing::whereKey($listing->getKey())->lockForUpdate()->firstOrFail();
-
-            if ($locked->status !== 'ACTIVE') {
-                throw ValidationException::withMessages([
-                    'listing' => 'This listing is no longer available.',
-                ]);
-            }
-
-            $locked->status = 'SOLD';
-            $locked->save();
-
-            return $locked;
-        });
-
-        return new ListingResource($listing->load('seller', 'media'));
-    }
+    // Buying lives in CheckoutController now. What used to be here marked a
+    // listing SOLD and moved no money, which was honest about being a demo
+    // and dishonest about being a marketplace. The row-locking it pioneered
+    // survives in CheckoutService::reserve, and the lock ordering note there
+    // is the one the offer-accept path in MessageController depends on.
 
     public function store(Request $request)
     {

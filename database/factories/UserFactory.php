@@ -46,6 +46,40 @@ class UserFactory extends Factory
     }
 
     /**
+     * A seller Stripe is willing to pay.
+     *
+     * Its own state rather than the default because "can be paid" is a real
+     * milestone a seller has to reach, and a factory that handed it out for
+     * free would hide every test of what happens before they do.
+     */
+    public function payoutReady(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'stripe_account_id' => 'acct_'.fake()->unique()->bothify('??##########'),
+            'stripe_charges_enabled' => true,
+            'stripe_payouts_enabled' => true,
+            'stripe_synced_at' => now(),
+        ]);
+    }
+
+    /**
+     * Started Stripe onboarding and did not finish it.
+     *
+     * The state most likely to be got wrong in production: there is an
+     * account id, so a naive check says the seller is set up, and Stripe will
+     * still refuse to move a penny.
+     */
+    public function payoutPending(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'stripe_account_id' => 'acct_'.fake()->unique()->bothify('??##########'),
+            'stripe_charges_enabled' => false,
+            'stripe_payouts_enabled' => false,
+            'stripe_synced_at' => now(),
+        ]);
+    }
+
+    /**
      * community_verified is normally derived from endorsement count rather
      * than set - this state exists so tests that only care about how a
      * verified seller RENDERS don't have to stage two endorsers first.
