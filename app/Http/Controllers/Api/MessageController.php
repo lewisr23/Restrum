@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\Listing;
 use App\Models\Message;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class MessageController extends Controller
@@ -130,27 +131,52 @@ class MessageController extends Controller
             ]);
         }
 
-        if ($message->message_type !== 'PRICE_OFFER' || $message->offer_status !== 'PENDING') {
-            throw ValidationException::withMessages([
-                'action' => 'This offer has already been resolved.',
-            ]);
-        }
+        // Both the offer's PENDING check and the listing's availability are
+        // read-then-write, so they run in one transaction with the rows held.
+        // The listing lock is taken BEFORE the message lock deliberately:
+        // ListingController::buy takes the listing lock on its own, so as
+        // long as every path that sells a listing grabs that row first, the
+        // two cannot deadlock against each other.
+        $message = DB::transaction(function () use ($message, $conversation, $data) {
+            $listing = Listing::whereKey($conversation->listing_id)->lockForUpdate()->firstOrFail();
+            $offer = Message::whereKey($message->getKey())->lockForUpdate()->firstOrFail();
 
-        $message->offer_status = $data['action'] === 'accept' ? 'ACCEPTED' : 'DECLINED';
-        $message->save();
+            if ($offer->message_type !== 'PRICE_OFFER' || $offer->offer_status !== 'PENDING') {
+                throw ValidationException::withMessages([
+                    'action' => 'This offer has already been resolved.',
+                ]);
+            }
 
-        if ($data['action'] === 'accept') {
-            // Direct property assignment + save(), not update() - 'price' and
-            // 'status' both need to change together here and this is the one
-            // place a listing legitimately moves to SOLD; going through the
-            // normal fillable update() path would both violate status's
-            // mass-assignment guard (see ListingController::store) and make
-            // it too easy to accidentally mark something sold from a
-            // different code path later.
-            $conversation->listing->price = $message->offer_amount;
-            $conversation->listing->status = 'SOLD';
-            $conversation->listing->save();
-        }
+            // Previously unchecked: nothing stopped a seller accepting an
+            // offer on a listing that had already sold, through buy() or
+            // through an offer accepted moments earlier in another
+            // conversation. That silently re-sold it and overwrote the price.
+            // Declining stays allowed, since tidying up a dead offer on a
+            // sold listing is reasonable and changes nothing about the sale.
+            if ($data['action'] === 'accept' && $listing->status !== 'ACTIVE') {
+                throw ValidationException::withMessages([
+                    'action' => 'This listing is no longer available.',
+                ]);
+            }
+
+            $offer->offer_status = $data['action'] === 'accept' ? 'ACCEPTED' : 'DECLINED';
+            $offer->save();
+
+            if ($data['action'] === 'accept') {
+                // Direct property assignment + save(), not update() - 'price' and
+                // 'status' both need to change together here and this is the one
+                // place a listing legitimately moves to SOLD; going through the
+                // normal fillable update() path would both violate status's
+                // mass-assignment guard (see ListingController::store) and make
+                // it too easy to accidentally mark something sold from a
+                // different code path later.
+                $listing->price = $offer->offer_amount;
+                $listing->status = 'SOLD';
+                $listing->save();
+            }
+
+            return $offer;
+        });
 
         // Re-broadcasts the SAME message id with its new offer_status - the
         // frontend listener needs to treat an already-known id as "update in
