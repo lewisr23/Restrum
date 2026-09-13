@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 import ListingCard from './ListingCard';
 import { API, mediaUrl } from '../lib/config';
+import { PinIcon, LockIcon } from './Icon';
 
 interface PassportEntry {
   id: number;
@@ -216,7 +217,9 @@ function PassportSection({ listingId, isSeller }: { listingId: string; isSeller:
 }
 
 
-function formatCategory(cat: string) {
+// Still used for CONDITION, which is a shouted enum. Categories send their
+// own display name now and need no prettifying.
+function formatEnum(cat: string) {
   return cat
     .toLowerCase()
     .split('_')
@@ -258,7 +261,7 @@ function PriceContext({ listing }: { listing: any }) {
   const label = COMPARISON_LABELS[insight.comparison];
   if (!label) return null;
 
-  const categoryLabel = formatCategory(listing.category);
+  const categoryLabel = listing.category?.name ?? 'this category';
 
   return (
     <div
@@ -431,7 +434,7 @@ function PurchasePanel({
   return (
     <div className="purchase-panel">
       <div className="purchase-panel__top">
-        <p className="purchase-panel__category">{formatCategory(listing.category)}</p>
+        <p className="purchase-panel__category">{listing.category?.name ?? 'Uncategorised'}</p>
         {isSeller && (
           <button
             className="btn-ghost btn-sm"
@@ -448,7 +451,7 @@ function PurchasePanel({
           className="status-dot"
           style={{ color: CONDITION_COLORS[listing.condition] || 'currentColor' }}
         />
-        {formatCategory(listing.condition)}
+        {formatEnum(listing.condition)}
       </MetaChip>
 
       <h2 className="purchase-panel__price">
@@ -466,7 +469,7 @@ function PurchasePanel({
           on a stranger's listing actually wants to know. */}
       {!isSeller && !isSold && (
         <p className="buyer-protection">
-          <span className="buyer-protection__icon" aria-hidden="true">🔒</span>
+          <span className="buyer-protection__icon"><LockIcon /></span>
           Your money is held by Restrum until you confirm the gear arrived as
           described.
         </p>
@@ -532,8 +535,43 @@ function PurchasePanel({
           )}
           <span className="purchase-panel__seller-link">View profile ›</span>
         </p>
-        <p className="purchase-panel__seller-location">📍 {listing.location}</p>
+        <p className="purchase-panel__seller-location"><PinIcon /> {listing.location}</p>
       </div>
+    </div>
+  );
+}
+
+// The filter answers a seller filled in, as a spec table.
+//
+// Worth its own block rather than being buried in the description, because
+// these are the facts a buyer of a used record or a used amp scans for first:
+// what speed it plays at, whether the valves are original, how long the lead
+// is. The labels come from the server alongside the listing, so the page does
+// not need to know the taxonomy to render them.
+function SpecList({ listing }: { listing: any }) {
+  const attributes: Record<string, string> = listing.attributes ?? {};
+  const labels: Record<string, string> = listing.attribute_labels ?? {};
+  const entries = Object.entries(attributes);
+
+  if (entries.length === 0 && !listing.brand) return null;
+
+  return (
+    <div className="spec-list">
+      <p className="listing-detail__description-label">Details</p>
+      <dl className="spec-list__grid">
+        {listing.brand && (
+          <div className="spec-list__row">
+            <dt className="spec-list__term">Brand</dt>
+            <dd className="spec-list__value">{listing.brand}</dd>
+          </div>
+        )}
+        {entries.map(([name, value]) => (
+          <div className="spec-list__row" key={name}>
+            <dt className="spec-list__term">{labels[name] ?? name}</dt>
+            <dd className="spec-list__value">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -612,7 +650,7 @@ function ListingDetail() {
       // JsonResource::additional() merges extra keys at the top level). Fold
       // it into one object here so the rest of this component can just read
       // listing.price_insight consistently.
-      .then(body => { setListing({ ...body.data, price_insight: body.price_insight }); setLoading(false); })
+      .then(body => { setListing({ ...body.data, price_insight: body.price_insight, attribute_labels: body.attribute_labels }); setLoading(false); })
       .catch(() => { setError('Listing not found.'); setLoading(false); });
   }, [id, user?.token]);
 
@@ -724,6 +762,8 @@ function ListingDetail() {
           onBuyNow={handleBuyNow}
         />
       </div>
+
+      <SpecList listing={listing} />
 
       <div className="listing-detail__description">
         <p className="listing-detail__description-label">Description</p>

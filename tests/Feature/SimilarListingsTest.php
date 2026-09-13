@@ -65,17 +65,17 @@ class SimilarListingsTest extends TestCase
         $strat = Listing::factory()->create([
             'title' => 'Fender Stratocaster Sunburst',
             'description' => 'Classic single coil strat tone, maple neck.',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
         ]);
         Listing::factory()->create([
             'title' => 'Fender Stratocaster Olympic White',
             'description' => 'Another single coil strat, rosewood neck.',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
         ]);
         Listing::factory()->create([
             'title' => 'Yamaha FG800 Acoustic',
             'description' => 'Solid top dreadnought acoustic.',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
         ]);
 
         $suggestions = $this->similar($strat);
@@ -88,11 +88,11 @@ class SimilarListingsTest extends TestCase
     {
         $listing = Listing::factory()->create([
             'title' => 'Fender Stratocaster Sunburst',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
         ]);
         Listing::factory()->create([
             'title' => 'Fender Stratocaster Olympic White',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
         ]);
 
         $this->assertNotContains('Fender Stratocaster Sunburst', $this->similar($listing));
@@ -103,14 +103,14 @@ class SimilarListingsTest extends TestCase
         $pedal = Listing::factory()->create([
             'title' => 'Boss DD-7 Digital Delay',
             'description' => 'Delay pedal in excellent condition.',
-            'category' => 'AUDIO_EQUIPMENT',
+            'category_id' => $this->categoryId('usb-audio-interfaces'),
         ]);
         // Shares wording, but suggesting a drum kit under a delay pedal
         // would be worse than suggesting nothing.
         Listing::factory()->create([
             'title' => 'Pearl Export Kit',
             'description' => 'Delay pedal not included, excellent condition.',
-            'category' => 'DRUMS',
+            'category_id' => $this->categoryId('rock-fusion-drum-kits'),
         ]);
 
         $this->assertNotContains('Pearl Export Kit', $this->similar($pedal));
@@ -120,11 +120,11 @@ class SimilarListingsTest extends TestCase
     {
         $strat = Listing::factory()->create([
             'title' => 'Fender Stratocaster Sunburst',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
         ]);
         Listing::factory()->create([
             'title' => 'Fender Stratocaster Olympic White',
-            'category' => 'GUITAR',
+            'category_id' => $this->categoryId('solid-body-electric-guitars'),
             'status' => 'SOLD',
         ]);
 
@@ -135,20 +135,15 @@ class SimilarListingsTest extends TestCase
     {
         $lonely = Listing::factory()->create([
             'title' => 'Theremin',
-            'category' => 'SYNTHS',
+            'category_id' => $this->categoryId('analogue-synthesisers'),
         ]);
 
         $this->assertSame([], $this->similar($lonely));
     }
 
-    public function test_it_returns_an_empty_list_when_search_is_disabled(): void
-    {
-        $listing = Listing::factory()->create(['category' => 'GUITAR']);
-
-        config(['elasticsearch.enabled' => false]);
-
-        $this->getJson("/api/listings/{$listing->id}/similar")
-            ->assertOk()
-            ->assertJsonCount(0, 'data');
-    }
+    // What happens with the cluster switched off moved to
+    // SimilarListingsFallbackTest. It used to belong here, when the answer
+    // was "nothing happens"; now that there is a real SQL fallback it
+    // deserves to run on every test run rather than only on the ones where a
+    // cluster happens to be up.
 }

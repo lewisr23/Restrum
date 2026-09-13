@@ -3,14 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { API } from '../lib/config';
-
-const categoryToEnum: Record<string, string> = {
-  'Guitar': 'GUITAR',
-  'Drums': 'DRUMS',
-  'Microphone': 'MICROPHONE',
-  'Synths': 'SYNTHS',
-  'Audio Equipment': 'AUDIO_EQUIPMENT',
-};
+import { useCatalog } from '../lib/catalog';
+import CategoryPicker from './CategoryPicker';
+import CategoryFields from './CategoryFields';
 
 // No POOR - the backend's condition enum is MINT/EXCELLENT/GOOD/FAIR only,
 // one fewer step than the old API supported.
@@ -35,10 +30,17 @@ function CreateListing() {
     title: '',
     price: '',
     location: '',
-    category: 'Guitar',
     condition: 'GOOD',
     description: '',
   });
+
+  // Held apart from the rest of the form because they are not text inputs
+  // and do not go through handleChange: the category decides which attribute
+  // fields exist at all, and the attributes are a map rather than a field.
+  const { catalog, error: catalogError } = useCatalog();
+  const [category, setCategory] = useState<string | null>(null);
+  const [brand, setBrand] = useState('');
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [images, setImages] = useState<File[]>([]);
   const [audioFiles, setAudioFiles] = useState<File[]>([]);
   const [videoFiles, setVideoFiles] = useState<File[]>([]);
@@ -96,8 +98,10 @@ function CreateListing() {
           description: form.description,
           price: parseFloat(form.price),
           location: form.location,
-          category: categoryToEnum[form.category],
+          category,
+          brand: brand || null,
           condition: form.condition,
+          attributes,
         }),
       });
       if (!res.ok) {
@@ -176,11 +180,32 @@ function CreateListing() {
         </div>
 
         <div className="field-group">
-          <label className="field-label" htmlFor="category">Category</label>
-          <select className="field field--select" id="category" name="category" value={form.category} onChange={handleChange}>
-            {Object.keys(categoryToEnum).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-          </select>
+          <label className="field-label">Category *</label>
+          {catalogError && <p className="text-error">{catalogError}</p>}
+          {catalog ? (
+            <CategoryPicker
+              categories={catalog.categories}
+              value={category}
+              onChange={setCategory}
+            />
+          ) : (
+            <p className="text-muted">Loading categories...</p>
+          )}
         </div>
+
+        <CategoryFields
+          categorySlug={category}
+          brand={brand}
+          attributes={attributes}
+          onBrandChange={setBrand}
+          onAttributeChange={(name, value) => setAttributes(prev => {
+            const next = { ...prev };
+            // An empty answer is removed rather than sent as a blank, so
+            // "not stated" and "stated as nothing" cannot be confused.
+            if (value === '') { delete next[name]; } else { next[name] = value; }
+            return next;
+          })}
+        />
 
         <div className="field-group">
           <label className="field-label" htmlFor="condition">Condition</label>

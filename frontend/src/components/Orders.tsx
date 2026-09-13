@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { API, mediaUrl } from '../lib/config';
+import { CategoryIcon } from './Icon';
 
 const TABS = [
   { key: '', label: 'Everything' },
@@ -100,7 +101,9 @@ function Orders() {
             <Link key={order.id} to={`/orders/${order.id}`} className="order-row">
               {imageUrl
                 ? <img className="order-row__image" src={mediaUrl(imageUrl)} alt={listing?.title} />
-                : <div className="order-row__image order-row__image--empty">🎵</div>}
+                : <div className="order-row__image order-row__image--empty">
+                    <CategoryIcon path={listing?.category?.path} size={26} />
+                  </div>}
 
               <div className="order-row__body">
                 <p className="order-row__meta">

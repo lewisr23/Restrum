@@ -29,6 +29,9 @@
   }
 
   &__location {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     margin: 0 0 $space-xxs;
     color: $color-text-soft;
   }

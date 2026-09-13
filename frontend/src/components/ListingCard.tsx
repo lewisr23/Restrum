@@ -2,27 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { useRef, useState } from 'react';
 
 import { mediaUrl } from '../lib/config';
+import { ListingCategory } from '../lib/catalog';
+import { CategoryIcon, PinIcon } from './Icon';
 
-// The API sends the raw enum name (for example "AUDIO_EQUIPMENT"). Turn that
-// into something presentable rather than showing the underscore to users.
-function formatCategory(cat: string) {
-  return cat
-    .toLowerCase()
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-// A placeholder per category, so listings with no photo still read as gear
-// rather than as broken images. Matches the emoji set on the homepage tiles.
-const CATEGORY_ICONS: Record<string, string> = {
-  GUITAR: '🎸',
-  DRUMS: '🥁',
-  MICROPHONE: '🎤',
-  SYNTHS: '🎹',
-  AUDIO_EQUIPMENT: '🎚️',
-  OTHER: '🎵',
-};
+// Categories arrive as an object now rather than a shouted enum name, so
+// there is nothing left to prettify: the server sends the name to show. The
+// placeholder glyph comes from the department the category sits in, which is
+// why the icon map moved to lib/catalog alongside the rest of the tree.
 
 // Play and pause for a listing's first audio demo, straight from the browse
 // grid. Usability testing flagged wanting to hear a demo without opening
@@ -65,7 +51,7 @@ function AudioPreviewButton({ url }: { url: string }) {
   );
 }
 
-function ListingCard({ id, title, price, location, category, status, imageUrl, audioUrls }: { id: number, title: string, price: number, location: string, category: string, status?: string, imageUrl?: string | null, audioUrls?: string[] }) {
+function ListingCard({ id, title, price, location, category, status, imageUrl, audioUrls }: { id: number, title: string, price: number, location: string, category?: ListingCategory | null, status?: string, imageUrl?: string | null, audioUrls?: string[] }) {
   const navigate = useNavigate();
   const isSold = status === 'SOLD';
   const thumbSrc = imageUrl ? mediaUrl(imageUrl) : null;
@@ -82,14 +68,16 @@ function ListingCard({ id, title, price, location, category, status, imageUrl, a
       {thumbSrc ? (
         <img className="listing-card__image" src={thumbSrc} alt={title} />
       ) : (
-        <div className="listing-card__placeholder">{CATEGORY_ICONS[category] || '🎵'}</div>
+        <div className="listing-card__placeholder">
+          <CategoryIcon path={category?.path} size={40} />
+        </div>
       )}
 
       <div className="listing-card__body">
-        <p className="listing-card__category">{formatCategory(category)}</p>
+        <p className="listing-card__category">{category?.name ?? 'Uncategorised'}</p>
         <h3 className="listing-card__title">{title}</h3>
         <p className="listing-card__price">£{price}</p>
-        <p className="listing-card__location">📍 {location}</p>
+        <p className="listing-card__location"><PinIcon /> {location}</p>
       </div>
     </div>
   );

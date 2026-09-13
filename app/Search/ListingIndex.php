@@ -2,6 +2,7 @@
 
 namespace App\Search;
 
+use App\Models\Category;
 use App\Models\Listing;
 use Elastic\Elasticsearch\Client;
 use Illuminate\Support\Facades\Log;
@@ -137,12 +138,31 @@ class ListingIndex
                         'fields' => ['keyword' => ['type' => 'keyword']],
                     ],
                     'seller_username' => ['type' => 'keyword'],
-                    'category' => ['type' => 'keyword'],
-                    // The same value again, analysed rather than exact.
-                    // category is the filter; category_text is so that
+
+                    // The leaf this listing is filed in.
+                    'category_path' => ['type' => 'keyword'],
+
+                    // Every ancestor path as well, so filtering a whole
+                    // department is still a single term query. The
+                    // alternative is a prefix query on category_path, which
+                    // cannot use the same index structure and gets slower as
+                    // the tree grows.
+                    'category_ancestors' => ['type' => 'keyword'],
+
+                    // The category's names, analysed rather than exact.
+                    // category_ancestors is the filter; this is so that
                     // someone typing "synth" finds the synths, which is an
-                    // obvious expectation the keyword field cannot meet.
+                    // obvious expectation a keyword field cannot meet.
                     'category_text' => ['type' => 'text', 'analyzer' => 'gear_text'],
+
+                    'brand' => ['type' => 'keyword'],
+                    'brand_text' => ['type' => 'text', 'analyzer' => 'gear_text'],
+
+                    // The filter answers as free text, so a search for
+                    // "picture disc" or "left handed" finds listings whose
+                    // title never says so but whose attributes do.
+                    'attributes_text' => ['type' => 'text', 'analyzer' => 'gear_text'],
+
                     'condition' => ['type' => 'keyword'],
                     'status' => ['type' => 'keyword'],
                     'price' => ['type' => 'scaled_float', 'scaling_factor' => 100],
@@ -153,14 +173,23 @@ class ListingIndex
     }
 
     /**
-     * AUDIO_EQUIPMENT becomes "Audio Equipment", so the analyzer sees two
-     * ordinary words instead of one shouted token.
+     * Every name on the way down to this category, as one string.
+     *
+     * "Guitars Electric Guitars Solid Body Electric Guitars" rather than just
+     * the leaf, so a search for "guitar" reaches a listing filed under a leaf
+     * whose own name happens not to contain the word, which is most of them
+     * once a tree is this deep.
      */
-    public static function categoryLabel(?string $category): ?string
+    public static function categoryLabel(?Category $category): ?string
     {
-        return $category === null
-            ? null
-            : ucwords(strtolower(str_replace('_', ' ', $category)));
+        if ($category === null) {
+            return null;
+        }
+
+        return Category::whereIn('path', $category->pathSegments())
+            ->orderBy('depth')
+            ->pluck('name')
+            ->implode(' ');
     }
 
     public function exists(): bool
@@ -202,14 +231,23 @@ class ListingIndex
      */
     public function document(Listing $listing): array
     {
+        // loadMissing rather than load: the reindex command eager loads these
+        // for the whole chunk, and re-fetching per document would turn one
+        // bulk index into three queries per listing.
+        $listing->loadMissing('seller', 'category', 'attributeValues');
+
         return [
             'id' => $listing->id,
             'title' => $listing->title,
             'description' => $listing->description,
             'location' => $listing->location,
             'seller_username' => $listing->seller?->username,
-            'category' => $listing->category,
+            'category_path' => $listing->category?->path,
+            'category_ancestors' => $listing->category?->pathSegments() ?? [],
             'category_text' => self::categoryLabel($listing->category),
+            'brand' => $listing->brand,
+            'brand_text' => $listing->brand,
+            'attributes_text' => $listing->attributeValues->pluck('value')->implode(' '),
             'condition' => $listing->condition,
             'status' => $listing->status,
             'price' => (float) $listing->price,

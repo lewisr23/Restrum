@@ -63,10 +63,163 @@
     font-weight: 700;
   }
 
-  &__categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: $space-sm;
-    margin-top: 40px;
+}
+
+// The department rail under the hero.
+//
+// Fourteen departments as cards was a wall of boxes that pushed the actual
+// listings below the fold. As chips the whole shop fits in roughly the space
+// three cards used to take, and it reads as navigation rather than content.
+.dept-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+  margin-top: $space-xl;
+}
+
+.dept-chip {
+  @include button-reset;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px $space-sm 7px 10px;
+  border: 1px solid $color-border-strong;
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.02);
+  color: $color-text-soft;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  // Contains the sheen sweep below, which would otherwise paint over its
+  // neighbours as it travels.
+  overflow: hidden;
+
+  // The row assembles left to right on load, each chip delayed a little
+  // further by an inline animation-delay. Note this animates `translate` and
+  // not `transform`: the hover lift below uses `transform`, and the two are
+  // separate properties that compose. Doing both with `transform` would mean
+  // the entrance animation's forwards fill permanently won, and the hover
+  // would silently do nothing.
+  // The row still assembles left to right, but it does it by SLIDING only.
+  // Nothing here fades, and that is deliberate rather than a matter of taste.
+  //
+  // A staggered fade needs the chips to start invisible, and a browser only
+  // advances animations on a page it is actually drawing. On a hidden or
+  // prerendered tab the animation never progresses, so the chips stay on
+  // their first frame: every one of them at opacity 0, with the site's main
+  // navigation simply absent. It comes back the moment the tab is looked at,
+  // which makes it exactly the sort of fault that never shows up in testing.
+  //
+  // Staggering `translate` alone has no such failure. Worst case the chips
+  // are 10px low and perfectly readable.
+  animation: dept-chip-in 420ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+
+  transition:
+    transform $transition,
+    border-color $transition,
+    background $transition,
+    color $transition,
+    box-shadow $transition;
+
+  // A light sweeping across the chip on hover. Pure decoration, and the one
+  // flourish on the page: it costs nothing, it only ever runs under the
+  // cursor, and it makes the row feel like something rather than a list of
+  // buttons.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.09) 50%,
+      transparent 65%
+    );
+    translate: -130% 0;
+    transition: translate 650ms ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: $color-accent;
+    background: mix($color-accent, $color-bg, 10%);
+    color: $color-text;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  &:hover::before {
+    translate: 130% 0;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &__icon {
+    display: inline-flex;
+    // The SVG sets its own size, so there is nothing for a font-size to do
+    // here. What is left is keeping the box exactly as tall as the glyph so
+    // the chip does not gain a stray pixel of line height.
+    line-height: 0;
+    // Its own transition, slower and springier than the chip's, so the glyph
+    // lags a fraction behind the lift instead of moving as one block.
+    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  &:hover &__icon {
+    transform: scale(1.25) rotate(-8deg);
+  }
+
+  // The department currently being browsed.
+  &--active {
+    border-color: $color-accent;
+    background: mix($color-accent, $color-bg, 16%);
+    color: $color-accent-hover;
+
+    .dept-chip__icon {
+      transform: scale(1.1);
+    }
+  }
+}
+
+@keyframes dept-chip-in {
+  from {
+    translate: 0 10px;
+  }
+
+  to {
+    translate: 0 0;
+  }
+}
+
+// Anyone who has asked their machine to stop moving things gets the end
+// state immediately: no assembling row, no sweep, no lift. The hover colour
+// and border still change, so the chips are no less usable.
+@media (prefers-reduced-motion: reduce) {
+  .dept-chip {
+    animation: none;
+
+    &,
+    &::before,
+    &__icon {
+      transition: none;
+    }
+
+    &:hover {
+      transform: none;
+    }
+
+    &:hover::before {
+      translate: -130% 0;
+    }
+
+    &:hover &__icon {
+      transform: none;
+    }
   }
 }

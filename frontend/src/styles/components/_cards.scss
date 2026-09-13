@@ -40,8 +40,10 @@
     align-items: center;
     justify-content: center;
     background: linear-gradient(160deg, #232323, $color-bg-raised);
-    font-size: 40px;
-    opacity: 0.5;
+    // The icon inherits this. Faint on purpose: it stands in for a
+    // photograph nobody took, and should not compete with the listings that
+    // do have one.
+    color: $color-text-faint;
   }
 
   &__badge {
@@ -110,59 +112,17 @@
   }
 
   &__location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     margin: 0;
     font-size: $font-size-xs;
     color: $color-text-muted;
   }
 }
 
-// Category tile on the homepage hero.
-.cat-tile {
-  @include surface($color-bg-card);
-  padding: $space-md;
-  cursor: pointer;
-  text-align: left;
-  // A button, so it needs the colour spelled out: without this it falls
-  // back to the browser's dark default text and vanishes on the dark card.
-  color: $color-text;
-  font-family: inherit;
-  transition:
-    transform $transition,
-    border-color $transition,
-    background $transition;
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: $color-accent;
-    background: mix($color-accent, $color-bg-card, 8%);
-  }
-
-  // The tile for the category currently being browsed.
-  &--active {
-    background: mix($color-accent, $color-bg-card, 12%);
-    border-color: $color-accent;
-  }
-
-  &__icon {
-    display: block;
-    font-size: $font-size-xl;
-  }
-
-  &__name {
-    display: block;
-    margin-top: 10px;
-    font-family: $font-display;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  &__blurb {
-    display: block;
-    margin-top: 3px;
-    font-size: $font-size-xs;
-    color: $color-text-muted;
-  }
-}
+// The homepage's category tiles used to live here. Fourteen departments as
+// cards was a wall of boxes, so they became .dept-chip in _hero.scss.
 
 // Generic panel used by forms, detail sidebars and empty states.
 .panel {

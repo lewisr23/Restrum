@@ -91,7 +91,7 @@ class PriceInsightTest extends TestCase
 
     public function test_a_listing_with_no_peers_has_no_category_comparison(): void
     {
-        $listing = Listing::factory()->create(['category' => 'SYNTHS', 'price' => 800]);
+        $listing = Listing::factory()->create(['category_id' => $this->categoryId('analogue-synthesisers'), 'price' => 800]);
 
         $insight = $this->insightFor($listing);
 
@@ -102,8 +102,8 @@ class PriceInsightTest extends TestCase
 
     public function test_a_price_close_to_the_category_average_reads_as_typical(): void
     {
-        Listing::factory()->count(2)->create(['category' => 'GUITAR', 'price' => 500]);
-        $listing = Listing::factory()->create(['category' => 'GUITAR', 'price' => 510]);
+        Listing::factory()->count(2)->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 500]);
+        $listing = Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 510]);
 
         $insight = $this->insightFor($listing);
 
@@ -114,16 +114,16 @@ class PriceInsightTest extends TestCase
 
     public function test_a_price_well_under_the_category_average_reads_as_below(): void
     {
-        Listing::factory()->count(2)->create(['category' => 'GUITAR', 'price' => 500]);
-        $listing = Listing::factory()->create(['category' => 'GUITAR', 'price' => 300]);
+        Listing::factory()->count(2)->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 500]);
+        $listing = Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 300]);
 
         $this->assertSame('below', $this->insightFor($listing)['comparison']);
     }
 
     public function test_a_price_well_over_the_category_average_reads_as_above(): void
     {
-        Listing::factory()->count(2)->create(['category' => 'GUITAR', 'price' => 500]);
-        $listing = Listing::factory()->create(['category' => 'GUITAR', 'price' => 900]);
+        Listing::factory()->count(2)->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 500]);
+        $listing = Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 900]);
 
         $this->assertSame('above', $this->insightFor($listing)['comparison']);
     }
@@ -134,10 +134,10 @@ class PriceInsightTest extends TestCase
      */
     public function test_sold_listings_are_left_out_of_the_category_average(): void
     {
-        Listing::factory()->create(['category' => 'GUITAR', 'price' => 500]);
-        Listing::factory()->sold()->create(['category' => 'GUITAR', 'price' => 2000]);
+        Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 500]);
+        Listing::factory()->sold()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 2000]);
 
-        $listing = Listing::factory()->create(['category' => 'GUITAR', 'price' => 520]);
+        $listing = Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 520]);
 
         $insight = $this->insightFor($listing);
 
@@ -147,10 +147,10 @@ class PriceInsightTest extends TestCase
 
     public function test_other_categories_do_not_affect_the_average(): void
     {
-        Listing::factory()->create(['category' => 'GUITAR', 'price' => 500]);
-        Listing::factory()->create(['category' => 'DRUMS', 'price' => 5000]);
+        Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 500]);
+        Listing::factory()->create(['category_id' => $this->categoryId('rock-fusion-drum-kits'), 'price' => 5000]);
 
-        $listing = Listing::factory()->create(['category' => 'GUITAR', 'price' => 520]);
+        $listing = Listing::factory()->create(['category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 520]);
 
         $this->assertEquals(500, $this->insightFor($listing)['category_average']);
         $this->assertSame(1, $this->insightFor($listing)['category_sample_size']);

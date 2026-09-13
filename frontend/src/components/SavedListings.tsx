@@ -10,7 +10,7 @@ interface SavedListingData {
   title: string;
   price: number;
   location: string;
-  category: string;
+  category: { slug: string; path: string; name: string } | null;
   status: string;
   media?: { media_type: string; url: string }[];
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\EndorsementController;
@@ -68,6 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/listings/{listing}/passport/entries', [PassportController::class, 'addEntry']);
     Route::put('/listings/{listing}/passport/entries/{entry}', [PassportController::class, 'updateEntry']);
 });
+
+// The category tree and brand lists. Public, cached, and read by both the
+// filter panel and the sell form.
+Route::get('/catalog', [CatalogController::class, 'index']);
+Route::get('/catalog/categories/{category}', [CatalogController::class, 'show']);
 
 Route::get('/listings', [ListingController::class, 'index']);
 Route::get('/listings/{listing}', [ListingController::class, 'show']);

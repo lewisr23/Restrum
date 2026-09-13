@@ -122,8 +122,8 @@ class ListingSearchTest extends TestCase
     {
         // Nothing in the title says "synth", so this can only match through
         // the analysed copy of the category.
-        $this->indexed(['title' => 'Roland Juno 106', 'category' => 'SYNTHS']);
-        $this->indexed(['title' => 'Pearl Export Drum Kit', 'category' => 'DRUMS']);
+        $this->indexed(['title' => 'Roland Juno 106', 'category_id' => $this->categoryId('analogue-synthesisers')]);
+        $this->indexed(['title' => 'Pearl Export Drum Kit', 'category_id' => $this->categoryId('rock-fusion-drum-kits')]);
 
         $this->assertSame(['Roland Juno 106'], $this->titles($this->search('synth')));
     }
@@ -138,8 +138,8 @@ class ListingSearchTest extends TestCase
 
     public function test_category_and_price_filters_apply_to_search_results(): void
     {
-        $this->indexed(['title' => 'Fender Stratocaster', 'category' => 'GUITAR', 'price' => 400]);
-        $this->indexed(['title' => 'Fender Bass Amp', 'category' => 'AUDIO_EQUIPMENT', 'price' => 900]);
+        $this->indexed(['title' => 'Fender Stratocaster', 'category_id' => $this->categoryId('solid-body-electric-guitars'), 'price' => 400]);
+        $this->indexed(['title' => 'Fender Bass Amp', 'category_id' => $this->categoryId('usb-audio-interfaces'), 'price' => 900]);
 
         $this->assertSame(
             ['Fender Stratocaster'],

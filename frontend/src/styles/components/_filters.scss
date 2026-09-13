@@ -1,0 +1,387 @@
+@use '../abstracts' as *;
+
+// The faceted browse layout: filters down the left, results on the right.
+//
+// Below the large breakpoint the panel moves above the grid rather than
+// collapsing into a drawer. A drawer is the right answer on a phone and the
+// wrong amount of machinery to add before anyone has used this on one.
+.browse--faceted {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $space-lg;
+  align-items: start;
+
+  @include media-up('lg') {
+    grid-template-columns: 260px 1fr;
+  }
+
+  // The results column needs its own min-width: a grid child defaults to
+  // min-content, and a long listing title would push the whole column wider
+  // than the page instead of wrapping.
+  .browse__results {
+    min-width: 0;
+  }
+
+  .browse__sort {
+    width: auto;
+    min-width: 180px;
+  }
+}
+
+.browse__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-xs;
+  margin-bottom: $space-md;
+}
+
+// One applied filter, clickable to remove it. Removing a filter from the
+// chip row is the fastest way out of a corner, and much easier to find than
+// hunting the tickbox back down in the panel.
+.active-filter {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid mix($color-accent, $color-bg, 35%);
+  border-radius: $radius-pill;
+  background: mix($color-accent, $color-bg, 12%);
+  color: $color-accent-hover;
+  font-size: $font-size-xs;
+
+  &:hover {
+    border-color: $color-accent;
+    background: mix($color-accent, $color-bg, 20%);
+  }
+
+  &__x {
+    font-size: 14px;
+    line-height: 1;
+  }
+}
+
+.browse__clear {
+  @include button-reset;
+  color: $color-text-muted;
+  font-size: $font-size-xs;
+  text-decoration: underline;
+
+  &:hover {
+    color: $color-accent;
+  }
+}
+
+.browse__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-md;
+  margin-top: $space-xl;
+}
+
+.browse__page {
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.filter-panel {
+  @include surface;
+  padding: $space-md;
+
+  // Follows the results on a long page, so the filters are still there after
+  // scrolling through eighty listings. Capped and scrollable, because the
+  // panel under a record category is taller than most windows.
+  @include media-up('lg') {
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+
+  &__section {
+    padding-bottom: $space-md;
+    margin-bottom: $space-md;
+    border-bottom: 1px solid $color-border;
+  }
+
+  &__heading {
+    margin: 0 0 $space-sm;
+    font-size: $font-size-xs;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: $color-text-muted;
+  }
+
+  &__crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: $space-sm;
+    font-size: $font-size-xs;
+  }
+
+  &__crumb {
+    @include button-reset;
+    color: $color-accent;
+    font-size: $font-size-xs;
+
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+
+    // The category you are already in. Still shown, because the trail is
+    // what tells you where you are, but it goes nowhere.
+    &:disabled {
+      color: $color-text;
+      cursor: default;
+    }
+
+    // A separator between crumbs, drawn rather than in the markup so it
+    // cannot end up read aloud by a screen reader as a word.
+    &:not(:last-child)::after {
+      content: '›';
+      margin-left: 4px;
+      color: $color-text-faint;
+    }
+  }
+
+  &__branches {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__branch {
+    @include button-reset;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $space-xs;
+    padding: 5px 0;
+    color: $color-text-soft;
+    font-size: $font-size-sm;
+    text-align: left;
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+
+  &__leaf {
+    margin: 0;
+    color: $color-text-faint;
+    font-size: $font-size-xs;
+  }
+}
+
+// One collapsible group of tickboxes.
+.facet {
+  border-bottom: 1px solid $color-border;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &__header {
+    @include button-reset;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: $space-sm 0;
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: 600;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  // How many options are ticked in a group that is currently collapsed,
+  // which is the only way to know a closed panel is doing something.
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: $radius-pill;
+    background: $color-accent;
+    color: #fff;
+    font-size: 11px;
+  }
+
+  &__chevron {
+    color: $color-text-faint;
+    font-size: $font-size-md;
+  }
+
+  &__body {
+    padding-bottom: $space-sm;
+  }
+
+  &__help {
+    margin: 0 0 $space-xs;
+    color: $color-text-faint;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  &__search {
+    width: 100%;
+    margin-bottom: $space-xs;
+    padding: 6px $space-xs;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-sm;
+    background: $color-bg-sunken;
+    color: $color-text;
+    font-family: inherit;
+    font-size: $font-size-xs;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: $space-xs;
+    padding: 3px 0;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    color: $color-text-soft;
+
+    &:hover {
+      color: $color-text;
+    }
+
+    input {
+      // The browser's own tick, tinted. A custom checkbox here would be a
+      // lot of CSS to reproduce something that already works with a
+      // keyboard and a screen reader.
+      accent-color: $color-accent;
+      cursor: pointer;
+    }
+
+    &--standalone {
+      margin-top: $space-sm;
+    }
+  }
+
+  &__label {
+    flex: 1;
+    // Long option names ("Condenser (large diaphragm)") wrap rather than
+    // pushing the count off the edge of the panel.
+    overflow-wrap: anywhere;
+  }
+
+  &__count {
+    color: $color-text-faint;
+    font-size: $font-size-xs;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__more {
+    @include button-reset;
+    margin-top: 4px;
+    color: $color-accent;
+    font-size: $font-size-xs;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Stacked price inputs, for the narrow filter column. The browse bar version
+// sits on one line; this one cannot.
+.price-filter--stacked {
+  flex-wrap: wrap;
+}
+
+// The cascading category selects on the sell form.
+.category-picker {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+
+  &__hint {
+    margin: 0;
+    color: $color-warning;
+    font-size: $font-size-xs;
+    line-height: 1.5;
+  }
+
+  &__chosen {
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-xs;
+    line-height: 1.5;
+  }
+}
+
+// The block of per-category questions underneath it.
+.category-fields {
+  margin-top: $space-lg;
+  padding-top: $space-lg;
+  border-top: 1px solid $color-border;
+
+  &__heading {
+    margin: 0 0 $space-xxs;
+    font-size: $font-size-md;
+  }
+
+  &__lede {
+    margin: 0 0 $space-md;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+  }
+}
+
+.field-hint {
+  margin: 4px 0 0;
+  color: $color-text-faint;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+}
+
+// The spec table on a listing page.
+.spec-list {
+  margin-top: $space-lg;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin: $space-xs 0 0;
+
+    @include media-up('md') {
+      grid-template-columns: 1fr 1fr;
+      column-gap: $space-xl;
+    }
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    gap: $space-md;
+    padding: 7px 0;
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-sm;
+  }
+
+  &__term {
+    color: $color-text-muted;
+  }
+
+  &__value {
+    margin: 0;
+    color: $color-text;
+    text-align: right;
+  }
+}

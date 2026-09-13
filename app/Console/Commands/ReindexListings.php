@@ -52,7 +52,10 @@ class ReindexListings extends Command
         $indexed = 0;
 
         try {
-            Listing::with('seller')->chunkById($chunk, function ($listings) use ($index, $bar, &$indexed) {
+            // Category and attributes as well as the seller: every document
+            // carries them now, and without eager loading a bulk index of 500
+            // listings is 1500 extra queries.
+            Listing::with('seller', 'category', 'attributeValues')->chunkById($chunk, function ($listings) use ($index, $bar, &$indexed) {
                 $indexed += $index->bulkIndex($listings);
                 $bar->advance($listings->count());
             });

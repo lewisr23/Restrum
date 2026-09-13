@@ -21,38 +21,29 @@ class ListingSearch
     ) {}
 
     /**
-     * @param  array{search?: ?string, category?: ?string, min_price?: ?float, max_price?: ?float}  $filters
-     * @return array{ids: int[], total: int}
+     * The ids of every listing matching a text query, best match first.
+     *
+     * Every match, not a page of them, and that is the change this method
+     * represents. Filtering and counting now happen in MySQL, and a facet
+     * count has to be computed over the whole result set: counting the brands
+     * on page one would tell a buyer there are three Fenders when there are
+     * ninety. So the cluster's job narrowed to the one thing it is better at
+     * than SQL, which is deciding what the words mean.
+     *
+     * $limit caps how far that goes. Past it, the counts describe the most
+     * relevant slice rather than everything, which is a real limitation and a
+     * far smaller one than keeping two filter implementations in step.
+     *
+     * @return int[]
      */
-    public function search(array $filters, int $page = 1, int $perPage = 20): array
+    public function matchingIds(string $term, int $limit = 1000): array
     {
-        $term = trim((string) ($filters['search'] ?? ''));
-
-        $query = [
-            // Filters do not affect the score and are cacheable, so category
-            // and price go here rather than in must.
-            'filter' => array_values(array_filter([
-                isset($filters['category']) && $filters['category'] !== null
-                    ? ['term' => ['category' => $filters['category']]]
-                    : null,
-                $this->priceRange($filters),
-            ])),
-        ];
-
-        if ($term !== '') {
-            $query['must'] = [$this->textQuery($term)];
-        } else {
-            $query['must'] = [['match_all' => new \stdClass]];
-        }
-
         $body = [
-            'query' => ['bool' => $query],
-            'from' => ($page - 1) * $perPage,
-            'size' => $perPage,
-            // Only fetch what is used: the ids drive a single MySQL query.
+            'query' => $this->textQuery($term),
+            'size' => $limit,
+            // Only the ids are used: they go straight into a MySQL query.
             '_source' => false,
-            'track_total_hits' => true,
-            'sort' => $this->sort($term !== ''),
+            'sort' => ['_score', ['created_at' => 'desc']],
         ];
 
         $response = $this->client->search([
@@ -60,12 +51,10 @@ class ListingSearch
             'body' => $body,
         ]);
 
-        $hits = $response['hits'] ?? [];
-
-        return [
-            'ids' => array_map(static fn ($hit) => (int) $hit['_id'], $hits['hits'] ?? []),
-            'total' => (int) ($hits['total']['value'] ?? 0),
-        ];
+        return array_map(
+            static fn ($hit) => (int) $hit['_id'],
+            $response['hits']['hits'] ?? [],
+        );
     }
 
     /**
@@ -84,8 +73,14 @@ class ListingSearch
                             'query' => $term,
                             // Category sits below description: a listing
                             // whose text is about a synth beats one that is
-                            // merely filed under synths.
-                            'fields' => ['title^3', 'description', 'location', 'category_text^0.5'],
+                            // merely filed under synths. Brand is weighted
+                            // near the title, because "Technics" typed into a
+                            // search box is almost always the make and almost
+                            // never a word from a description.
+                            'fields' => [
+                                'title^3', 'brand_text^2', 'description',
+                                'attributes_text', 'location', 'category_text^0.5',
+                            ],
                             'type' => 'best_fields',
                             // One edit for short words, two for longer ones,
                             // which covers "telecastor" without letting
@@ -141,14 +136,14 @@ class ListingSearch
      *
      * @return int[]
      */
-    public function similarTo(int $listingId, string $category, int $limit = 6): array
+    public function similarTo(int $listingId, string $categoryPath, int $limit = 6): array
     {
         $body = [
             'query' => [
                 'bool' => [
                     'must' => [[
                         'more_like_this' => [
-                            'fields' => ['title', 'description', 'category_text'],
+                            'fields' => ['title', 'description', 'brand_text', 'attributes_text', 'category_text'],
                             'like' => [[
                                 '_index' => $this->index,
                                 '_id' => (string) $listingId,
@@ -165,10 +160,15 @@ class ListingSearch
                         ],
                     ]],
                     'filter' => [
-                        // Same category: a delay pedal is not a useful
-                        // suggestion under a drum kit however many words the
-                        // two descriptions happen to share.
-                        ['term' => ['category' => $category]],
+                        // Same branch of the tree: a delay pedal is not a
+                        // useful suggestion under a drum kit however many
+                        // words the two descriptions happen to share. The
+                        // caller passes the PARENT path rather than the leaf,
+                        // because a buyer looking at one pressing of a record
+                        // wants the others, and those are often filed a rung
+                        // away. Matching on category_ancestors is what makes
+                        // "anywhere under this branch" a single term query.
+                        ['term' => ['category_ancestors' => $categoryPath]],
                         // Nobody wants to be recommended something they
                         // cannot buy.
                         ['term' => ['status' => 'ACTIVE']],
@@ -193,34 +193,9 @@ class ListingSearch
         );
     }
 
-    private function priceRange(array $filters): ?array
-    {
-        $range = array_filter([
-            'gte' => $filters['min_price'] ?? null,
-            'lte' => $filters['max_price'] ?? null,
-        ], static fn ($v) => $v !== null && $v !== '');
-
-        return $range === [] ? null : ['range' => ['price' => $range]];
-    }
-
-    /**
-     * Sold listings sink to the bottom either way, matching how the SQL path
-     * behaves. Above that line, a search sorts by relevance and an unfiltered
-     * browse sorts by newest, because "most relevant" is meaningless when
-     * every document matched equally.
-     */
-    private function sort(bool $hasSearchTerm): array
-    {
-        $sold = [
-            '_script' => [
-                'type' => 'number',
-                'script' => "doc['status'].value == 'SOLD' ? 1 : 0",
-                'order' => 'asc',
-            ],
-        ];
-
-        return $hasSearchTerm
-            ? [$sold, '_score', ['created_at' => 'desc']]
-            : [$sold, ['created_at' => 'desc']];
-    }
+    // Price filtering and the sold-last sort used to live here, as an
+    // Elasticsearch range filter and a sort script. Both moved to SQL along
+    // with the rest of the filtering, so that what a buyer sees and what the
+    // filter counts claim can never come from two different engines with two
+    // different ideas of the current price.
 }

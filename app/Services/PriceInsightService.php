@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Category;
 use App\Models\Listing;
 
 /**
@@ -44,8 +45,21 @@ class PriceInsightService
 
     public function forListing(Listing $listing): array
     {
+        $listing->loadMissing('category');
+
+        if ($listing->category === null) {
+            return $this->withoutPeers($listing);
+        }
+
+        // Siblings, not just the exact leaf. The tree is deep enough now that
+        // a leaf can hold three listings, and an average of three is not an
+        // average of anything. The branch above it is still narrow enough to
+        // be a fair comparison - other solid body electrics, not "other
+        // guitars" - while being wide enough to have a sample in it.
+        $branch = $listing->category->parent?->path ?? $listing->category->path;
+
         $peers = Listing::query()
-            ->where('category', $listing->category)
+            ->whereIn('category_id', Category::withinPath($branch)->select('id'))
             ->where('status', 'ACTIVE')
             ->where('id', '!=', $listing->id);
 
@@ -71,6 +85,29 @@ class PriceInsightService
             'category_average' => $categoryAverage ? round((float) $categoryAverage, 2) : null,
             'category_sample_size' => $sampleSize,
             'comparison' => $comparison,
+            'reference_label' => $referenceLabel,
+            'reference_price' => $referencePrice,
+        ];
+    }
+
+    /**
+     * A listing with no category still gets its reference price.
+     *
+     * Only reachable for a listing whose category was removed out from under
+     * it, which the schema makes hard and does not make impossible. Returning
+     * the half of the answer that still works beats a page that will not
+     * render.
+     *
+     * @return array<string, mixed>
+     */
+    private function withoutPeers(Listing $listing): array
+    {
+        [$referenceLabel, $referencePrice] = $this->matchReference($listing->title);
+
+        return [
+            'category_average' => null,
+            'category_sample_size' => 0,
+            'comparison' => null,
             'reference_label' => $referenceLabel,
             'reference_price' => $referencePrice,
         ];

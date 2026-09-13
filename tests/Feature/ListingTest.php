@@ -41,7 +41,7 @@ class ListingTest extends TestCase
             'description' => 'Lovely thing',
             'price' => 520,
             'location' => 'Newcastle',
-            'category' => 'GUITAR',
+            'category' => 'solid-body-electric-guitars',
         ]);
         $created->assertCreated()->assertJsonStructure(['data' => ['media']]);
 
@@ -60,7 +60,7 @@ class ListingTest extends TestCase
             'description' => 'Ash body, maple neck.',
             'price' => 520,
             'location' => 'Newcastle',
-            'category' => 'GUITAR',
+            'category' => 'solid-body-electric-guitars',
             'condition' => 'EXCELLENT',
         ])
             ->assertCreated()
@@ -78,7 +78,7 @@ class ListingTest extends TestCase
             'description' => 'Delay pedal',
             'price' => 85,
             'location' => 'Leeds',
-            'category' => 'AUDIO_EQUIPMENT',
+            'category' => 'delay-pedals',
         ])
             ->assertCreated()
             ->assertJsonPath('data.condition', 'GOOD');
@@ -97,7 +97,7 @@ class ListingTest extends TestCase
             'description' => 'Trying to set status directly',
             'price' => 100,
             'location' => 'Leeds',
-            'category' => 'GUITAR',
+            'category' => 'solid-body-electric-guitars',
             'status' => 'SOLD',
         ])
             ->assertCreated()
@@ -114,10 +114,20 @@ class ListingTest extends TestCase
 
         $this->actingAs($seller)->postJson('/api/listings', [
             'title' => 'Banjo',
-            'description' => 'Not a supported category',
+            'description' => 'Not a category that exists',
             'price' => 100,
             'location' => 'Leeds',
-            'category' => 'BANJO',
+            'category' => 'not-a-real-category',
+        ])->assertStatus(422)->assertJsonValidationErrors('category');
+
+        // A real category, but a branch rather than a leaf. Listing on a
+        // branch would put the item outside every filter underneath it.
+        $this->actingAs($seller)->postJson('/api/listings', [
+            'title' => 'Vague',
+            'description' => 'Filed on a branch rather than a leaf',
+            'price' => 100,
+            'location' => 'Leeds',
+            'category' => 'electric-guitars',
         ])->assertStatus(422)->assertJsonValidationErrors('category');
 
         $this->actingAs($seller)->postJson('/api/listings', [
@@ -125,7 +135,7 @@ class ListingTest extends TestCase
             'description' => 'Negative price',
             'price' => -5,
             'location' => 'Leeds',
-            'category' => 'GUITAR',
+            'category' => 'solid-body-electric-guitars',
         ])->assertStatus(422)->assertJsonValidationErrors('price');
     }
 
@@ -148,20 +158,27 @@ class ListingTest extends TestCase
 
     public function test_listings_can_be_filtered_by_search_category_and_price(): void
     {
-        Listing::factory()->create(['title' => 'Roland Juno-106', 'category' => 'SYNTHS', 'price' => 1200]);
-        Listing::factory()->create(['title' => 'Shure SM58', 'category' => 'MICROPHONE', 'price' => 75]);
-        Listing::factory()->create(['title' => 'Pearl Export Kit', 'category' => 'DRUMS', 'price' => 430]);
+        Listing::factory()->create(['title' => 'Roland Juno-106', 'category_id' => $this->categoryId('analogue-synthesisers'), 'price' => 1200]);
+        Listing::factory()->create(['title' => 'Shure SM58', 'category_id' => $this->categoryId('dynamic-microphones'), 'price' => 75]);
+        Listing::factory()->create(['title' => 'Pearl Export Kit', 'category_id' => $this->categoryId('rock-fusion-drum-kits'), 'price' => 430]);
 
         $this->getJson('/api/listings?search=juno')
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Roland Juno-106');
 
-        $this->getJson('/api/listings?category=MICROPHONE')
+        $this->getJson('/api/listings?category=dynamic-microphones')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Shure SM58');
+
+        // A whole department, which is the thing the old five value enum
+        // could not express: everything under Studio & Recording, however
+        // deep it is filed.
+        $this->getJson('/api/listings?category=studio-recording')
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Shure SM58');
 
         $this->getJson('/api/listings?min_price=100&max_price=500')
             ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.title', 'Pearl Export Kit');
 
-        $this->getJson('/api/listings?category=BANJO')->assertStatus(422);
+        // A category that does not exist is a wrong URL, not a bad filter.
+        $this->getJson('/api/listings?category=not-a-real-category')->assertNotFound();
     }
 
     public function test_search_also_matches_the_description(): void

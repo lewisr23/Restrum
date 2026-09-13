@@ -3,17 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { API, mediaUrl } from '../lib/config';
-
-const categoryToEnum: Record<string, string> = {
-  'Guitar': 'GUITAR',
-  'Drums': 'DRUMS',
-  'Microphone': 'MICROPHONE',
-  'Synths': 'SYNTHS',
-  'Audio Equipment': 'AUDIO_EQUIPMENT',
-};
-const enumToCategory: Record<string, string> = Object.fromEntries(
-  Object.entries(categoryToEnum).map(([label, val]) => [val, label])
-);
+import { useCatalog } from '../lib/catalog';
+import CategoryPicker from './CategoryPicker';
+import CategoryFields from './CategoryFields';
 
 // No POOR - the backend's condition enum is MINT/EXCELLENT/GOOD/FAIR only.
 const conditionOptions = ['MINT', 'EXCELLENT', 'GOOD', 'FAIR'];
@@ -52,10 +44,16 @@ function EditListing() {
     title: '',
     price: '',
     location: '',
-    category: 'Guitar',
     condition: 'GOOD',
     description: '',
   });
+
+  // Same split as CreateListing: the category drives which attribute fields
+  // exist, so it cannot live in the plain text form state.
+  const { catalog, error: catalogError } = useCatalog();
+  const [category, setCategory] = useState<string | null>(null);
+  const [brand, setBrand] = useState('');
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -89,10 +87,12 @@ function EditListing() {
           title: listing.title,
           price: String(listing.price),
           location: listing.location,
-          category: enumToCategory[listing.category] || 'Guitar',
           condition: listing.condition,
           description: listing.description || '',
         });
+        setCategory(listing.category?.slug ?? null);
+        setBrand(listing.brand || '');
+        setAttributes(listing.attributes || {});
         setExistingMedia(listing.media || []);
         setLoading(false);
       })
@@ -162,8 +162,10 @@ function EditListing() {
           description: form.description,
           price: parseFloat(form.price),
           location: form.location,
-          category: categoryToEnum[form.category],
+          category,
+          brand: brand || null,
           condition: form.condition,
+          attributes,
         }),
       });
       if (!res.ok) {
@@ -226,11 +228,37 @@ function EditListing() {
         </div>
 
         <div className="field-group">
-          <label className="field-label" htmlFor="category">Category</label>
-          <select className="field field--select" id="category" name="category" value={form.category} onChange={handleChange}>
-            {Object.keys(categoryToEnum).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-          </select>
+          <label className="field-label">Category</label>
+          {catalogError && <p className="text-error">{catalogError}</p>}
+          {catalog ? (
+            <CategoryPicker
+              categories={catalog.categories}
+              value={category}
+              onChange={next => {
+                setCategory(next);
+                // Moving a listing to another category clears its old
+                // answers, matching what the server does. Keeping a body
+                // shape on something now filed under cables would put it in
+                // a filter it does not belong to.
+                setAttributes({});
+              }}
+            />
+          ) : (
+            <p className="text-muted">Loading categories...</p>
+          )}
         </div>
+
+        <CategoryFields
+          categorySlug={category}
+          brand={brand}
+          attributes={attributes}
+          onBrandChange={setBrand}
+          onAttributeChange={(name, value) => setAttributes(prev => {
+            const next = { ...prev };
+            if (value === '') { delete next[name]; } else { next[name] = value; }
+            return next;
+          })}
+        />
 
         <div className="field-group">
           <label className="field-label" htmlFor="condition">Condition</label>

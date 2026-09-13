@@ -2,34 +2,79 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Catalog\Brands;
+use App\Catalog\Facets;
+use App\Catalog\ListingFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
+use App\Models\Category;
 use App\Models\Listing;
 use App\Search\ListingSearch;
 use App\Services\PriceInsightService;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ListingController extends Controller
 {
-    private const CATEGORIES = ['GUITAR', 'DRUMS', 'MICROPHONE', 'SYNTHS', 'AUDIO_EQUIPMENT'];
-
     private const CONDITIONS = ['MINT', 'EXCELLENT', 'GOOD', 'FAIR'];
-
-    private const PER_PAGE = 20;
 
     public function __construct(private readonly PriceInsightService $priceInsight) {}
 
+    /**
+     * Browse and search, with the filter counts the panel is drawn from.
+     *
+     * The division of labour is the thing to understand here. Elasticsearch
+     * answers one question, "which listings match these words", and answers
+     * it with a list of ids. Everything else - the category tree, the brands,
+     * the per-category attributes, the counts beside each of them - is MySQL,
+     * because the counts and the results have to agree with each other and
+     * keeping two filter implementations in step is a promise nobody keeps.
+     */
     public function index(Request $request)
     {
         $data = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'category' => ['nullable', 'string', 'in:'.implode(',', self::CATEGORIES)],
+            'category' => ['nullable', 'string', 'max:120'],
             'min_price' => ['nullable', 'numeric', 'min:0'],
             'max_price' => ['nullable', 'numeric', 'min:0'],
+            'brands' => ['nullable', 'array', 'max:50'],
+            'brands.*' => ['string', 'max:80'],
+            'conditions' => ['nullable', 'array', 'max:4'],
+            'conditions.*' => ['string', Rule::in(self::CONDITIONS)],
+            'locations' => ['nullable', 'array', 'max:50'],
+            'locations.*' => ['string', 'max:120'],
+            'attributes' => ['nullable', 'array', 'max:40'],
+            'attributes.*' => ['array', 'max:40'],
+            'attributes.*.*' => ['string', 'max:120'],
+            'availability' => ['nullable', Rule::in(['all', 'available'])],
+            'sort' => ['nullable', Rule::in(['newest', 'price_asc', 'price_desc', 'relevance'])],
         ]);
+
+        $category = isset($data['category'])
+            ? Category::where('slug', $data['category'])->firstOrFail()
+            : null;
+
+        // Attribute names that are not real facets are dropped rather than
+        // rejected. A stale bookmark from before a filter was renamed should
+        // show the buyer some listings, not a validation error.
+        $data['attributes'] = array_intersect_key(
+            $data['attributes'] ?? [],
+            array_flip(Facets::names()),
+        );
+
+        $term = trim((string) ($data['search'] ?? ''));
+        $searchIds = $term === '' ? null : $this->searchIds($term);
+
+        $filter = new ListingFilter(
+            input: $data,
+            category: $category,
+            searchIds: $searchIds,
+            // Used only when the cluster did not answer, so the SQL LIKE
+            // fallback still finds something.
+            searchTerm: $searchIds === null ? $term : null,
+        );
 
         // index has no auth:sanctum middleware (it's public), so nothing has
         // told the auth manager which guard to use - plain user() would
@@ -37,29 +82,32 @@ class ListingController extends Controller
         // Naming the guard explicitly resolves it regardless.
         $viewerId = $request->user('sanctum')?->id;
 
-        $listings = $this->searchListings($data, $viewerId, (int) $request->input('page', 1))
-            ?? $this->databaseListings($data, $viewerId);
+        $listings = $filter->results((int) $request->input('page', 1), $viewerId);
 
-        return ListingResource::collection($listings);
+        return ListingResource::collection($listings)->additional([
+            'facets' => $filter->facets(),
+            'category' => $category === null ? null : $this->categoryContext($category),
+        ]);
     }
 
     /**
-     * Elasticsearch path. Returns null when search is switched off or the
-     * cluster cannot be reached, which is the caller's signal to use SQL.
+     * The ids matching a text query, or null when the cluster cannot answer.
      *
-     * Elasticsearch decides which listings match and in what order; MySQL
-     * still supplies the listings themselves. Keeping hydration in the
-     * database means the index only ever has to be right about relevance,
-     * never about the current price or whether a listing has sold.
+     * Null and an empty array mean different things and both are real: null
+     * is "search is off or broken, fall back to SQL", while an empty array is
+     * "the cluster looked and there is nothing". Collapsing the two would
+     * turn every no-results search into a full listing of the site.
+     *
+     * @return int[]|null
      */
-    private function searchListings(array $data, ?int $viewerId, int $page): ?LengthAwarePaginator
+    private function searchIds(string $term): ?array
     {
         if (! config('elasticsearch.enabled')) {
             return null;
         }
 
         try {
-            $result = app(ListingSearch::class)->search($data, $page, self::PER_PAGE);
+            return app(ListingSearch::class)->matchingIds($term, ListingFilter::SEARCH_ID_CAP);
         } catch (\Throwable $e) {
             // Browsing has to keep working when the cluster does not, so this
             // is logged for whoever is on call and then forgotten about here.
@@ -69,64 +117,46 @@ class ListingController extends Controller
 
             return null;
         }
-
-        $models = $this->hydrate($result['ids'], $viewerId);
-
-        return new LengthAwarePaginator(
-            $models,
-            $result['total'],
-            self::PER_PAGE,
-            $page,
-            ['path' => Paginator::resolveCurrentPath()],
-        );
     }
 
     /**
-     * Loads the matched listings in the order Elasticsearch ranked them.
+     * Where the buyer is in the tree, and what they can filter by there.
      *
-     * One query, not one per id, and the ordering is reapplied in PHP: SQL
-     * has no memory of the relevance ordering, and doing it with a generated
-     * FIELD() clause would tie this to MySQL for no real gain.
+     * Sent alongside the results rather than fetched separately, because the
+     * filter panel and the listings it filters should never be able to
+     * disagree about which category is being viewed.
+     *
+     * @return array<string, mixed>
      */
-    private function hydrate(array $ids, ?int $viewerId)
+    private function categoryContext(Category $category): array
     {
-        if ($ids === []) {
-            return collect();
-        }
+        $ancestors = Category::whereIn('path', $category->pathSegments())
+            ->orderBy('depth')
+            ->get(['slug', 'path', 'name', 'depth']);
 
-        $listings = Listing::query()
-            ->whereIn('id', $ids)
-            ->with('seller', 'media')
-            ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]))
-            ->get()
-            ->keyBy('id');
-
-        return collect($ids)
-            ->map(fn ($id) => $listings->get($id))
-            // A listing deleted between being indexed and being read is a
-            // gap in the results, not a null in the JSON.
-            ->filter()
-            ->values();
-    }
-
-    /**
-     * The original SQL path, still the only one when search is switched off.
-     * LIKE '%term%' cannot use an index and matches substrings rather than
-     * words, so it is correct but does not scale and does not rank.
-     */
-    private function databaseListings(array $data, ?int $viewerId): LengthAwarePaginator
-    {
-        return Listing::query()
-            ->with('seller', 'media')
-            ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]))
-            ->when($data['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%")))
-            ->when($data['category'] ?? null, fn ($q, $category) => $q->where('category', $category))
-            ->when($data['min_price'] ?? null, fn ($q, $min) => $q->where('price', '>=', $min))
-            ->when($data['max_price'] ?? null, fn ($q, $max) => $q->where('price', '<=', $max))
-            ->latest()
-            ->paginate(self::PER_PAGE);
+        return [
+            'slug' => $category->slug,
+            'path' => $category->path,
+            'name' => $category->name,
+            'depth' => $category->depth,
+            'is_leaf' => $category->is_leaf,
+            'breadcrumbs' => $ancestors->map(fn (Category $c) => [
+                'slug' => $c->slug,
+                'name' => $c->name,
+            ])->all(),
+            // Definitions, not counts. The counts come back under `facets`,
+            // and the panel needs both: the labels and option order from
+            // here, and how many listings are behind each option from there.
+            'facet_definitions' => collect($category->facets())
+                ->map(fn (array $definition, string $name) => [
+                    'name' => $name,
+                    'label' => $definition['label'],
+                    'options' => $definition['options'],
+                    'help' => $definition['help'] ?? null,
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 
     /**
@@ -137,7 +167,7 @@ class ListingController extends Controller
     public function saved(Request $request)
     {
         $listings = $request->user()->savedListings()
-            ->with('seller', 'media')
+            ->with('seller', 'media', 'category')
             ->latest('saved_listings.created_at')
             ->paginate(20);
 
@@ -157,32 +187,106 @@ class ListingController extends Controller
      * least important thing on the page, and the listing itself should not
      * wait on a second search round trip, nor fail to render if that round
      * trip fails.
+     *
+     * There is a SQL fallback now, which there deliberately was not before.
+     * When a category was one of five words, "other things in the same
+     * category" meant "other guitars" and was worse than showing nothing.
+     * Against a tree this deep it means "other Telecaster-shaped solid body
+     * electrics", which is a genuine recommendation.
      */
     public function similar(Request $request, Listing $listing)
     {
-        if (! config('elasticsearch.enabled')) {
-            // No SQL fallback here on purpose. "Other things in the same
-            // category" is not the same feature wearing a different hat,
-            // and a worse version of a recommendation is worse than none.
+        $viewerId = $request->user('sanctum')?->id;
+        $listing->loadMissing('category');
+
+        if ($listing->category === null) {
             return ListingResource::collection(collect());
+        }
+
+        $ids = $this->similarIds($listing);
+
+        if ($ids === null) {
+            return ListingResource::collection($this->similarFromDatabase($listing, $viewerId));
+        }
+
+        return ListingResource::collection($this->hydrate($ids, $viewerId));
+    }
+
+    /** @return int[]|null null when the cluster cannot answer */
+    private function similarIds(Listing $listing): ?array
+    {
+        if (! config('elasticsearch.enabled')) {
+            return null;
         }
 
         try {
-            $ids = app(ListingSearch::class)->similarTo($listing->id, $listing->category);
+            // Siblings rather than the exact leaf: a buyer looking at a 12"
+            // reissue is quite likely to want a different pressing of it, and
+            // restricting to the leaf would hide every one that happens to be
+            // filed a rung away.
+            $scope = $listing->category->parent?->path ?? $listing->category->path;
+
+            return app(ListingSearch::class)->similarTo($listing->id, $scope);
         } catch (\Throwable $e) {
             Log::warning('Similar listings lookup failed', ['error' => $e->getMessage()]);
 
-            return ListingResource::collection(collect());
+            return null;
+        }
+    }
+
+    /**
+     * Nearest first: the same leaf category, then the rest of the branch,
+     * with the closest price acting as the tiebreak inside each.
+     */
+    private function similarFromDatabase(Listing $listing, ?int $viewerId)
+    {
+        $branch = $listing->category->parent?->path ?? $listing->category->path;
+
+        $siblingIds = Category::withinPath($branch)->pluck('id');
+
+        return Listing::query()
+            ->whereIn('category_id', $siblingIds)
+            ->where('id', '!=', $listing->id)
+            ->where('status', 'ACTIVE')
+            ->with('seller', 'media', 'category')
+            ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($s) => $s->where('users.id', $viewerId)]))
+            ->orderByRaw('category_id = ? desc', [$listing->category_id])
+            ->orderByRaw('ABS(price - ?) asc', [(float) $listing->price])
+            ->limit(6)
+            ->get();
+    }
+
+    /**
+     * Loads the matched listings in the order the search ranked them.
+     *
+     * One query, not one per id, and the ordering is reapplied in PHP: SQL
+     * has no memory of the relevance ordering, and doing it with a generated
+     * FIELD() clause would tie this to MySQL for no real gain.
+     */
+    private function hydrate(array $ids, ?int $viewerId)
+    {
+        if ($ids === []) {
+            return collect();
         }
 
-        return ListingResource::collection(
-            $this->hydrate($ids, $request->user('sanctum')?->id)
-        );
+        $listings = Listing::query()
+            ->whereIn('id', $ids)
+            ->with('seller', 'media', 'category')
+            ->when($viewerId, fn ($q) => $q->with(['savedBy' => fn ($q) => $q->where('users.id', $viewerId)]))
+            ->get()
+            ->keyBy('id');
+
+        return collect($ids)
+            ->map(fn ($id) => $listings->get($id))
+            // A listing deleted between being indexed and being read is a
+            // gap in the results, not a null in the JSON.
+            ->filter()
+            ->values();
     }
 
     public function show(Request $request, Listing $listing)
     {
-        $listing->load('seller', 'media');
+        $listing->load('seller', 'media', 'category', 'attributeValues');
 
         // Same reason as index() above - show has no auth:sanctum middleware.
         if ($viewerId = $request->user('sanctum')?->id) {
@@ -191,6 +295,11 @@ class ListingController extends Controller
 
         return (new ListingResource($listing))->additional([
             'price_insight' => $this->priceInsight->forListing($listing),
+            // So the listing page can label each stored attribute without
+            // knowing the taxonomy itself.
+            'attribute_labels' => collect($listing->category?->facets() ?? [])
+                ->map(fn (array $definition) => $definition['label'])
+                ->all(),
         ]);
     }
 
@@ -203,9 +312,14 @@ class ListingController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        $category = $this->resolveCategory($data['category']);
+        $attributes = $this->validatedAttributes($request, $category);
+
         // 'condition' is fillable, so merging a default in here before make()
         // works via normal mass assignment.
         $data['condition'] ??= 'GOOD';
+        $data['category_id'] = $category->id;
+        unset($data['category']);
 
         $listing = $request->user()->listings()->make($data);
         // 'status' is deliberately NOT in Listing's #[Fillable] list - request
@@ -218,20 +332,41 @@ class ListingController extends Controller
         $listing->status = 'ACTIVE';
         $listing->save();
 
+        $listing->syncAttributes($attributes);
+
         // 'media' is loaded even though a brand-new listing has none yet:
         // ListingResource only emits that key when the relation is loaded, so
         // leaving it off makes the field silently ABSENT rather than an empty
         // array, and callers then have to handle two shapes for one resource.
-        return new ListingResource($listing->load('seller', 'media'));
+        return new ListingResource($listing->load('seller', 'media', 'category', 'attributeValues'));
     }
 
     public function update(Request $request, Listing $listing)
     {
         $this->authorize('update', $listing);
 
-        $listing->update($this->validated($request, forUpdate: true));
+        $data = $this->validated($request, forUpdate: true);
 
-        return new ListingResource($listing->load('seller', 'media'));
+        // The category can move, and when it does the old category's
+        // attributes go with it. A body shape left over from when this was a
+        // guitar is meaningless once it is filed under cables, and leaving it
+        // there would put it in a filter it does not belong to.
+        $category = isset($data['category'])
+            ? $this->resolveCategory($data['category'])
+            : $listing->loadMissing('category')->category;
+
+        $attributes = $this->validatedAttributes($request, $category);
+
+        $data['category_id'] = $category->id;
+        unset($data['category']);
+
+        $listing->update($data);
+
+        if ($request->has('attributes') || $listing->wasChanged('category_id')) {
+            $listing->syncAttributes($attributes);
+        }
+
+        return new ListingResource($listing->load('seller', 'media', 'category', 'attributeValues'));
     }
 
     /** Toggles the current user's saved state for a listing. */
@@ -253,8 +388,79 @@ class ListingController extends Controller
             'description' => [$required, 'string'],
             'price' => [$required, 'numeric', 'min:0'],
             'location' => [$required, 'string', 'max:120'],
-            'category' => [$required, 'string', 'in:'.implode(',', self::CATEGORIES)],
-            'condition' => ['nullable', 'string', 'in:'.implode(',', self::CONDITIONS)],
+            'category' => [$required, 'string', 'exists:categories,slug'],
+            'brand' => ['nullable', 'string', Rule::in(Brands::all())],
+            'condition' => ['nullable', 'string', Rule::in(self::CONDITIONS)],
         ]);
+    }
+
+    /**
+     * A listing has to be filed in a leaf.
+     *
+     * Branches exist to be browsed through, not listed in. "Guitars" tells a
+     * buyer nothing and, more to the point, carries none of the filters that
+     * make a tree this deep worth having: a listing parked on a branch would
+     * be invisible to every filter below it.
+     */
+    private function resolveCategory(string $slug): Category
+    {
+        $category = Category::where('slug', $slug)->firstOrFail();
+
+        if (! $category->is_leaf) {
+            throw ValidationException::withMessages([
+                'category' => "Pick a specific category. \"{$category->name}\" has more choices underneath it.",
+            ]);
+        }
+
+        return $category;
+    }
+
+    /**
+     * The attribute answers, checked against what this category actually asks.
+     *
+     * Both halves are checked, not just the values: an attribute that does
+     * not belong to this category is rejected rather than stored, because a
+     * record grading on a guitar lead would be a filter option nobody can
+     * ever have meant to tick.
+     *
+     * @return array<string, string>
+     */
+    private function validatedAttributes(Request $request, Category $category): array
+    {
+        $submitted = $request->input('attributes', []);
+
+        if (! is_array($submitted)) {
+            throw ValidationException::withMessages([
+                'attributes' => 'Attributes must be sent as a set of name and value pairs.',
+            ]);
+        }
+
+        $allowed = Facets::forCategoryPath($category->path);
+        $clean = [];
+
+        foreach ($submitted as $name => $value) {
+            // Blank means "not stated", which is always allowed: most of
+            // these are optional, and forcing a seller to guess is how a
+            // filter fills up with wrong answers.
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if (! is_string($name) || ! isset($allowed[$name])) {
+                throw ValidationException::withMessages([
+                    'attributes' => "\"{$name}\" is not something that can be set on a listing in {$category->name}.",
+                ]);
+            }
+
+            if (! is_string($value) || ! Facets::isValidValue($name, $value)) {
+                throw ValidationException::withMessages([
+                    'attributes' => "\"{$value}\" is not one of the options for {$allowed[$name]['label']}.",
+                ]);
+            }
+
+            $clean[$name] = $value;
+        }
+
+        return $clean;
     }
 }

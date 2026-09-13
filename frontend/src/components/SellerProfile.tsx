@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from './ListingCard';
+import { PinIcon } from './Icon';
 
 import { API } from '../lib/config';
 
@@ -10,7 +11,7 @@ interface SellerListing {
   title: string;
   price: number;
   location: string;
-  category: string;
+  category: { slug: string; path: string; name: string } | null;
   status: string;
   media?: { media_type: string; url: string }[];
 }
@@ -159,7 +160,9 @@ function SellerProfile() {
                 <span className="profile-header__verified">✓ Verified</span>
               )}
             </h1>
-            {profile.location && <p className="profile-header__location">📍 {profile.location}</p>}
+            {profile.location && (
+              <p className="profile-header__location"><PinIcon /> {profile.location}</p>
+            )}
             <p className="profile-header__stats">
               Member since {memberSinceLabel(profile.member_since)} · {profile.endorsement_count} endorsement{profile.endorsement_count === 1 ? '' : 's'} · {profile.follower_count} follower{profile.follower_count === 1 ? '' : 's'}
             </p>

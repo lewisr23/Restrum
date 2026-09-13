@@ -71,7 +71,7 @@ class ListingSearchFallbackTest extends TestCase
             'description' => 'Lovely.',
             'price' => 400,
             'location' => 'Newcastle',
-            'category' => 'GUITAR',
+            'category' => 'solid-body-electric-guitars',
             'condition' => 'GOOD',
         ])->assertCreated();
 

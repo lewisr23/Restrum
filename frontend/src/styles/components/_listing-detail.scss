@@ -245,6 +245,9 @@
   }
 
   &__seller-location {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     margin: 6px 0 0;
     font-size: $font-size-sm;
     color: $color-text-muted;
@@ -278,10 +281,12 @@
   line-height: 1.5;
 
   &__icon {
+    display: flex;
     flex-shrink: 0;
-    // Nudged to sit on the first line of text rather than the box's centre,
-    // which is where it lands once the copy wraps to two lines.
-    line-height: 1.5;
+    // Aligned to the first line of text rather than the box's centre, which
+    // is where it would land once the copy wraps to two lines.
+    margin-top: 2px;
+    color: $color-accent;
   }
 }
 
