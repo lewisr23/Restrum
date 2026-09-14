@@ -47,6 +47,19 @@ V6="2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32
 # remove its own previous rules without touching Docker's.
 TAG="restrum-cloudflare"
 
+# The interface the internet arrives on. Every rule below is scoped to it,
+# and that scoping is load-bearing rather than tidiness: DOCKER-USER sees
+# FORWARDed packets in BOTH directions, so an unscoped "drop tcp dport 443"
+# also drops a container opening an outbound HTTPS connection. That breaks
+# the image build (apk cannot reach its mirror) and, far worse, silently
+# breaks every call the app makes to api.stripe.com.
+EXT_IF=$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "dev") print $(i + 1); exit}')
+
+if [ -z "$EXT_IF" ]; then
+    echo "Could not determine the external interface." >&2
+    exit 1
+fi
+
 flush() {
     local cmd=$1
     while $cmd -L DOCKER-USER --line-numbers -n 2>/dev/null | grep -q "$TAG"; do
@@ -62,17 +75,17 @@ flush ip6tables
 # Inserted in reverse order of evaluation: the DROP goes in first and ends
 # up at the bottom of the rules this script owns, with every ACCEPT above
 # it. A packet from Cloudflare matches an ACCEPT and leaves the chain;
-# anything else falls through to the DROP.
-iptables  -I DOCKER-USER -p tcp -m multiport --dports "$PORTS" -m comment --comment "$TAG" -j DROP
-ip6tables -I DOCKER-USER -p tcp -m multiport --dports "$PORTS" -m comment --comment "$TAG" -j DROP
+# anything else arriving on the public interface falls through to the DROP.
+iptables  -I DOCKER-USER -i "$EXT_IF" -p tcp -m multiport --dports "$PORTS" -m comment --comment "$TAG" -j DROP
+ip6tables -I DOCKER-USER -i "$EXT_IF" -p tcp -m multiport --dports "$PORTS" -m comment --comment "$TAG" -j DROP
 
 for range in $V4; do
-    iptables -I DOCKER-USER -s "$range" -p tcp -m multiport --dports "$PORTS" \
+    iptables -I DOCKER-USER -i "$EXT_IF" -s "$range" -p tcp -m multiport --dports "$PORTS" \
         -m comment --comment "$TAG" -j ACCEPT
 done
 
 for range in $V6; do
-    ip6tables -I DOCKER-USER -s "$range" -p tcp -m multiport --dports "$PORTS" \
+    ip6tables -I DOCKER-USER -i "$EXT_IF" -s "$range" -p tcp -m multiport --dports "$PORTS" \
         -m comment --comment "$TAG" -j ACCEPT
 done
 
