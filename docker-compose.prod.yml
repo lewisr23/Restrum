@@ -1,0 +1,229 @@
+# The production stack for restrum.uk. See docs/deploy.md for the runbook.
+#
+# Run it with the env file supplied explicitly, every time:
+#
+#   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+#
+# or just use ./docker/deploy.sh, which does exactly that. The --env-file
+# matters twice over: it fills the ${...} placeholders below, AND it is the
+# same file the containers read their own configuration from. Leave it off
+# and compose silently substitutes empty strings for half of this file.
+#
+# This is a separate file rather than an overlay on docker-compose.yml. An
+# overlay looks tidier until you notice that YAML anchors do not merge across
+# files, so the shared environment block would have to be restated here
+# anyway, and that almost every value in the development file - localhost
+# URLs, an empty database password, published ports for MySQL and
+# Elasticsearch - is something production has to contradict rather than
+# extend. Two honest files beat one file and a pile of overrides.
+#
+# What differs from the development stack, beyond the obvious:
+#   - a scheduler, which development does without and production cannot.
+#     orders:sweep is what releases escrow and expires reservations.
+#   - no published ports except 80 and 443. MySQL, Redis, Elasticsearch and
+#     Reverb are reachable only from inside the compose network.
+#   - log rotation, because the disk on a CX22 is small enough that an
+#     unbounded container log is a real way to take the site down.
+
+name: restrum
+
+# Baked into the JS bundle at build time, so they describe how the BROWSER
+# reaches Reverb: the public hostname on 443, not the service name. Shared by
+# every service built from this repo so they all reuse one frontend build
+# rather than compiling the bundle several times on a two-core box.
+#
+# The app key is not a secret - it identifies which Reverb app to connect to,
+# the way a Pusher app key does, and channel authorization is what actually
+# protects private channels. It does have to match REVERB_APP_KEY in the env
+# file, though, or the browser will be refused by a server it can reach.
+x-frontend-build-args: &frontend-build-args
+  REACT_APP_REVERB_APP_KEY: ${REVERB_APP_KEY:?set REVERB_APP_KEY in .env.production}
+  REACT_APP_REVERB_HOST: restrum.uk
+  REACT_APP_REVERB_PORT: '443'
+  REACT_APP_REVERB_SCHEME: https
+
+# Wiring, as opposed to configuration. These describe where the services sit
+# on the compose network and are therefore properties of this file, not
+# choices to be made in the env file. Compose applies `environment` on top of
+# `env_file`, so these win even if the env file contradicts them.
+x-app-wiring: &app-wiring
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: '3306'
+  REDIS_HOST: redis
+  REDIS_PORT: '6379'
+  REDIS_CLIENT: predis
+  QUEUE_CONNECTION: redis
+  ELASTICSEARCH_ENABLED: 'true'
+  ELASTICSEARCH_HOST: http://elasticsearch:9200
+  BROADCAST_CONNECTION: reverb
+  # Where the SERVER reaches Reverb to publish events: the service name and
+  # its container port, unlike the public values baked into the bundle above.
+  REVERB_HOST: reverb
+  REVERB_PORT: '8080'
+  REVERB_SCHEME: http
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+x-app-build: &app-build
+  context: .
+  target: app
+  args: *frontend-build-args
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env.production}
+      MYSQL_DATABASE: ${DB_DATABASE:-restrum}
+      MYSQL_USER: ${DB_USERNAME:-restrum}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.production}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '--silent']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      discovery.type: single-node
+      # Security off is defensible only because this cluster is unreachable
+      # from outside the compose network and holds nothing but a searchable
+      # copy of public listing data. Nothing private is indexed here.
+      xpack.security.enabled: 'false'
+      # Elasticsearch sizes its heap from total host RAM, which on a 4GB box
+      # means it would happily take half the machine for an index this small.
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:9200/_cluster/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  # PHP-FPM. Its entrypoint runs the migrations, and deliberately only does
+  # so when the command is php-fpm, so the three sibling containers below
+  # start from the same image without racing it on the schema.
+  app:
+    build: *app-build
+    restart: unless-stopped
+    logging: *logging
+    env_file:
+      - .env.production
+    environment: *app-wiring
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      target: web
+      args: *frontend-build-args
+    restart: unless-stopped
+    logging: *logging
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      # Mounted rather than baked in, so a certificate rotation or a change
+      # to the Cloudflare ranges is a restart rather than a rebuild.
+      - ./docker/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/cloudflare-ips.conf:/etc/nginx/conf.d/cloudflare-ips.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      # nginx serves uploaded media directly, so it reads the same volume the
+      # app writes to.
+      - storage-data:/var/www/html/storage
+    depends_on:
+      - app
+      - reverb
+
+  queue-worker:
+    build: *app-build
+    restart: unless-stopped
+    logging: *logging
+    command: ['php', 'artisan', 'queue:work', '--tries=3', '--max-time=3600']
+    env_file:
+      - .env.production
+    environment: *app-wiring
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  # The scheduler, which the development stack does without and this one
+  # cannot. routes/console.php runs orders:sweep every five minutes, and that
+  # command is what releases escrow to sellers and returns expired checkout
+  # reservations to the market. Without this container an order that nobody
+  # confirms sits in escrow forever and a listing abandoned at checkout stays
+  # off the market forever. schedule:work is the foreground equivalent of the
+  # usual once-a-minute cron line.
+  scheduler:
+    build: *app-build
+    restart: unless-stopped
+    logging: *logging
+    command: ['php', 'artisan', 'schedule:work']
+    env_file:
+      - .env.production
+    environment: *app-wiring
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # No published port. Cloudflare only forwards a fixed set of ports, so the
+  # browser reaches this through nginx on 443 at /app/ and /apps/ instead.
+  reverb:
+    build: *app-build
+    restart: unless-stopped
+    logging: *logging
+    command: ['php', 'artisan', 'reverb:start', '--host=0.0.0.0', '--port=8080']
+    env_file:
+      - .env.production
+    environment: *app-wiring
+    volumes:
+      - storage-data:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  elasticsearch-data:
+  storage-data:

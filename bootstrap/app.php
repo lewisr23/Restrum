@@ -24,7 +24,32 @@ return Application::configure(basePath: dirname(__DIR__))
         ['middleware' => ['auth:sanctum']],
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        /*
+         * In production every request arrives from nginx, which arrives from
+         * Cloudflare, so REMOTE_ADDR is a container address and the visitor's
+         * own is only in a forwarded header. Left untrusted, two things break
+         * quietly rather than loudly: the gear adviser's per-IP rate limit
+         * collapses into one bucket shared by the entire internet, and every
+         * generated URL comes out http:// on a site only served over https.
+         *
+         * Trusting every proxy is safe here because of how the header
+         * arrives, not because the range is narrow. PHP-FPM's port is never
+         * published outside the compose network, so nginx is the only thing
+         * that can reach it, and docker/nginx.prod.conf SETS
+         * X-Forwarded-For from the address Cloudflare vouched for rather
+         * than appending to whatever the client sent. A forged header is
+         * discarded a hop before it gets here. Pinning an address instead
+         * would only pin Docker's choice of container IP, which changes.
+         *
+         * Locally this is inert: no proxy sends these headers, so ip() and
+         * isSecure() answer from the connection as before.
+         */
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
