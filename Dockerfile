@@ -56,8 +56,14 @@ RUN composer install \
 # ---------------------------------------------------------------------------
 FROM php:8.4-fpm-alpine AS app
 
+# pcntl earns its place here even though nothing in the application code
+# calls it: Reverb's server uses SIGINT and SIGTERM to shut down cleanly,
+# and without the extension those constants do not exist, so the container
+# crash-loops on "Undefined constant ... SIGINT" before it ever listens.
+# The same image runs app, queue-worker, scheduler and reverb, so it has to
+# satisfy the most demanding of the four.
 RUN apk add --no-cache mysql-client \
-    && docker-php-ext-install pdo_mysql bcmath opcache
+    && docker-php-ext-install pdo_mysql bcmath opcache pcntl
 
 # Laravel's own recommended production opcache settings.
 RUN { \

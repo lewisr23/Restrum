@@ -34,7 +34,16 @@ compose() {
 echo "Building and starting..."
 compose up -d --build
 
-# --build leaves the previous image dangling on every deploy, and a CX22's
+# nginx resolves php-fpm's hostname once, when it starts, and then holds
+# that address. Recreating the app container gives it a new IP, so an nginx
+# that was left running from the previous deploy keeps dialling the old one
+# and answers 502 to everything dynamic while still serving the static
+# bundle happily - which reads as "the site is up but nothing works".
+# Restarting it last costs a second and makes the deploy deterministic.
+echo "Restarting nginx so it re-resolves the app container..."
+compose restart nginx >/dev/null
+
+# --build leaves the previous image dangling on every deploy, and 100GB of
 # disk is small enough that a few months of those matter.
 echo "Pruning old images..."
 docker image prune -f >/dev/null

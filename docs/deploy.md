@@ -302,7 +302,7 @@ In the Stripe dashboard, with **test mode** on, add an endpoint at:
 https://restrum.uk/api/stripe/webhook
 ```
 
-Select these five events, and only these. The app ignores anything else, and
+Select these events, and only these. The app ignores anything else, and
 sending it everything only makes the queue busier:
 
 | Event | What it does here |
@@ -311,7 +311,17 @@ sending it everything only makes the queue busier:
 | `payment_intent.canceled` | Releases a listing whose payment was cancelled. |
 | `charge.refunded` | Records refunds, including ones issued by hand in the dashboard. |
 | `charge.dispute.created` | Freezes an order so a chargeback does not auto-release to the seller. |
-| `account.updated` | Tracks whether a seller has finished Connect onboarding. |
+| `account.updated` | Tracks whether a seller has finished Connect onboarding. The v1 spelling, kept because it costs nothing. |
+| `v2.core.account[configuration.recipient].updated` | The same news in the v2 spelling. |
+| `v2.core.account[configuration.recipient].capability_status_updated` | Fires when `stripe_transfers` or `payouts` changes state. **This is the one that lets a newly verified seller start selling.** |
+
+Onboarding runs on Accounts v2, so the last two are what a recipient
+account actually emits. Subscribing only to `account.updated` is the
+failure worth naming: the site works, sellers complete onboarding, and
+nothing ever marks them able to trade, because the local mirror of their
+capabilities is never refreshed. If the dashboard hides the v2 events
+behind a separate event destination or an API version toggle, that is what
+needs enabling rather than a sign they do not apply.
 
 Note there is no `payment_intent.payment_failed`. A declined card leaves the
 payment retryable and the buyer can try another one against the same order,
