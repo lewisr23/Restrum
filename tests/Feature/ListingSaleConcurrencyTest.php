@@ -146,7 +146,7 @@ class ListingSaleConcurrencyTest extends TestCase
 
         // And only one session was ever opened, so there is only one way to
         // pay for it in existence.
-        $this->assertSame(1, $this->gateway->timesCalled('openCheckout'));
+        $this->assertSame(1, $this->gateway->timesCalled('openPayment'));
     }
 
     public function test_reserving_a_listing_locks_its_row_first(): void

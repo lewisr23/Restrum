@@ -41,17 +41,25 @@ class ProcessStripeEvent implements ShouldQueue
         $object = $this->event['data']['object'] ?? [];
 
         match ($type) {
-            // The ordinary card payment: the buyer finished Checkout and the
-            // money is with the platform.
-            'checkout.session.completed' => $this->sessionCompleted($escrow, $object),
+            // The money is with the platform. One event covers both the card
+            // that clears instantly and the bank debit that takes days: a
+            // slow method sits in 'processing' until it settles and only
+            // reaches this event when it actually has, so unlike the hosted
+            // Checkout this replaced, there is no second event to handle and
+            // no "completed but not paid" state to guard against.
+            'payment_intent.succeeded' => $this->paymentSucceeded($escrow, $object),
 
-            // Slower payment methods clear after the session closes, so the
-            // session completing is not the same as the money arriving.
-            'checkout.session.async_payment_succeeded' => $this->markPaid($escrow, $object),
+            // Stripe cancelled the payment, or this application did through
+            // the reservation sweep. Either way nobody can pay against it
+            // now, so the order should not keep holding the listing.
+            'payment_intent.canceled' => $this->paymentCanceled($object),
 
-            // Stripe closed the session itself. The reservation sweep would
-            // reach the same conclusion eventually; this just gets there first.
-            'checkout.session.expired' => $this->sessionExpired($object),
+            // payment_intent.payment_failed is deliberately absent. A failed
+            // card leaves the intent in requires_payment_method, which is a
+            // live payment the buyer can simply try again with a different
+            // card, and cancelling their order underneath them would be the
+            // wrong response to a typo'd expiry date. An abandoned attempt
+            // is the reservation sweep's job, not this event's.
 
             // Covers refunds issued from the Stripe dashboard as well as ones
             // this application asked for, which is why it records rather than
@@ -72,35 +80,24 @@ class ProcessStripeEvent implements ShouldQueue
         };
     }
 
-    /** @param array<string, mixed> $session */
-    private function sessionCompleted(EscrowService $escrow, array $session): void
+    /** @param array<string, mixed> $intent */
+    private function paymentSucceeded(EscrowService $escrow, array $intent): void
     {
-        // A completed session is not a completed payment. Bank debits and
-        // similar methods leave it 'unpaid' for days, and treating that as
-        // money in hand would hand an instrument over for nothing.
-        if (($session['payment_status'] ?? null) !== 'paid') {
-            return;
-        }
-
-        $this->markPaid($escrow, $session);
-    }
-
-    /** @param array<string, mixed> $session */
-    private function markPaid(EscrowService $escrow, array $session): void
-    {
-        $order = $this->orderFromSession($session);
+        $order = $this->orderFromIntent($intent);
 
         if ($order === null) {
             return;
         }
 
-        $escrow->markPaid($order, $this->paymentIntentId($session));
+        $id = $intent['id'] ?? null;
+
+        $escrow->markPaid($order, is_string($id) && $id !== '' ? $id : null);
     }
 
-    /** @param array<string, mixed> $session */
-    private function sessionExpired(array $session): void
+    /** @param array<string, mixed> $intent */
+    private function paymentCanceled(array $intent): void
     {
-        $order = $this->orderFromSession($session);
+        $order = $this->orderFromIntent($intent);
 
         if ($order === null) {
             return;
@@ -109,8 +106,9 @@ class ProcessStripeEvent implements ShouldQueue
         DB::transaction(function () use ($order) {
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
 
-            // Only an unpaid order. Stripe can expire a session whose payment
-            // is still settling, and cancelling that would strand the money.
+            // Only an unpaid order. This event can arrive after a payment has
+            // already been recorded, out of order with the one that recorded
+            // it, and cancelling then would strand real money.
             if ($locked === null || $locked->status !== OrderStatus::PENDING) {
                 return;
             }
@@ -177,39 +175,33 @@ class ProcessStripeEvent implements ShouldQueue
     }
 
     /**
-     * The order a Checkout Session belongs to.
+     * The order a PaymentIntent belongs to.
      *
-     * Three ways of finding it, because the three are not equally reliable.
-     * Metadata is what this application set and is present on every session
-     * it creates; client_reference_id is the same value in the field Stripe's
-     * dashboard displays; the session id is the fallback for a session
-     * created before either was readable.
+     * Two ways of finding it, because the two fail differently. Metadata is
+     * what this application set when it opened the payment and travels on
+     * every intent it creates; the intent id is what the order recorded at
+     * the same moment, and covers an event whose metadata was stripped or
+     * edited in the dashboard.
      *
-     * @param  array<string, mixed>  $session
+     * @param  array<string, mixed>  $intent
      */
-    private function orderFromSession(array $session): ?Order
+    private function orderFromIntent(array $intent): ?Order
     {
-        $orderId = $session['metadata']['order_id'] ?? $session['client_reference_id'] ?? null;
+        $order = $this->orderFromMetadata($intent['metadata']['order_id'] ?? null);
 
-        if ($orderId !== null) {
-            $order = Order::find((int) $orderId);
-
-            if ($order !== null) {
-                return $order;
-            }
+        if ($order !== null) {
+            return $order;
         }
 
-        $sessionId = $session['id'] ?? null;
+        $intentId = $intent['id'] ?? null;
 
-        if (is_string($sessionId)) {
-            $order = Order::where('stripe_checkout_session_id', $sessionId)->first();
+        $order = $this->orderFromPaymentIntent($intentId);
 
-            if ($order !== null) {
-                return $order;
-            }
+        if ($order !== null) {
+            return $order;
         }
 
-        Log::warning('Stripe session did not match any order.', ['session' => $sessionId]);
+        Log::warning('Stripe payment did not match any order.', ['payment_intent' => $intentId]);
 
         return null;
     }
@@ -233,22 +225,5 @@ class ProcessStripeEvent implements ShouldQueue
     private function orderFromMetadata(mixed $orderId): ?Order
     {
         return $orderId === null ? null : Order::find((int) $orderId);
-    }
-
-    /**
-     * Stripe expands this field in some deliveries and leaves it a bare id in
-     * others, so both shapes have to be handled rather than assumed.
-     *
-     * @param  array<string, mixed>  $session
-     */
-    private function paymentIntentId(array $session): ?string
-    {
-        $intent = $session['payment_intent'] ?? null;
-
-        if (is_array($intent)) {
-            $intent = $intent['id'] ?? null;
-        }
-
-        return is_string($intent) && $intent !== '' ? $intent : null;
     }
 }

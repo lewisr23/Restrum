@@ -1,31 +1,207 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useMemo, FormEvent } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { loadStripe, Stripe, Appearance } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../context/AuthContext';
 
 import { API, mediaUrl } from '../lib/config';
 
-// The order summary a buyer sees before they are handed over to Stripe.
+// Checkout, paid for without leaving the site.
 //
-// This page never touches card details. It reserves the listing, gets a
-// Stripe Checkout URL back, and redirects: card data goes straight from the
-// buyer's browser to Stripe and never passes through Restrum at all, which is
-// the difference between taking payments and taking on card-data compliance.
+// The card fields are Stripe's Payment Element, mounted into this page. That
+// is a cross-origin iframe, so the numbers still go straight from the
+// buyer's browser to Stripe and never touch Restrum, exactly as they did
+// when this page redirected to a Stripe-hosted one. What changes is only
+// where the buyer is standing while they type, which is the whole reason to
+// do it: every marketplace a seller has used before keeps them on the site
+// to pay, and being bounced to a third-party domain mid-purchase reads as
+// less trustworthy rather than more.
+
+/**
+ * One Stripe.js instance per publishable key, for the lifetime of the tab.
+ *
+ * loadStripe injects a script tag, so calling it on every render would mean
+ * a new one each time. The key arrives from the API rather than the bundle -
+ * see CheckoutController for why - so this cannot simply live at module
+ * scope with a constant.
+ */
+const clients = new Map<string, Promise<Stripe | null>>();
+
+function stripeFor(key: string): Promise<Stripe | null> {
+  if (!clients.has(key)) clients.set(key, loadStripe(key));
+
+  return clients.get(key)!;
+}
+
+/**
+ * Dress Stripe's iframe in the site's own palette.
+ *
+ * Read from the live custom properties rather than hardcoded, because the
+ * Element cannot see our stylesheet across the iframe boundary and a second
+ * hardcoded copy of the palette is a second thing to forget when the first
+ * one changes. The fallbacks are only for a stylesheet that has not loaded.
+ */
+function appearance(): Appearance {
+  const css = getComputedStyle(document.documentElement);
+  const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+
+  return {
+    theme: 'night',
+    variables: {
+      colorPrimary: token('--accent', '#4caf50'),
+      colorBackground: token('--bg-card', '#1e1e1e'),
+      colorText: token('--text', '#f2f2f2'),
+      colorTextSecondary: token('--text-muted', '#9a9a9a'),
+      colorDanger: token('--danger', '#f44336'),
+      fontFamily: token('--font-body', 'system-ui, sans-serif'),
+      borderRadius: token('--radius', '8px'),
+    },
+    rules: {
+      '.Input': { borderColor: token('--border-input', '#444444') },
+    },
+  };
+}
+
+/**
+ * The form itself, which has to be a child of <Elements> because that is
+ * what useStripe and useElements read from.
+ */
+function PaymentForm({ orderId, price, sellerName }: { orderId: number; price: string; sellerName: string }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const navigate = useNavigate();
+
+  const [paying, setPaying] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [problem, setProblem] = useState('');
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+
+    // Both are null until Stripe.js has finished loading. The button is
+    // disabled until then, so this is belt and braces rather than a case
+    // anyone should see.
+    if (!stripe || !elements) return;
+
+    setPaying(true);
+    setProblem('');
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        // Only used by methods that genuinely have to leave the page, such
+        // as a bank redirect. A card never gets here.
+        return_url: `${window.location.origin}/orders/${orderId}?paid=1`,
+      },
+      // Leave the page only when the payment method demands it. A card that
+      // needs a 3D Secure challenge gets a modal over this one instead of a
+      // round trip, so the common case never navigates at all.
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      // Card and validation errors are written for the buyer and say
+      // something they can act on. Everything else is a fault on our side or
+      // Stripe's, where the message can leak detail that helps nobody, so it
+      // gets a line that at least answers the only question that matters.
+      setProblem(
+        error.type === 'card_error' || error.type === 'validation_error'
+          ? error.message ?? 'That card was declined. Nothing has been charged.'
+          : 'Something went wrong taking the payment. If you were not charged, please try again.',
+      );
+      setPaying(false);
+
+      return;
+    }
+
+    // Either paid, or accepted and still settling. Which of the two it is
+    // gets decided by the webhook rather than here, and the order page is
+    // written to say so while it waits.
+    navigate(`/orders/${orderId}?paid=1`);
+  };
+
+  return (
+    <form className="checkout__layout" onSubmit={submit}>
+      <div className="panel">
+        <h2 className="checkout__section-title">How paying works</h2>
+
+        <ol className="protection-steps">
+          <li className="protection-steps__step">
+            <strong>You pay Restrum, not the seller.</strong> Your card is
+            handled by Stripe. We never see the numbers.
+          </li>
+          <li className="protection-steps__step">
+            <strong>We hold the money.</strong> The seller can see the sale
+            and send the gear, but they are not paid yet.
+          </li>
+          <li className="protection-steps__step">
+            <strong>You check the gear.</strong> When it arrives and it is
+            what was described, you confirm it from your orders page.
+          </li>
+          <li className="protection-steps__step">
+            <strong>Then the seller gets paid.</strong> If it never turns up,
+            or it is not what was described, you have not lost your money.
+          </li>
+        </ol>
+
+        <h2 className="checkout__section-title">Payment details</h2>
+
+        <div className="checkout__payment">
+          <PaymentElement onReady={() => setMounted(true)} />
+        </div>
+
+        <div className="payment-note">
+          <p>
+            Arrange collection or postage with {sellerName} in chat once you
+            have paid. If you have not confirmed after 14 days and have not
+            told us there is a problem, the payment is released to the seller
+            automatically.
+          </p>
+        </div>
+      </div>
+
+      <div className="order-summary">
+        <div className="order-summary__row order-summary__row--total">
+          <span>Total</span>
+          <span className="order-summary__total-value">£{price}</span>
+        </div>
+
+        {problem && <div className="notice notice--error">{problem}</div>}
+
+        <button
+          type="submit"
+          className="btn-primary btn-block btn-lg"
+          disabled={!stripe || !mounted || paying}
+        >
+          {paying ? 'Taking payment...' : `Pay £${price}`}
+        </button>
+
+        <p className="order-summary__caveat">
+          Your money is held by Restrum until you confirm the gear arrived as
+          described.
+        </p>
+      </div>
+    </form>
+  );
+}
+
 function Checkout() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
   const { user } = useAuth();
 
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [starting, setStarting] = useState(false);
+
+  const [payment, setPayment] = useState<{ orderId: number; clientSecret: string; key: string } | null>(null);
   const [problem, setProblem] = useState('');
 
-  // Stripe sends a buyer who backed out to ?checkout=cancelled. Worth saying
-  // out loud, because otherwise returning to this page looks like the button
-  // simply did nothing.
-  const cancelled = params.get('checkout') === 'cancelled';
+  // Reserving is a write, and StrictMode runs effects twice in development.
+  // Starting twice is harmless in itself, because the endpoint resumes an
+  // existing reservation rather than making a second one, but it is a
+  // pointless round trip and a confusing pair of lines in the log.
+  const started = useRef(false);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -43,41 +219,60 @@ function Checkout() {
       .catch(() => { setError('Listing not found.'); setLoading(false); });
   }, [id, user, navigate]);
 
-  const handlePay = async () => {
-    if (!user || !listing) return;
-    setStarting(true);
-    setProblem('');
+  // Reserving on arrival rather than on a click, which is a deliberate change
+  // from the redirect version. Getting to this page already means pressing
+  // Buy on the listing, so the intent is not in doubt, and the alternative -
+  // showing an empty panel with a button that fills it in - is a worse
+  // version of the same commitment. The 30 minute reservation window and the
+  // sweep behind it exist precisely so that arriving and then wandering off
+  // costs the seller half an hour rather than the sale.
+  useEffect(() => {
+    if (!user || !listing || started.current) return;
+    if (listing.status === 'SOLD' || user.id === listing.seller.id) return;
 
-    try {
-      const res = await fetch(`${API}/api/listings/${id}/checkout`, {
-        method: 'POST',
-        headers: { Accept: 'application/json', Authorization: `Bearer ${user.token}` },
-      });
+    started.current = true;
 
-      const body = await res.json().catch(() => null);
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/listings/${id}/checkout`, {
+          method: 'POST',
+          headers: { Accept: 'application/json', Authorization: `Bearer ${user.token}` },
+        });
 
-      if (res.ok) {
-        // A full page navigation rather than a router push: the destination
-        // is Stripe's domain, not ours.
-        window.location.href = body.checkout_url;
-        return;
+        const body = await res.json().catch(() => null);
+
+        if (res.ok) {
+          setPayment({
+            orderId: body.order.id,
+            clientSecret: body.client_secret,
+            key: body.publishable_key,
+          });
+
+          return;
+        }
+
+        // 422 carries a specific reason - someone else is mid-checkout, the
+        // seller has not finished setting up payments - and the specific
+        // reason is the only useful thing to show. Anything else gets the
+        // generic line, since the buyer can do nothing about it either way.
+        setProblem(
+          body?.errors?.listing?.[0]
+          || body?.message
+          || 'Something went wrong starting the payment. Nothing has been charged.',
+        );
+      } catch {
+        setProblem('Could not reach the server. Nothing has been charged.');
       }
+    })();
+  }, [id, user, listing]);
 
-      // 422 carries a specific reason - someone else is mid-checkout, the
-      // seller has not finished setting up payments - and the specific
-      // reason is the only useful thing to show. Anything else gets the
-      // generic line, since the buyer can do nothing about it either way.
-      setProblem(
-        body?.errors?.listing?.[0]
-        || body?.message
-        || 'Something went wrong starting the payment. Nothing has been charged.',
-      );
-    } catch {
-      setProblem('Could not reach the server. Nothing has been charged.');
-    } finally {
-      setStarting(false);
-    }
-  };
+  // Rebuilt only when the secret or the key changes, because passing a fresh
+  // options object on every render remounts the Element and throws away
+  // whatever the buyer had typed into it.
+  const elementsOptions = useMemo(
+    () => (payment ? { clientSecret: payment.clientSecret, appearance: appearance() } : null),
+    [payment],
+  );
 
   if (loading) return <div className="page text-muted">Loading...</div>;
   if (error || !listing) return <div className="page text-error">{error || 'Listing not found.'}</div>;
@@ -121,74 +316,34 @@ function Checkout() {
 
       <h1 className="checkout__title">Checkout</h1>
 
-      {cancelled && (
-        <div className="notice notice--muted">
-          Payment cancelled, and nothing was charged. The listing is still held
-          for you for a short while if you want another go.
-        </div>
-      )}
-
-      {problem && <div className="notice notice--error">{problem}</div>}
-
-      <div className="checkout__layout">
-        <div className="panel">
-          <h2 className="checkout__section-title">How paying works</h2>
-
-          <ol className="protection-steps">
-            <li className="protection-steps__step">
-              <strong>You pay Restrum, not the seller.</strong> Your card is
-              handled by Stripe. We never see the numbers.
-            </li>
-            <li className="protection-steps__step">
-              <strong>We hold the money.</strong> The seller can see the sale
-              and send the gear, but they are not paid yet.
-            </li>
-            <li className="protection-steps__step">
-              <strong>You check the gear.</strong> When it arrives and it is
-              what was described, you confirm it from your orders page.
-            </li>
-            <li className="protection-steps__step">
-              <strong>Then the seller gets paid.</strong> If it never turns up,
-              or it is not what was described, you have not lost your money.
-            </li>
-          </ol>
-
-          <div className="payment-note">
-            <p>
-              Arrange collection or postage with {listing.seller.username} in
-              chat once you have paid. If you have not confirmed after 14 days
-              and have not told us there is a problem, the payment is released
-              to the seller automatically.
-            </p>
-          </div>
-        </div>
-
-        <div className="order-summary">
-          {imgSrc ? (
-            <img className="order-summary__image" src={imgSrc} alt={listing.title} />
-          ) : null}
-          <p className="order-summary__seller">
+      <div className="checkout__item">
+        {imgSrc ? (
+          <img className="checkout__thumb" src={imgSrc} alt={listing.title} />
+        ) : null}
+        <div>
+          <h2 className="checkout__item-title">{listing.title}</h2>
+          <p className="checkout__item-seller">
             Sold by {listing.seller.username}
-            {listing.seller.community_verified && <span className="order-summary__verified">✓ Verified</span>}
-          </p>
-          <h2 className="order-summary__title">{listing.title}</h2>
-          <div className="order-summary__row">
-            <span>Item price</span>
-            <span>£{listing.price}</span>
-          </div>
-          <div className="order-summary__row order-summary__row--total">
-            <span>Total</span>
-            <span className="order-summary__total-value">£{listing.price}</span>
-          </div>
-          <button className="btn-primary btn-block btn-lg" onClick={handlePay} disabled={starting}>
-            {starting ? 'Taking you to Stripe...' : 'Pay securely with Stripe'}
-          </button>
-          <p className="order-summary__caveat">
-            You'll be taken to Stripe to pay. Your money is held until you
-            confirm the gear arrived as described.
+            {listing.seller.community_verified && <span className="checkout__verified">✓ Verified</span>}
           </p>
         </div>
       </div>
+
+      {problem && <div className="notice notice--error">{problem}</div>}
+
+      {!payment && !problem && (
+        <div className="page text-muted">Setting up your payment...</div>
+      )}
+
+      {payment && elementsOptions && (
+        <Elements stripe={stripeFor(payment.key)} options={elementsOptions}>
+          <PaymentForm
+            orderId={payment.orderId}
+            price={listing.price}
+            sellerName={listing.seller.username}
+          />
+        </Elements>
+      )}
     </div>
   );
 }

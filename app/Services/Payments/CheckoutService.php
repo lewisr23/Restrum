@@ -11,10 +11,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Turning "I want to buy this" into a reserved order and a Stripe page.
+ * Turning "I want to buy this" into a reserved order and a payment the
+ * buyer's browser can render.
  *
  * The hard part is not the payment, it is that an instrument is a quantity of
- * one. Two buyers reaching Stripe for the same guitar means one of them is
+ * one. Two buyers paying for the same guitar means one of them is
  * getting a refund and an apology for something they were told they had
  * bought, so the reservation has to be taken under a lock before anyone is
  * sent anywhere.
@@ -24,10 +25,10 @@ class CheckoutService
     public function __construct(private readonly PaymentGateway $gateway) {}
 
     /**
-     * Reserve the listing for this buyer and open a Stripe Checkout Session.
+     * Reserve the listing for this buyer and open a Stripe PaymentIntent.
      *
      * @throws ValidationException when the listing cannot be bought
-     * @throws PaymentGatewayException when Stripe refuses the session
+     * @throws PaymentGatewayException when Stripe refuses the payment
      */
     public function start(User $buyer, Listing $listing): StartedCheckout
     {
@@ -41,10 +42,15 @@ class CheckoutService
 
         $order = $this->reserve($buyer, $listing);
 
-        // Resuming a checkout the buyer already started. No second session,
-        // because a second session is a second way to pay for one instrument.
-        if ($order->stripe_checkout_url !== null) {
-            return new StartedCheckout($order, $order->stripe_checkout_url, isNew: false);
+        // Resuming a checkout the buyer already started. No second payment,
+        // because a second payment is a second way to pay for one
+        // instrument. Handing the same secret back is safe and is in fact
+        // how a declined card is retried: the PaymentIntent returns to
+        // requires_payment_method and the buyer simply tries again against
+        // it, which is one of the things this model does better than the
+        // hosted session it replaced.
+        if ($order->stripe_payment_intent_client_secret !== null) {
+            return new StartedCheckout($order, $order->stripe_payment_intent_client_secret, isNew: false);
         }
 
         // Outside the transaction on purpose. This is a network call, and the
@@ -55,22 +61,18 @@ class CheckoutService
         // The cost of committing first is an order that exists with no
         // session behind it, and that is the failure this catch clears up.
         try {
-            $handle = $this->gateway->openCheckout(
-                $order,
-                $this->successUrl($order),
-                $this->cancelUrl($listing),
-            );
+            $handle = $this->gateway->openPayment($order);
         } catch (PaymentGatewayException $e) {
             $this->abandon($order);
 
             throw $e;
         }
 
-        $order->stripe_checkout_session_id = $handle->sessionId;
-        $order->stripe_checkout_url = $handle->url;
+        $order->stripe_payment_intent_id = $handle->paymentIntentId;
+        $order->stripe_payment_intent_client_secret = $handle->clientSecret;
         $order->save();
 
-        return new StartedCheckout($order, $handle->url, isNew: true);
+        return new StartedCheckout($order, $handle->clientSecret, isNew: true);
     }
 
     /**
@@ -141,12 +143,12 @@ class CheckoutService
     }
 
     /**
-     * Release reservations that have lapsed, and close the Stripe sessions
-     * behind them.
+     * Release reservations that have lapsed, and cancel the payments behind
+     * them.
      *
      * Lapsing alone already unblocks the listing, so this is not what makes
      * an abandoned checkout harmless. What it does is shut the door: an open
-     * session is a live way to pay for an instrument that is back on the
+     * payment is a live way to pay for an instrument that is back on the
      * market, and leaving one up is how two people end up paying for one
      * guitar half an hour apart.
      *
@@ -184,9 +186,9 @@ class CheckoutService
      */
     private function abandon(Order $order): bool
     {
-        if ($order->stripe_checkout_session_id !== null) {
+        if ($order->stripe_payment_intent_id !== null) {
             try {
-                if (! $this->gateway->abandonCheckout($order->stripe_checkout_session_id)) {
+                if (! $this->gateway->abandonPayment($order->stripe_payment_intent_id)) {
                     // Paid after all. Leave it to the webhook, which will
                     // move it to PAID and take the listing off the market.
                     return false;
@@ -195,7 +197,7 @@ class CheckoutService
                 // Stripe is unreachable. Leaving the order PENDING is the
                 // safe failure: the reservation has already lapsed, so the
                 // listing is available again, and the next sweep retries.
-                Log::warning('Could not expire Stripe session for order '.$order->id, [
+                Log::warning('Could not cancel the Stripe payment for order '.$order->id, [
                     'order_id' => $order->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -233,13 +235,4 @@ class CheckoutService
         return bcdiv(bcmul($amount, $percent, 6), '100', 2);
     }
 
-    private function successUrl(Order $order): string
-    {
-        return rtrim((string) config('app.frontend_url'), '/')."/orders/{$order->id}?paid=1";
-    }
-
-    private function cancelUrl(Listing $listing): string
-    {
-        return rtrim((string) config('app.frontend_url'), '/')."/listings/{$listing->id}?checkout=cancelled";
-    }
 }

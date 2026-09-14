@@ -61,13 +61,11 @@ trait InteractsWithPayments
         return $order->refresh();
     }
 
-    /** The webhook Stripe sends when a card payment goes through. */
+    /** The webhook Stripe sends when a payment goes through. */
     protected function reportPayment(Order $order): TestResponse
     {
-        return $this->sendWebhook($this->stripeEvent('checkout.session.completed', [
-            'id' => $order->stripe_checkout_session_id ?? 'cs_test_unknown',
-            'payment_status' => 'paid',
-            'payment_intent' => "pi_test_{$order->id}",
+        return $this->sendWebhook($this->stripeEvent('payment_intent.succeeded', [
+            'id' => $order->stripe_payment_intent_id ?? "pi_test_{$order->id}",
             'metadata' => ['order_id' => (string) $order->id],
         ]));
     }

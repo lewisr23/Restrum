@@ -44,12 +44,21 @@ class CheckoutController extends Controller
         return response()->json([
             'order' => new OrderResource($started->order->load('listing', 'seller')),
 
-            // The only place this URL is ever handed out. It is a live way to
-            // pay for an instrument, so it goes to the buyer who reserved it
-            // in the response to the request that reserved it, and nowhere
+            // The only place this secret is ever handed out. It is a live way
+            // to pay for an instrument, so it goes to the buyer who reserved
+            // it in the response to the request that reserved it, and nowhere
             // else - notably not from the order endpoints, which a seller can
             // read too.
-            'checkout_url' => $started->url,
+            'client_secret' => $started->clientSecret,
+
+            // Not a secret, despite travelling next to one. The publishable
+            // key is meant to sit in the page and Stripe.js cannot render
+            // anything without it. It is served from here rather than baked
+            // into the JavaScript bundle so that going from test keys to live
+            // ones stays a change of server configuration rather than a
+            // rebuild of the frontend.
+            'publishable_key' => (string) config('services.stripe.key'),
+
             'resumed' => ! $started->isNew,
         ], $started->isNew ? 201 : 200);
     }

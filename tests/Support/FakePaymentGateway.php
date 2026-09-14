@@ -5,7 +5,7 @@ namespace Tests\Support;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Payments\AccountState;
-use App\Services\Payments\CheckoutHandle;
+use App\Services\Payments\PaymentHandle;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\PaymentGatewayException;
 
@@ -18,7 +18,7 @@ use App\Services\Payments\PaymentGatewayException;
  * does something sensible when the call does not work.
  *
  * It deliberately does NOT simulate Stripe. There is no state machine in here
- * pretending to be a Checkout Session, because a fake that models the vendor
+ * pretending to be a PaymentIntent, because a fake that models the vendor
  * ends up being trusted for things only the vendor can actually tell you.
  */
 class FakePaymentGateway implements PaymentGateway
@@ -26,10 +26,10 @@ class FakePaymentGateway implements PaymentGateway
     /** @var array<int, array<string, mixed>> */
     public array $calls = [];
 
-    /** Session ids this gateway was asked to expire. */
+    /** PaymentIntent ids this gateway was asked to cancel. */
     public array $abandoned = [];
 
-    /** Set to false to make abandonCheckout report the buyer already paid. */
+    /** Set to false to make abandonPayment report the buyer already paid. */
     public bool $abandonSucceeds = true;
 
     /** Set to throw from every method, standing in for Stripe being down. */
@@ -76,31 +76,32 @@ class FakePaymentGateway implements PaymentGateway
         return $this->accountState;
     }
 
-    public function openCheckout(Order $order, string $successUrl, string $cancelUrl): CheckoutHandle
+    public function openPayment(Order $order): PaymentHandle
     {
         $this->guard();
 
         // The amount is recorded in pence, exactly as the real gateway would
         // send it, because rounding a price into minor units is precisely the
         // kind of thing that is right until it is a penny wrong.
-        $this->record('openCheckout', [
+        $this->record('openPayment', [
             'order_id' => $order->id,
             'amount_pence' => $order->amountInPence(),
             'currency' => $order->currency,
-            'success_url' => $successUrl,
-            'cancel_url' => $cancelUrl,
         ]);
 
-        $id = 'cs_test_fake'.(++$this->counter);
+        $id = 'pi_test_fake'.(++$this->counter);
 
-        return new CheckoutHandle($id, "https://checkout.stripe.test/{$id}");
+        // Shaped like a real one. Stripe's client secret is the intent id
+        // with a suffix, and a test that accidentally passes the id where
+        // the secret belongs should not still pass.
+        return new PaymentHandle($id, "{$id}_secret_fake");
     }
 
-    public function abandonCheckout(string $sessionId): bool
+    public function abandonPayment(string $paymentIntentId): bool
     {
         $this->guard();
-        $this->record('abandonCheckout', ['session' => $sessionId]);
-        $this->abandoned[] = $sessionId;
+        $this->record('abandonPayment', ['payment_intent' => $paymentIntentId]);
+        $this->abandoned[] = $paymentIntentId;
 
         return $this->abandonSucceeds;
     }

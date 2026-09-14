@@ -43,9 +43,8 @@ class OrderEscrowTest extends TestCase
     {
         $order = $this->startCheckout($this->buyer, $this->listing);
 
-        $this->sendWebhook($this->stripeEvent('checkout.session.completed', [
-            'id' => $order->stripe_checkout_session_id,
-            'payment_status' => 'paid',
+        $this->sendWebhook($this->stripeEvent('payment_intent.succeeded', [
+            'id' => $order->stripe_payment_intent_id,
             'metadata' => ['order_id' => (string) $order->id],
         ]), signature: 'invalid')->assertStatus(400);
 
@@ -58,11 +57,20 @@ class OrderEscrowTest extends TestCase
     {
         $order = $this->startCheckout($this->buyer, $this->listing);
 
+        $opened = $order->stripe_payment_intent_id;
+        $this->assertNotNull($opened);
+
         $this->reportPayment($order)->assertOk();
 
         $order->refresh();
         $this->assertSame(OrderStatus::PAID, $order->status);
-        $this->assertSame("pi_test_{$order->id}", $order->stripe_payment_intent_id);
+
+        // The payment recorded is the payment that was opened. The intent id
+        // is written when checkout starts now rather than when the webhook
+        // lands, so a webhook that changed it would mean this order had been
+        // matched to somebody else's money.
+        $this->assertSame($opened, $order->stripe_payment_intent_id);
+
         $this->assertNotNull($order->paid_at);
         $this->assertSame('SOLD', $this->listing->fresh()->status);
     }
@@ -89,44 +97,61 @@ class OrderEscrowTest extends TestCase
     }
 
     /**
-     * A completed session is not necessarily a completed payment. Slower
-     * methods settle days later, and handing over an instrument on the
-     * strength of the session closing would be handing it over for nothing.
+     * A payment in flight is not a payment received. Bank debits settle days
+     * after the buyer submits them, and handing over an instrument on the
+     * strength of the attempt would be handing it over for nothing.
+     *
+     * Both halves in one test on purpose: the interesting property is not
+     * that 'processing' is ignored, it is that the SAME payment sells the
+     * listing once it actually settles. Asserting only the first half would
+     * pass just as well against an integration that had silently stopped
+     * listening to Stripe altogether.
      */
-    public function test_a_session_that_completed_without_payment_is_not_treated_as_paid(): void
+    public function test_a_payment_still_settling_sells_nothing_until_it_succeeds(): void
     {
         $order = $this->startCheckout($this->buyer, $this->listing);
 
-        $this->sendWebhook($this->stripeEvent('checkout.session.completed', [
-            'id' => $order->stripe_checkout_session_id,
-            'payment_status' => 'unpaid',
+        $this->sendWebhook($this->stripeEvent('payment_intent.processing', [
+            'id' => $order->stripe_payment_intent_id,
             'metadata' => ['order_id' => (string) $order->id],
         ]))->assertOk();
 
         $this->assertSame(OrderStatus::PENDING, $order->fresh()->status);
         $this->assertSame('ACTIVE', $this->listing->fresh()->status);
-    }
 
-    public function test_a_late_async_payment_still_sells_the_listing(): void
-    {
-        $order = $this->startCheckout($this->buyer, $this->listing);
-
-        $this->sendWebhook($this->stripeEvent('checkout.session.async_payment_succeeded', [
-            'id' => $order->stripe_checkout_session_id,
-            'payment_intent' => 'pi_test_async',
-            'metadata' => ['order_id' => (string) $order->id],
-        ]))->assertOk();
+        $this->reportPayment($order)->assertOk();
 
         $this->assertSame(OrderStatus::PAID, $order->fresh()->status);
         $this->assertSame('SOLD', $this->listing->fresh()->status);
     }
 
-    public function test_an_expired_session_cancels_an_unpaid_order(): void
+    /**
+     * A declined card is not an abandoned purchase. The PaymentIntent goes
+     * back to requires_payment_method and the buyer can try another card
+     * against the very same order, so nothing here may cancel it. What ends
+     * an abandoned attempt is the reservation lapsing, which the sweep
+     * handles.
+     */
+    public function test_a_failed_payment_leaves_the_order_open_to_retry(): void
     {
         $order = $this->startCheckout($this->buyer, $this->listing);
 
-        $this->sendWebhook($this->stripeEvent('checkout.session.expired', [
-            'id' => $order->stripe_checkout_session_id,
+        $this->sendWebhook($this->stripeEvent('payment_intent.payment_failed', [
+            'id' => $order->stripe_payment_intent_id,
+            'metadata' => ['order_id' => (string) $order->id],
+        ]))->assertOk();
+
+        $this->assertSame(OrderStatus::PENDING, $order->fresh()->status);
+        $this->assertSame('ACTIVE', $this->listing->fresh()->status);
+        $this->assertTrue($order->fresh()->reservationIsLive());
+    }
+
+    public function test_a_cancelled_payment_cancels_an_unpaid_order(): void
+    {
+        $order = $this->startCheckout($this->buyer, $this->listing);
+
+        $this->sendWebhook($this->stripeEvent('payment_intent.canceled', [
+            'id' => $order->stripe_payment_intent_id,
             'metadata' => ['order_id' => (string) $order->id],
         ]))->assertOk();
 
@@ -135,16 +160,16 @@ class OrderEscrowTest extends TestCase
     }
 
     /**
-     * Events can arrive out of order. An expiry landing after a payment must
-     * not cancel an order Stripe has already taken money for.
+     * Events can arrive out of order. A cancellation landing after a payment
+     * must not cancel an order Stripe has already taken money for.
      */
-    public function test_an_expiry_arriving_after_a_payment_is_ignored(): void
+    public function test_a_cancellation_arriving_after_a_payment_is_ignored(): void
     {
         $order = $this->startCheckout($this->buyer, $this->listing);
         $this->reportPayment($order)->assertOk();
 
-        $this->sendWebhook($this->stripeEvent('checkout.session.expired', [
-            'id' => $order->stripe_checkout_session_id,
+        $this->sendWebhook($this->stripeEvent('payment_intent.canceled', [
+            'id' => $order->stripe_payment_intent_id,
             'metadata' => ['order_id' => (string) $order->id],
         ]))->assertOk();
 
@@ -334,7 +359,7 @@ class OrderEscrowTest extends TestCase
         $this->assertTrue($seller->fresh()->canReceivePayments());
     }
 
-    public function test_the_sweep_expires_lapsed_reservations_and_closes_their_sessions(): void
+    public function test_the_sweep_expires_lapsed_reservations_and_cancels_their_payments(): void
     {
         $order = Order::factory()
             ->forListing($this->listing, $this->buyer)
@@ -344,7 +369,7 @@ class OrderEscrowTest extends TestCase
         $this->artisan('orders:sweep')->assertSuccessful();
 
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertContains($order->stripe_checkout_session_id, $this->gateway->abandoned);
+        $this->assertContains($order->stripe_payment_intent_id, $this->gateway->abandoned);
     }
 
     /**

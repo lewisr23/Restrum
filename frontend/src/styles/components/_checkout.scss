@@ -31,6 +31,55 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
+
+  // What is being bought, stated once above the form.
+  //
+  // It used to live in the summary column, which now has to hold the card
+  // fields' total and button in a 320px strip; a photo and a title were the
+  // first things in the way. Above the fold and full width, it also answers
+  // "what am I paying for" before the buyer starts typing a card number
+  // rather than beside it.
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+    margin-bottom: $space-lg;
+    padding-bottom: $space-lg;
+    border-bottom: 1px solid $color-border;
+  }
+
+  &__thumb {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: $radius-sm;
+  }
+
+  &__item-title {
+    margin: 0 0 $space-xxs;
+    font-size: 17px;
+    line-height: 1.35;
+  }
+
+  &__item-seller {
+    margin: 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__verified {
+    margin-left: 6px;
+    color: $color-accent;
+  }
+
+  // Breathing room between Stripe's iframe and the note under it. The
+  // Element brings its own internal spacing but no outer margin.
+  &__payment {
+    margin-bottom: $space-sm;
+  }
 }
 
 // A single outcome screen: already sold, your own listing, or confirmed.

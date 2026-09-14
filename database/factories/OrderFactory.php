@@ -56,7 +56,6 @@ class OrderFactory extends Factory
             'status' => OrderStatus::PAID,
             'reserved_until' => null,
             'paid_at' => now(),
-            'stripe_checkout_session_id' => 'cs_test_'.fake()->unique()->bothify('??????????'),
             'stripe_payment_intent_id' => 'pi_test_'.fake()->unique()->bothify('??????????'),
         ]);
     }
@@ -75,7 +74,7 @@ class OrderFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => OrderStatus::PENDING,
             'reserved_until' => now()->subMinute(),
-            'stripe_checkout_session_id' => 'cs_test_'.fake()->unique()->bothify('??????????'),
+            'stripe_payment_intent_id' => 'pi_test_'.fake()->unique()->bothify('??????????'),
         ]);
     }
 }

@@ -54,7 +54,12 @@ interface PaymentGateway
     public function fetchAccountState(string $accountId): AccountState;
 
     /**
-     * Open a Checkout Session for an order that is already reserved.
+     * Open a payment for an order that is already reserved.
+     *
+     * No URLs, unlike the hosted Checkout this replaced. The payment form is
+     * mounted on our own checkout page, so where the buyer goes afterwards
+     * is the browser's business and is passed to Stripe.js at confirmation
+     * time rather than being fixed here.
      *
      * The charge is taken by the PLATFORM, not the seller: this is Stripe's
      * separate charges and transfers model, and it is the only one that lets
@@ -64,22 +69,24 @@ interface PaymentGateway
      *
      * @throws PaymentGatewayException
      */
-    public function openCheckout(Order $order, string $successUrl, string $cancelUrl): CheckoutHandle;
+    public function openPayment(Order $order): PaymentHandle;
 
     /**
-     * Expire a Checkout Session the buyer never completed.
+     * Cancel a payment the buyer never completed.
      *
-     * Returns false, and only false, when the session could not be expired
-     * because the buyer had ALREADY PAID. That distinction is load bearing:
-     * the caller is a sweeper about to cancel the order, and cancelling an
-     * order Stripe has taken money for would strand a real payment in a
-     * terminal state no webhook can rescue it from.
+     * Returns false, and only false, when the payment could not be cancelled
+     * because the money is or may yet be the platform's. That distinction is
+     * load bearing: the caller is a sweeper about to cancel the order, and
+     * cancelling an order Stripe has taken money for would strand a real
+     * payment in a terminal state no webhook can rescue it from.
      *
-     * Every other outcome - expired now, expired already, unknown to Stripe -
-     * returns true, because all of them mean nobody can pay against this
-     * session any more.
+     * So a payment that has succeeded returns false, and so does one still
+     * settling, because "not yet" is not the same as "no" and guessing wrong
+     * costs a buyer their money. Every other outcome - cancelled now,
+     * cancelled already, unknown to Stripe - returns true, because all of
+     * them mean nobody can pay against this any more.
      */
-    public function abandonCheckout(string $sessionId): bool;
+    public function abandonPayment(string $paymentIntentId): bool;
 
     /**
      * Send the seller their share out of the platform balance.

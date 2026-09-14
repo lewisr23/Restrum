@@ -38,15 +38,26 @@ class CheckoutTest extends TestCase
         $this->listing = Listing::factory()->for($this->seller, 'seller')->create(['price' => 499.99]);
     }
 
-    public function test_a_checkout_reserves_the_listing_and_returns_a_stripe_url(): void
+    public function test_a_checkout_reserves_the_listing_and_returns_a_payment_secret(): void
     {
+        // Set here rather than relied on from the environment: the test suite
+        // runs with no Stripe keys, which is the point of the fake gateway,
+        // but the publishable key is plumbing this endpoint is responsible
+        // for passing through and that is what is being checked.
+        config()->set('services.stripe.key', 'pk_test_visible');
+
         $response = $this->actingAs($this->buyer)
             ->postJson("/api/listings/{$this->listing->id}/checkout")
             ->assertCreated()
             ->assertJsonPath('order.status', 'PENDING')
             ->assertJsonPath('resumed', false);
 
-        $this->assertStringStartsWith('https://checkout.stripe.test/', $response->json('checkout_url'));
+        // The secret the browser mounts the Payment Element against, and the
+        // publishable key it needs to load Stripe.js at all. Both have to
+        // come back from this one request: without either, the buyer is
+        // looking at an empty panel where the card form should be.
+        $this->assertStringContainsString('_secret_', $response->json('client_secret'));
+        $this->assertSame('pk_test_visible', $response->json('publishable_key'));
 
         $order = Order::sole();
         $this->assertSame($this->buyer->id, $order->buyer_id);
@@ -66,7 +77,7 @@ class CheckoutTest extends TestCase
     {
         $this->startCheckout($this->buyer, $this->listing);
 
-        $call = $this->gateway->firstCall('openCheckout');
+        $call = $this->gateway->firstCall('openPayment');
 
         $this->assertSame(49999, $call['amount_pence']);
         $this->assertSame('GBP', $call['currency']);
@@ -136,7 +147,7 @@ class CheckoutTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('listing');
 
-        $this->assertSame(0, $this->gateway->timesCalled('openCheckout'));
+        $this->assertSame(0, $this->gateway->timesCalled('openPayment'));
         $this->assertSame(0, Order::count());
     }
 
@@ -157,7 +168,7 @@ class CheckoutTest extends TestCase
             ->assertJsonPath('resumed', true)
             ->assertJsonPath('order.id', $first->id);
 
-        $this->assertSame(1, $this->gateway->timesCalled('openCheckout'));
+        $this->assertSame(1, $this->gateway->timesCalled('openPayment'));
         $this->assertSame(1, Order::count());
     }
 
@@ -213,11 +224,11 @@ class CheckoutTest extends TestCase
     }
 
     /**
-     * The Stripe URL is a live way to pay for an instrument, so it is handed
-     * to the buyer who reserved it and to nobody else - including the seller,
-     * who can otherwise read the order quite legitimately.
+     * The client secret is a live way to pay for an instrument, so it is
+     * handed to the buyer who reserved it and to nobody else - including the
+     * seller, who can otherwise read the order quite legitimately.
      */
-    public function test_the_checkout_url_is_not_exposed_on_the_order_endpoints(): void
+    public function test_the_payment_secret_is_not_exposed_on_the_order_endpoints(): void
     {
         $order = $this->startCheckout($this->buyer, $this->listing);
 
@@ -226,7 +237,10 @@ class CheckoutTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertStringNotContainsString('checkout.stripe.test', $body);
-        $this->assertStringNotContainsString('cs_test_', $body);
+        $this->assertStringNotContainsString('_secret_', $body);
+        $this->assertStringNotContainsString(
+            (string) $order->fresh()->stripe_payment_intent_client_secret,
+            $body,
+        );
     }
 }

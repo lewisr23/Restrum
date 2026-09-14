@@ -81,90 +81,87 @@ class StripePaymentGateway implements PaymentGateway
         });
     }
 
-    public function openCheckout(Order $order, string $successUrl, string $cancelUrl): CheckoutHandle
+    public function openPayment(Order $order): PaymentHandle
     {
         $listing = $order->listing;
 
-        return $this->call(function () use ($order, $listing, $successUrl, $cancelUrl) {
-            $session = $this->client()->checkout->sessions->create([
-                'mode' => 'payment',
+        return $this->call(function () use ($order, $listing) {
+            $intent = $this->client()->paymentIntents->create([
+                // Stripe works in minor units. The order's own conversion is
+                // used rather than a second one here, so the amount charged
+                // and the amount recorded cannot drift apart.
+                'amount' => $order->amountInPence(),
+                'currency' => strtolower($order->currency),
 
-                // Shows against the payment in the Stripe dashboard, which is
-                // the first place anyone looks when a buyer writes in.
-                'client_reference_id' => (string) $order->id,
+                // Stripe decides which methods to offer, from what is enabled
+                // on the account and what suits the buyer, rather than this
+                // code carrying a list it would then have to maintain. It is
+                // also what makes wallets appear in the Payment Element
+                // without any further work here.
+                'automatic_payment_methods' => ['enabled' => true],
 
-                'success_url' => $successUrl,
-                'cancel_url' => $cancelUrl,
+                // No application_fee_amount and no on_behalf_of. The charge
+                // belongs to the platform outright and the seller's share
+                // leaves later as its own transfer, which is what separate
+                // charges and transfers means and what lets the money sit
+                // still in between.
 
-                // No expires_at, deliberately. Stripe only allows a session to
-                // live between 30 minutes and 24 hours, but the reservation
-                // window is marketplace policy and may be set shorter than
-                // that, so tying the two together would make a configurable
-                // value silently invalid. The reservation is the source of
-                // truth, and the sweeper expires the session when it lapses.
+                // Ties the charge and the later transfer together, so a
+                // seller's payout can be traced to the buyer's payment in
+                // Stripe's own reporting and not only in this database.
+                'transfer_group' => $order->transferGroup(),
 
-                'line_items' => [[
-                    'quantity' => 1,
-                    'price_data' => [
-                        'currency' => strtolower($order->currency),
-                        // Stripe works in minor units. The order's own
-                        // conversion is used rather than a second one here,
-                        // so the amount charged and the amount recorded
-                        // cannot drift apart.
-                        'unit_amount' => $order->amountInPence(),
-                        'product_data' => [
-                            'name' => $listing->title,
-                            'description' => $this->describe($listing->description),
-                        ],
-                    ],
-                ]],
-
-                'payment_intent_data' => [
-                    // Ties the charge and the later transfer together, so a
-                    // seller's payout can be traced to the buyer's payment in
-                    // Stripe's own reporting and not only in this database.
-                    'transfer_group' => $order->transferGroup(),
-                    'metadata' => ['order_id' => (string) $order->id],
-                ],
-
-                // What the webhook reads. client_reference_id is not enough on
-                // its own, since it is absent from some of the event shapes
-                // this integration has to handle.
+                // What the webhook reads to find the order again.
                 'metadata' => ['order_id' => (string) $order->id],
+
+                'description' => $this->describe($listing->title),
             ], [
-                // One session per order, however many times a buyer retries a
+                // One payment per order, however many times a buyer retries a
                 // request that failed halfway through.
-                'idempotency_key' => "checkout_order_{$order->id}",
+                'idempotency_key' => "payment_order_{$order->id}",
             ]);
 
-            return new CheckoutHandle(
-                sessionId: $session->id,
-                url: $session->url,
+            return new PaymentHandle(
+                paymentIntentId: $intent->id,
+                clientSecret: $intent->client_secret,
             );
         });
     }
 
-    public function abandonCheckout(string $sessionId): bool
+    /**
+     * The three PaymentIntent states that mean the platform has the buyer's
+     * money, or may be about to.
+     *
+     * processing earns its place here as much as succeeded does: a payment
+     * still settling is one that can still land, and treating "not yet" as
+     * "no" is how an order gets cancelled out from under a payment that then
+     * arrives with nowhere to go.
+     */
+    private const HOLDS_MONEY = ['succeeded', 'processing', 'requires_capture'];
+
+    public function abandonPayment(string $paymentIntentId): bool
     {
         try {
-            $this->client()->checkout->sessions->expire($sessionId);
+            $this->client()->paymentIntents->cancel($paymentIntentId);
 
             return true;
         } catch (InvalidRequestException) {
-            // Stripe refuses to expire a session that has already reached a
-            // final state, and the two final states mean opposite things to
-            // the caller, so the reason has to be established rather than
-            // assumed. Asking afterwards rather than before is deliberate:
-            // checking first would leave a window in which the buyer pays
-            // between the check and the expiry.
+            // Stripe refuses to cancel a PaymentIntent that has reached a
+            // state it cannot leave, and those states do not all mean the
+            // same thing to the caller, so the reason has to be established
+            // rather than assumed. Asking afterwards rather than before is
+            // deliberate: checking first would leave a window in which the
+            // buyer pays between the check and the cancellation.
             try {
-                $session = $this->client()->checkout->sessions->retrieve($sessionId);
+                $intent = $this->client()->paymentIntents->retrieve($paymentIntentId);
             } catch (ApiErrorException) {
                 // Stripe cannot even find it. Nothing here can take money.
                 return true;
             }
 
-            return $session->status !== 'complete' && $session->payment_status !== 'paid';
+            // Already cancelled lands here too, and correctly returns true:
+            // the caller asked for it to be uncancellable and it is.
+            return ! in_array($intent->status, self::HOLDS_MONEY, true);
         } catch (ApiErrorException $e) {
             throw new PaymentGatewayException($e->getMessage(), previous: $e);
         }
@@ -230,9 +227,12 @@ class StripePaymentGateway implements PaymentGateway
     }
 
     /**
-     * Stripe shows this to the buyer on the checkout page and rejects it past
-     * a certain length, so a seller's long description is trimmed here rather
-     * than being allowed to fail the payment.
+     * What the payment is called in Stripe's dashboard and on the buyer's
+     * receipt, which is the first place anyone looks when a buyer writes in.
+     *
+     * Trimmed rather than passed through, because Stripe rejects an
+     * over-long description and a seller who titles a listing with an essay
+     * should not thereby fail the payment.
      */
     private function describe(?string $description): string
     {
