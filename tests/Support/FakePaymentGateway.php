@@ -42,7 +42,7 @@ class FakePaymentGateway implements PaymentGateway
     public function __construct()
     {
         $this->accountState = new AccountState(
-            chargesEnabled: true,
+            transfersEnabled: true,
             payoutsEnabled: true,
             detailsSubmitted: true,
         );

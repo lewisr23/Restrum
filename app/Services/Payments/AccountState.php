@@ -12,22 +12,23 @@ namespace App\Services\Payments;
 readonly class AccountState
 {
     public function __construct(
-        /** Stripe will let this account take part in a payment. */
-        public bool $chargesEnabled,
+        /** The platform may transfer money to this account. */
+        public bool $transfersEnabled,
         /** Money can actually reach this account's bank. */
         public bool $payoutsEnabled,
-        /** The seller finished the onboarding form, verified or not. */
+        /** Stripe is not waiting on anything else from this seller. */
         public bool $detailsSubmitted,
     ) {}
 
     /**
      * Whether this seller can be paid at all.
      *
-     * Both flags, not either: an account that can be charged but not paid out
-     * would take a buyer's money into a dead end.
+     * Both flags, not either: an account the platform can transfer to but
+     * which cannot pay out to a bank is a dead end with the seller's money
+     * sitting in it.
      */
     public function canTrade(): bool
     {
-        return $this->chargesEnabled && $this->payoutsEnabled;
+        return $this->transfersEnabled && $this->payoutsEnabled;
     }
 }

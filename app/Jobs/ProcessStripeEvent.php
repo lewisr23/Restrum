@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Payments\EscrowService;
+use App\Services\Payments\PaymentGateway;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,7 @@ class ProcessStripeEvent implements ShouldQueue
     /** @param array<string, mixed> $event */
     public function __construct(private readonly array $event) {}
 
-    public function handle(EscrowService $escrow): void
+    public function handle(EscrowService $escrow, PaymentGateway $gateway): void
     {
         $type = $this->event['type'] ?? '';
         $object = $this->event['data']['object'] ?? [];
@@ -71,7 +72,21 @@ class ProcessStripeEvent implements ShouldQueue
             'charge.dispute.created' => $this->disputeOpened($escrow, $object),
 
             // A seller finished, or failed, Stripe's verification.
-            'account.updated' => $this->accountUpdated($object),
+            //
+            // Three event names for one thing. Connect onboarding runs on
+            // Accounts v2, which announces itself through the two bracketed
+            // names below; account.updated is the v1 spelling, kept because
+            // it costs nothing and this integration would rather hear the
+            // news twice than not at all. None of them is trusted for the
+            // detail - see accountChanged.
+            'account.updated',
+            'v2.core.account[configuration.recipient].updated',
+            'v2.core.account[configuration.recipient].capability_status_updated' => $this->accountChanged(
+                $gateway,
+                // v1 puts the account in data.object; a v2 thin event names
+                // it in related_object and carries no detail at all.
+                $object['id'] ?? $this->event['related_object']['id'] ?? null,
+            ),
 
             // Everything else Stripe is configured to send. Ignored on
             // purpose and without a log line, since the noise would bury the
@@ -148,12 +163,20 @@ class ProcessStripeEvent implements ShouldQueue
         $escrow->markDisputed($order);
     }
 
-    /** @param array<string, mixed> $account */
-    private function accountUpdated(array $account): void
+    /**
+     * Re-read a seller's account from Stripe and update the local mirror.
+     *
+     * The event is treated as a nudge, not as data. It would be quicker to
+     * read the capability straight out of the payload, but the payload shape
+     * differs between the v1 and v2 spellings of this event and a v2
+     * recipient account has no charges_enabled field at all - so the quick
+     * version would read a perfectly good seller as unable to be paid and
+     * quietly stop them selling. Asking Stripe costs one call on an event
+     * that arrives a handful of times per seller, ever.
+     */
+    private function accountChanged(PaymentGateway $gateway, mixed $accountId): void
     {
-        $accountId = $account['id'] ?? null;
-
-        if (! is_string($accountId)) {
+        if (! is_string($accountId) || $accountId === '') {
             return;
         }
 
@@ -163,13 +186,18 @@ class ProcessStripeEvent implements ShouldQueue
             // An account this marketplace did not create, or one whose owner
             // has since been deleted. Worth a line: it means the Stripe
             // account and the database disagree about who exists.
-            Log::info('account.updated for an unknown connected account.', ['account' => $accountId]);
+            Log::info('Account event for an unknown connected account.', ['account' => $accountId]);
 
             return;
         }
 
-        $seller->stripe_charges_enabled = (bool) ($account['charges_enabled'] ?? false);
-        $seller->stripe_payouts_enabled = (bool) ($account['payouts_enabled'] ?? false);
+        // Deliberately not caught. A failure here leaves the mirror stale
+        // rather than wrong, the job retries, and the seller's own payments
+        // page refreshes it the next time they look.
+        $state = $gateway->fetchAccountState($accountId);
+
+        $seller->stripe_transfers_enabled = $state->transfersEnabled;
+        $seller->stripe_payouts_enabled = $state->payoutsEnabled;
         $seller->stripe_synced_at = now();
         $seller->save();
     }

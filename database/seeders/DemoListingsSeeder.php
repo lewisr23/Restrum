@@ -268,7 +268,7 @@ class DemoListingsSeeder extends Seeder
                 // checkout flow cannot be tried out locally. It is a fake
                 // account id: real onboarding replaces it.
                 'stripe_account_id' => 'acct_demo_seed',
-                'stripe_charges_enabled' => true,
+                'stripe_transfers_enabled' => true,
                 'stripe_payouts_enabled' => true,
                 'stripe_synced_at' => now(),
             ],

@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Payments\AccountState;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\InteractsWithPayments;
 use Tests\TestCase;
@@ -394,5 +395,71 @@ class OrderEscrowTest extends TestCase
         // And the payment that was in flight still lands normally.
         $this->reportPayment($order)->assertOk();
         $this->assertSame(OrderStatus::PAID, $order->fresh()->status);
+    }
+
+    /**
+     * The two event names Accounts v2 actually sends.
+     *
+     * The v1 name above is kept for safety, but it is these that arrive in
+     * production now, and they are plain strings in a match arm: a typo in
+     * either one fails silently, leaving a verified seller permanently unable
+     * to sell and nothing in the logs to say why. Hence a test per name.
+     */
+    public function test_the_v2_account_events_update_a_seller(): void
+    {
+        foreach ([
+            'v2.core.account[configuration.recipient].updated',
+            'v2.core.account[configuration.recipient].capability_status_updated',
+        ] as $type) {
+            $seller = User::factory()->payoutPending()->create();
+
+            $this->sendWebhook($this->stripeThinEvent($type, $seller->stripe_account_id))->assertOk();
+
+            $this->assertTrue(
+                $seller->fresh()->canReceivePayments(),
+                "{$type} did not update the seller."
+            );
+        }
+    }
+
+    /**
+     * The event is a nudge, not data.
+     *
+     * This is the one that would have caught the old handler: it reads the
+     * account as enabled in the payload while Stripe itself says otherwise.
+     * Trusting the payload would let a seller who has fallen back into
+     * verification keep taking orders the platform then cannot pay out.
+     */
+    public function test_an_account_event_is_not_trusted_over_stripe(): void
+    {
+        $seller = User::factory()->payoutReady()->create();
+
+        $this->gateway->accountState = new AccountState(
+            transfersEnabled: false,
+            payoutsEnabled: false,
+            detailsSubmitted: true,
+        );
+
+        $this->sendWebhook($this->stripeEvent('account.updated', [
+            'id' => $seller->stripe_account_id,
+            'charges_enabled' => true,
+            'payouts_enabled' => true,
+            'details_submitted' => true,
+        ]))->assertOk();
+
+        $this->assertFalse($seller->fresh()->canReceivePayments());
+    }
+
+    /**
+     * A thin event naming an account this marketplace never created. Stripe
+     * sends account events for the platform's own account too, so this is
+     * ordinary traffic rather than an error, and it must not raise.
+     */
+    public function test_an_account_event_for_an_unknown_account_is_ignored(): void
+    {
+        $this->sendWebhook($this->stripeThinEvent(
+            'v2.core.account[configuration.recipient].updated',
+            'acct_not_ours',
+        ))->assertOk();
     }
 }

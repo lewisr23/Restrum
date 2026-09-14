@@ -115,7 +115,7 @@ class StripeConnectController extends Controller
             return;
         }
 
-        $user->stripe_charges_enabled = $state->chargesEnabled;
+        $user->stripe_transfers_enabled = $state->transfersEnabled;
         $user->stripe_payouts_enabled = $state->payoutsEnabled;
         $user->stripe_synced_at = now();
         $user->save();
@@ -126,7 +126,7 @@ class StripeConnectController extends Controller
     {
         return [
             'onboarded' => true,
-            'charges_enabled' => $user->stripe_charges_enabled,
+            'transfers_enabled' => $user->stripe_transfers_enabled,
             'payouts_enabled' => $user->stripe_payouts_enabled,
             'can_sell' => $user->canReceivePayments(),
             'synced_at' => $user->stripe_synced_at,

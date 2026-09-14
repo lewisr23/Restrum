@@ -30,25 +30,49 @@ class StripePaymentGateway implements PaymentGateway
 
     public function createConnectedAccount(User $seller): string
     {
-        return $this->call(fn () => $this->client()->accounts->create([
-            // Express, not Standard: Stripe hosts the onboarding form and the
-            // payouts dashboard, which is the difference between asking a
-            // private seller for their bank details and sending them to
-            // Stripe to hand them over. Custom would mean owning that
-            // liability, and the compliance work that comes with it.
-            'type' => 'express',
-            'country' => 'GB',
-            'email' => $seller->email,
-            'business_type' => 'individual',
+        return $this->call(fn () => $this->client()->v2->core->accounts->create([
+            'contact_email' => $seller->email,
+            'display_name' => $seller->username,
 
-            // Only transfers. card_payments is what a destination charge
-            // would need, and requesting capabilities the integration does
-            // not use means asking sellers for information it does not need.
-            'capabilities' => [
-                'transfers' => ['requested' => true],
+            // Express: Stripe hosts the onboarding form and the payouts
+            // dashboard, which is the difference between asking a private
+            // seller for their bank details and sending them to Stripe to
+            // hand them over. 'full' would drop them into the real Stripe
+            // dashboard; 'none' would mean building one ourselves.
+            'dashboard' => 'express',
+
+            'identity' => [
+                'country' => 'GB',
+                'entity_type' => 'individual',
             ],
-            'business_profile' => [
-                'product_description' => 'Sells secondhand musical instruments and audio equipment on Restrum.',
+
+            // recipient, and only recipient. A seller here RECEIVES money
+            // out of the platform balance; they never take a card payment
+            // themselves, because the platform takes it and holds it. Asking
+            // for the merchant configuration as well would mean putting
+            // sellers through checks for a capability this marketplace never
+            // uses.
+            'configuration' => [
+                'recipient' => [
+                    'capabilities' => [
+                        'stripe_balance' => [
+                            'stripe_transfers' => ['requested' => true],
+                        ],
+                    ],
+                ],
+            ],
+
+            'defaults' => [
+                'currency' => 'gbp',
+
+                // The platform collects the fees and carries the losses.
+                // Not really a choice: the charge is on the platform under
+                // separate charges and transfers, so a chargeback lands here
+                // whatever this field said.
+                'responsibilities' => [
+                    'fees_collector' => 'application',
+                    'losses_collector' => 'application',
+                ],
             ],
 
             // So an account found in the Stripe dashboard can be traced back
@@ -60,23 +84,47 @@ class StripePaymentGateway implements PaymentGateway
 
     public function createOnboardingLink(string $accountId, string $refreshUrl, string $returnUrl): string
     {
-        return $this->call(fn () => $this->client()->accountLinks->create([
+        return $this->call(fn () => $this->client()->v2->core->accountLinks->create([
             'account' => $accountId,
-            'refresh_url' => $refreshUrl,
-            'return_url' => $returnUrl,
-            'type' => 'account_onboarding',
+            'use_case' => [
+                'type' => 'account_onboarding',
+                'account_onboarding' => [
+                    // Collect only what the recipient configuration needs.
+                    // Naming the configuration is what keeps the form short
+                    // for someone who just wants to sell a guitar.
+                    'configurations' => ['recipient'],
+                    'refresh_url' => $refreshUrl,
+                    'return_url' => $returnUrl,
+                ],
+            ],
         ])->url);
     }
 
     public function fetchAccountState(string $accountId): AccountState
     {
         return $this->call(function () use ($accountId) {
-            $account = $this->client()->accounts->retrieve($accountId);
+            // include is not optional politeness: a v2 account comes back
+            // without its configurations unless they are asked for, so
+            // omitting this reads every capability as absent and quietly
+            // reports a perfectly good seller as unable to be paid.
+            $account = $this->client()->v2->core->accounts->retrieve($accountId, [
+                'include' => ['configuration.recipient', 'requirements'],
+            ]);
+
+            // Through toArray rather than property chains. Stripe omits
+            // whole branches of this structure for an account that has not
+            // got that far yet, and array access with a default says
+            // "not yet" where a property chain would raise.
+            $data = $account->toArray();
+            $capabilities = $data['configuration']['recipient']['capabilities']['stripe_balance'] ?? [];
 
             return new AccountState(
-                chargesEnabled: (bool) $account->charges_enabled,
-                payoutsEnabled: (bool) $account->payouts_enabled,
-                detailsSubmitted: (bool) $account->details_submitted,
+                transfersEnabled: ($capabilities['stripe_transfers']['status'] ?? null) === 'active',
+                payoutsEnabled: ($capabilities['payouts']['status'] ?? null) === 'active',
+                // v2 states this as what is still outstanding rather than as
+                // a done flag, so nothing outstanding is the closest true
+                // thing to the old details_submitted.
+                detailsSubmitted: ($data['requirements']['entries'] ?? []) === [],
             );
         });
     }

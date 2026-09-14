@@ -56,7 +56,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'stripe_account_id' => 'acct_'.fake()->unique()->bothify('??##########'),
-            'stripe_charges_enabled' => true,
+            'stripe_transfers_enabled' => true,
             'stripe_payouts_enabled' => true,
             'stripe_synced_at' => now(),
         ]);
@@ -73,7 +73,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'stripe_account_id' => 'acct_'.fake()->unique()->bothify('??##########'),
-            'stripe_charges_enabled' => false,
+            'stripe_transfers_enabled' => false,
             'stripe_payouts_enabled' => false,
             'stripe_synced_at' => now(),
         ]);

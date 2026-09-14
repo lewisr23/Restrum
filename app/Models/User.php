@@ -30,7 +30,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'community_verified' => 'boolean',
-            'stripe_charges_enabled' => 'boolean',
+            'stripe_transfers_enabled' => 'boolean',
             'stripe_payouts_enabled' => 'boolean',
             'stripe_synced_at' => 'datetime',
         ];
@@ -48,7 +48,7 @@ class User extends Authenticatable
     public function canReceivePayments(): bool
     {
         return $this->stripe_account_id !== null
-            && $this->stripe_charges_enabled
+            && $this->stripe_transfers_enabled
             && $this->stripe_payouts_enabled;
     }
 

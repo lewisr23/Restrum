@@ -1,6 +1,6 @@
 # Deploying Restrum
 
-The runbook for putting restrum.uk on a Hetzner box behind Cloudflare.
+The runbook for putting restrum.uk on a Contabo VPS behind Cloudflare.
 
 Everything below runs **on the server over SSH** unless a step says
 otherwise. The commands are bash; your local shell is PowerShell, so do not
@@ -26,41 +26,65 @@ account verification never blocks the deploy.
 ## Before you start
 
 - The domain, already on Cloudflare Registrar. Nothing to buy.
-- A Hetzner account.
+- A Contabo account, with the server already ordered.
 - An SSH key pair. If you do not have one, on Windows:
   `ssh-keygen -t ed25519`, then the public half is in
   `$env:USERPROFILE\.ssh\id_ed25519.pub`.
+  Make this **before** step 1, because Contabo hands you a password rather
+  than taking a key, and the sooner that password stops being the only way
+  in the better.
 - Your Stripe **test** keys to hand.
 
 ---
 
 ## 1. Create the server
 
-In the Hetzner Cloud console: new project, then new server.
+Ordered from Contabo as a **Cloud VPS 4**: 4 vCPU, 8GB RAM, 100GB SSD, EU
+region, Ubuntu 24.04, monthly term with Auto Backup. Provisioning takes
+about half an hour, and the IPv4 address and root password arrive by email.
 
-- **Location:** Falkenstein or Nuremberg. Both are fine for UK traffic once
-  Cloudflare is in front, and they are the cheapest.
-- **Image:** Ubuntu 24.04.
-- **Type:** Shared vCPU, x86, **CX22**. Two vCPU and 4GB, which is enough
-  for this stack with the Elasticsearch heap pinned to 512MB as the compose
-  file does. Check the current price in the console rather than trusting a
-  figure from me; it is a few euros a month and billed hourly, so destroying
-  the server stops the bill the same day.
-- **SSH key:** paste your public key here. Do not choose password login.
-- Leave backups off for now. Section "Backups" below is the cheaper answer
-  for a database this size.
+Two things differ from most hosts and both matter here.
 
-Note the IPv4 address it gives you. Then:
+**Contabo gives you a root password, not a key.** The order form has no
+field for a public key, so the machine starts life reachable by password
+over SSH. That is the single weakest moment in this runbook, so do not
+leave the box sitting in that state: go straight to step 2, which installs
+your key and turns password login off.
+
+**Auto Backup is already on.** It takes a daily image of the whole server
+and keeps the last ten, which covers losing the machine. It does not cover
+a bad migration you notice four days later, because restoring rolls back
+everything rather than just the database. The nightly SQL dump in "Backups"
+below is the cheap complement, so do both.
+
+Note the IPv4 address from the email. Then, from PowerShell, push your key
+up before anything else:
+
+```powershell
+ssh root@YOUR_SERVER_IP "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$(Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub)' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
+It will ask for the root password you chose during the order, once.
+PowerShell expands the `$(Get-Content ...)` part before ssh sees it, which
+is deliberate: piping the file straight in sends Windows CRLF line endings,
+and a stray carriage return on the end of the key is enough to make the
+server reject it without ever saying why. Confirm the key works, so
+that the next step does not lock you out of a machine you cannot get back
+into:
 
 ```bash
 ssh root@YOUR_SERVER_IP
 ```
 
+That second connection must not ask for a password. If it does, stop and
+fix it before going on.
+
 ## 2. Prepare the machine
 
-Updates, a working user, and swap. Swap matters more than it looks: 4GB is
-comfortable for running this stack but tight while Docker is compiling the
-React bundle, and the build is where an out-of-memory kill would land.
+Updates, a working user, and swap. 8GB runs this stack with room to spare,
+so the swap file is insurance for one moment rather than a running need:
+Docker compiling the React bundle is the peak, and the build is where an
+out-of-memory kill would land.
 
 ```bash
 apt update && apt upgrade -y
@@ -90,8 +114,11 @@ ufw --force enable
 ```
 
 Open a second terminal and confirm `ssh lewis@YOUR_SERVER_IP` works
-**before** closing the root session. Locking yourself out here means
-rebuilding the server.
+**before** closing the root session. This is the step that locks the door
+behind you: both root login and password login are now off, so that second
+terminal is the only proof the key works. If it fails, fix it from the
+session you still have open. Check the Contabo control panel for a console
+before concluding you are locked out.
 
 ## 3. Install Docker
 
@@ -337,8 +364,10 @@ crontab -e
 
 That leaves the backups on the same disk as the thing they protect, which
 guards against a bad migration but not against losing the server. Copy them
-off periodically, or turn on Hetzner's snapshots once there is data worth
-the extra euro.
+off periodically. Contabo's Auto Backup already covers the whole server
+nightly and keeps ten versions, so the gap this dump fills is the targeted
+one: restoring the database alone, without rolling the rest of the machine
+back with it.
 
 Uploaded photos live in the `storage-data` volume. They survive restarts and
 rebuilds, but not the server being destroyed, and nothing backs them up
@@ -364,7 +393,9 @@ baked into the bundle.
 
 **Everything is slow, or a container keeps restarting.** Check memory with
 `free -h` and `docker stats`. Elasticsearch is the usual culprit; its heap
-is pinned at 512MB in the compose file and should not be raised on a CX22.
+is pinned at 512MB in the compose file. There is headroom to raise it on
+an 8GB box, but do that only if the index actually outgrows it rather than
+as a first guess, since MySQL wants that memory more than search does.
 
 **The access log shows Cloudflare addresses instead of visitors.** The
 `cloudflare-ips.conf` mount is not taking effect. Confirm with

@@ -94,4 +94,26 @@ trait InteractsWithPayments
             'data' => ['object' => $object],
         ];
     }
+
+    /**
+     * A v2 "thin" event, which is a different shape from the v1 one above.
+     *
+     * Stripe sends no detail with these at all: just the name of the thing
+     * that changed, in related_object, for the listener to go and read. The
+     * helper exists to keep that difference visible in the tests, because an
+     * event carrying no state is exactly why the handler re-fetches.
+     *
+     * @return array<string, mixed>
+     */
+    protected function stripeThinEvent(string $type, string $relatedObjectId): array
+    {
+        return [
+            'id' => 'evt_test_'.bin2hex(random_bytes(6)),
+            'type' => $type,
+            'related_object' => [
+                'id' => $relatedObjectId,
+                'type' => 'v2.core.account',
+            ],
+        ];
+    }
 }
