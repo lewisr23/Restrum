@@ -21,7 +21,7 @@ export const OPERATOR = {
    * Regulations 2002 require it of anyone selling online. "Restrum" on its
    * own does not satisfy either.
    */
-  legalName: TO_BE_CONFIRMED,
+  legalName: 'Lewis Steven Robinson',
 
   /**
    * An address where legal documents can be served. It does not have to be
