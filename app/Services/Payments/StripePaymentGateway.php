@@ -8,8 +8,7 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\InvalidRequestException;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\StripeClient;
-use Stripe\Webhook;
-use UnexpectedValueException;
+use Stripe\WebhookSignature;
 
 /**
  * The real gateway: Stripe Connect, separate charges and transfers.
@@ -257,9 +256,30 @@ class StripePaymentGateway implements PaymentGateway
         ])->id);
     }
 
+    /**
+     * Verify a webhook and hand back its decoded body.
+     *
+     * STRIPE_WEBHOOK_SECRET may hold more than one secret, comma separated,
+     * and that is not over-engineering: Stripe cannot deliver v1 and v2
+     * events to a single destination, because the first are "snapshot"
+     * payloads and the second "thin" ones. A Connect integration on
+     * Accounts v2 therefore needs two destinations pointed at this one URL,
+     * and Stripe signs each with its own secret. Verifying against only the
+     * first would reject every seller-onboarding event as a forgery.
+     *
+     * The signature is checked directly rather than through
+     * Webhook::constructEvent, which wants to build a typed Event and has no
+     * reason to understand a v2 event name. The signing scheme is identical
+     * for both payload styles, so verify-then-decode is simpler and does not
+     * care about the shape.
+     */
     public function parseWebhook(string $payload, string $signature): array
     {
-        if (($this->webhookSecret ?? '') === '') {
+        $secrets = array_values(array_filter(
+            array_map('trim', explode(',', $this->webhookSecret ?? ''))
+        ));
+
+        if ($secrets === []) {
             // Refusing here rather than skipping verification is the point of
             // the check: an unconfigured secret has to close the endpoint, not
             // open it. A deployment that accepts unsigned webhooks is a
@@ -267,11 +287,31 @@ class StripePaymentGateway implements PaymentGateway
             throw new PaymentGatewayException('Stripe webhook secret is not configured.');
         }
 
-        try {
-            return Webhook::constructEvent($payload, $signature, $this->webhookSecret)->toArray();
-        } catch (SignatureVerificationException|UnexpectedValueException $e) {
-            throw new PaymentGatewayException('Stripe webhook signature is invalid.', previous: $e);
+        $verified = false;
+
+        foreach ($secrets as $secret) {
+            try {
+                WebhookSignature::verifyHeader($payload, $signature, $secret);
+                $verified = true;
+                break;
+            } catch (SignatureVerificationException) {
+                // Try the next one. A payload is signed by exactly one
+                // destination, so the others failing is the ordinary case
+                // rather than anything worth reporting.
+            }
         }
+
+        if (! $verified) {
+            throw new PaymentGatewayException('Stripe webhook signature is invalid.');
+        }
+
+        $event = json_decode($payload, true);
+
+        if (! is_array($event)) {
+            throw new PaymentGatewayException('Stripe webhook body is not valid JSON.');
+        }
+
+        return $event;
     }
 
     /**
