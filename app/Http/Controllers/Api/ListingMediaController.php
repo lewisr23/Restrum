@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\ListingMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ListingMediaController extends Controller
 {
@@ -22,6 +23,16 @@ class ListingMediaController extends Controller
         'VIDEO' => ['max:51200', 'mimes:mp4,mov,webm'],
     ];
 
+    /**
+     * What each media type is called when telling a seller they have hit
+     * the limit. "12 IMAGE" is not something to put in front of a person.
+     */
+    private const NOUNS = [
+        'IMAGE' => ['photo', 'photos'],
+        'AUDIO' => ['audio clip', 'audio clips'],
+        'VIDEO' => ['video', 'videos'],
+    ];
+
     public function store(Request $request, Listing $listing)
     {
         $this->authorize('update', $listing);
@@ -34,6 +45,8 @@ class ListingMediaController extends Controller
         $request->validate([
             'file' => ['required', 'file', ...self::RULES[$data['media_type']]],
         ]);
+
+        $this->refuseIfFull($listing, $data['media_type']);
 
         // The disk is configuration, not something this controller decides:
         // local in development, object storage anywhere with a container
@@ -61,6 +74,46 @@ class ListingMediaController extends Controller
         $media->refresh();
 
         return response()->json($media, 201);
+    }
+
+    /**
+     * Stop one listing from filling the disk.
+     *
+     * The per-file rules above bound a single upload; this bounds the
+     * listing, which is the one that matters. Nothing otherwise stops a
+     * seller adding 50MB videos until the volume is full, and that volume
+     * is shared with the database, so the failure would not be confined to
+     * uploads.
+     *
+     * Checked before the file is written rather than after, so a rejected
+     * upload costs no disk at all.
+     *
+     * Two simultaneous uploads can both pass this and overshoot the limit
+     * by one. That is left alone deliberately: this is a guard on disk
+     * usage rather than an invariant anything relies on, and serialising
+     * uploads per listing would cost more than the occasional thirteenth
+     * photo does.
+     */
+    private function refuseIfFull(Listing $listing, string $type): void
+    {
+        $limit = config("media.limits.{$type}");
+
+        if ($limit === null) {
+            return;
+        }
+
+        $held = $listing->media()->where('media_type', $type)->count();
+
+        if ($held < $limit) {
+            return;
+        }
+
+        [$singular, $plural] = self::NOUNS[$type];
+
+        throw ValidationException::withMessages([
+            'file' => "This listing already has the maximum of {$limit} {$plural}. "
+                ."Remove one before adding another {$singular}.",
+        ]);
     }
 
     public function destroy(Request $request, Listing $listing, ListingMedia $media)

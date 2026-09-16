@@ -20,7 +20,12 @@ async function uploadMedia(listingId: number, file: File, mediaType: 'IMAGE' | '
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
     body: formData,
   });
-  if (!res.ok) throw new Error(`Failed to upload ${file.name}`);
+  if (!res.ok) {
+    // Same reasoning as EditListing: the server's sentence is the one the
+    // seller can act on, so do not replace it with a generic failure.
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.errors?.file?.[0] ?? body?.message ?? 'Upload failed.');
+  }
 }
 
 function CreateListing() {
@@ -128,8 +133,8 @@ function CreateListing() {
         setUploadStatus(`Uploading ${i + 1}/${allUploads.length}: ${file.name}`);
         try {
           await uploadMedia(data.id, file, mediaType, user.token);
-        } catch {
-          failed.push(file.name);
+        } catch (uploadError) {
+          failed.push(`${file.name}: ${(uploadError as Error).message}`);
         }
       }
       setUploadStatus('');
@@ -137,7 +142,7 @@ function CreateListing() {
       if (failed.length > 0) {
         // Still navigate. The listing was created successfully and media is
         // secondary, so just let them know before we leave.
-        window.alert(`Listing posted, but these files failed to upload: ${failed.join(', ')}`);
+        window.alert('Listing posted, but these files were not uploaded:\n\n' + failed.join('\n'));
       }
 
       navigate(`/listing/${data.id}`);

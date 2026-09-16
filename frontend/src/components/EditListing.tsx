@@ -31,7 +31,15 @@ async function uploadNewMedia(listingId: string, file: File, mediaType: 'IMAGE' 
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
     body: formData,
   });
-  if (!res.ok) throw new Error(`Failed to upload ${file.name}`);
+  if (!res.ok) {
+    // Carry the server's own sentence up rather than inventing one. A
+    // rejected upload is usually a rule the seller can act on - too many
+    // photos, wrong format, file too big - and "failed to upload" tells
+    // them none of it. Laravel puts the useful text in errors.file; its
+    // top-level message is the generic "The given data was invalid."
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.errors?.file?.[0] ?? body?.message ?? 'Upload failed.');
+  }
 }
 
 // Edits a listing's core fields (title/price/location/category/condition/
@@ -188,13 +196,13 @@ function EditListing() {
         setUploadStatus(`Uploading ${i + 1}/${allUploads.length}: ${file.name}`);
         try {
           await uploadNewMedia(id!, file, mediaType, user.token);
-        } catch {
-          failed.push(file.name);
+        } catch (uploadError) {
+          failed.push(`${file.name}: ${(uploadError as Error).message}`);
         }
       }
       setUploadStatus('');
       if (failed.length > 0) {
-        window.alert(`Changes saved, but these files failed to upload: ${failed.join(', ')}`);
+        window.alert('Changes saved, but these files were not uploaded:\n\n' + failed.join('\n'));
       }
 
       navigate(`/listing/${id}`);
