@@ -33,6 +33,24 @@ class UserProfileResource extends JsonResource
             'listings' => ListingResource::collection(
                 $this->listings()->with('seller', 'media')->where('status', 'ACTIVE')->latest()->get()
             ),
+            // Sold gear belongs here and nowhere else. In search it is a row
+            // a buyer has to read and reject; on a profile it is the only
+            // evidence a stranger has that this person has actually sold
+            // something before, which is exactly what they are looking for
+            // when they click through to a seller they do not know.
+            //
+            // Capped rather than unbounded: a prolific seller would
+            // otherwise make their own profile slow to load, and nobody
+            // scrolls to the fortieth sale.
+            'sold_listings' => ListingResource::collection(
+                $this->listings()
+                    ->with('seller', 'media')
+                    ->where('status', 'SOLD')
+                    ->latest()
+                    ->limit(12)
+                    ->get()
+            ),
+            'sold_count' => $this->listings()->where('status', 'SOLD')->count(),
             'viewer_context' => $this->when($viewer && $viewer->id !== $this->id, fn () => [
                 'am_i_following' => $viewer->following()->where('users.id', $this->id)->exists(),
                 'have_i_endorsed' => $viewer->endorsementsGiven()->where('users.id', $this->id)->exists(),

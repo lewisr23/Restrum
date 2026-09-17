@@ -16,4 +16,16 @@ class ListingPolicy
     {
         return $user->id === $listing->seller_id;
     }
+
+    /**
+     * Who may take a listing down. Only the seller, same as editing.
+     *
+     * Whether it may be taken down at all is a separate question from who
+     * may do it, and lives in the controller: a listing with a sale behind
+     * it cannot be removed by anyone, owner included.
+     */
+    public function delete(User $user, Listing $listing): bool
+    {
+        return $user->id === $listing->seller_id;
+    }
 }

@@ -118,7 +118,14 @@ class ListingFilter
             $query->whereIn('listings.category_id', $this->categoryIds());
         }
 
-        if ($exclude !== 'availability' && ($this->input['availability'] ?? null) === 'available') {
+        // Sold gear is hidden unless it is asked for, rather than shown
+        // unless it is excluded. A buyer searching for a Telecaster is
+        // shopping, and a Telecaster somebody else already bought is not an
+        // answer to that; it is a row they have to read and discard. The
+        // capability is kept rather than deleted because a seller's profile
+        // uses it to show what they have sold before, which is the one place
+        // sold listings genuinely inform someone.
+        if ($exclude !== 'availability' && ($this->input['availability'] ?? 'available') !== 'all') {
             $query->where('listings.status', 'ACTIVE');
         }
 

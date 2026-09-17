@@ -415,6 +415,7 @@ function PurchasePanel({
   onSendMessage,
   onToggleSave,
   onBuyNow,
+  onDelete,
 }: {
   listing: any;
   isSeller: boolean;
@@ -428,6 +429,7 @@ function PurchasePanel({
   onSendMessage: () => void;
   onToggleSave: () => void;
   onBuyNow: () => void;
+  onDelete: () => void;
 }) {
   const navigate = useNavigate();
 
@@ -436,12 +438,22 @@ function PurchasePanel({
       <div className="purchase-panel__top">
         <p className="purchase-panel__category">{listing.category?.name ?? 'Uncategorised'}</p>
         {isSeller && (
-          <button
-            className="btn-ghost btn-sm"
-            onClick={() => navigate(`/listing/${listing.id}/edit`)}
-          >
-            Edit listing
-          </button>
+          <div className="purchase-panel__owner-actions">
+            <button
+              className="btn-ghost btn-sm"
+              onClick={() => navigate(`/listing/${listing.id}/edit`)}
+            >
+              Edit listing
+            </button>
+            {/* Hidden once it has sold: the backend refuses to delete a
+                listing with a sale behind it, because orders cascade from
+                it, so offering the button would only produce an error. */}
+            {!isSold && (
+              <button className="btn-danger btn-sm" onClick={onDelete}>
+                Delete listing
+              </button>
+            )}
+          </div>
         )}
       </div>
       <h1 className="purchase-panel__title">{listing.title}</h1>
@@ -735,6 +747,35 @@ function ListingDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    // A browser confirm rather than a modal. Deleting is irreversible and
+    // this is the whole safety net, but a bespoke dialog for it would be
+    // more work than the thing it guards.
+    if (!window.confirm(`Delete "${listing.title}"? This cannot be undone.`)) return;
+
+    try {
+      const res = await fetch(`${API}/api/listings/${listing.id}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${user!.token}`,
+        },
+      });
+
+      if (!res.ok) {
+        // The server knows why - a sale against the listing, most likely -
+        // and saying so beats a generic failure.
+        const body = await res.json().catch(() => null);
+        window.alert(body?.errors?.listing?.[0] ?? body?.message ?? 'Could not delete this listing.');
+        return;
+      }
+
+      navigate('/');
+    } catch {
+      window.alert('Could not reach the server.');
+    }
+  };
+
   if (loading) return <div className="page text-muted">Loading...</div>;
   if (error || !listing) return <div className="page text-error">{error || 'Listing not found.'}</div>;
 
@@ -760,6 +801,7 @@ function ListingDetail() {
           onSendMessage={handleSendMessage}
           onToggleSave={handleToggleSave}
           onBuyNow={handleBuyNow}
+          onDelete={handleDelete}
         />
       </div>
 

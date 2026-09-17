@@ -160,6 +160,14 @@
     gap: $space-sm;
   }
 
+  // Edit and Delete sit together, and wrap rather than squash on a narrow
+  // screen: the panel is already tight beside the price on a phone.
+  &__owner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-xs;
+  }
+
   &__category {
     margin: 0;
     font-size: $font-size-xs;

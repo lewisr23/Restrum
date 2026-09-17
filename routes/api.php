@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/listings', [ListingController::class, 'store']);
     Route::put('/listings/{listing}', [ListingController::class, 'update']);
+    Route::delete('/listings/{listing}', [ListingController::class, 'destroy']);
     Route::post('/listings/{listing}/save', [ListingController::class, 'toggleSave']);
 
     // Replaces the old POST /listings/{listing}/buy, which marked a listing

@@ -291,17 +291,33 @@ class FacetedFilteringTest extends TestCase
         );
     }
 
-    public function test_sold_listings_can_be_hidden_and_otherwise_sink_to_the_bottom(): void
+    /**
+     * Sold gear is hidden unless asked for. This used to be the other way
+     * round - shown by default, sunk to the bottom - and the default was
+     * changed deliberately: a buyer searching for a guitar is shopping, and
+     * one somebody else already bought is a row to read and discard rather
+     * than an answer. Sold listings now surface on the seller's profile
+     * instead, which is the one place they tell a stranger something.
+     */
+    public function test_sold_listings_are_hidden_unless_they_are_asked_for(): void
     {
         $this->listing('solid-body-electric-guitars', overrides: ['title' => 'Gone', 'status' => 'SOLD']);
         $this->listing('solid-body-electric-guitars', overrides: ['title' => 'Available']);
 
-        // Shown by default, but last.
         $this->assertSame(
-            ['Available', 'Gone'],
+            ['Available'],
             $this->titles($this->getJson('/api/listings?category=guitars')->assertOk()),
         );
 
+        // Still last when included, so "all" does not bury live stock behind
+        // things nobody can buy.
+        $this->assertSame(
+            ['Available', 'Gone'],
+            $this->titles($this->getJson('/api/listings?category=guitars&availability=all')->assertOk()),
+        );
+
+        // The explicit old value keeps working, so a bookmark saved before
+        // the default changed still behaves the way its owner expected.
         $this->assertSame(
             ['Available'],
             $this->titles($this->getJson('/api/listings?category=guitars&availability=available')->assertOk()),

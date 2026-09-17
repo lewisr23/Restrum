@@ -26,6 +26,12 @@ interface SellerProfileData {
   endorsement_count: number;
   follower_count: number;
   listings: SellerListing[];
+  // What they have sold before. Deliberately absent from search results and
+  // present here: on a profile it is the evidence a stranger came looking
+  // for. Capped at twelve by the backend, with sold_count holding the real
+  // total.
+  sold_listings: SellerListing[];
+  sold_count: number;
   // Absent entirely when viewing anonymously or viewing your own profile -
   // see UserProfileResource on the backend.
   viewer_context?: {
@@ -212,6 +218,34 @@ function SellerProfile() {
             />
           ))}
         </div>
+      )}
+
+      {profile.sold_count > 0 && (
+        <>
+          <h2 className="page__title">
+            Previously sold
+            <span className="text-muted"> ({profile.sold_count})</span>
+          </h2>
+          <p className="text-muted">
+            Gear {profile.username} has already sold through Restrum. Shown so you can see
+            their history; these are not for sale.
+          </p>
+          <div className="listing-grid">
+            {profile.sold_listings.map(listing => (
+              <ListingCard
+                key={listing.id}
+                id={listing.id}
+                title={listing.title}
+                price={listing.price}
+                location={listing.location}
+                category={listing.category}
+                status={listing.status}
+                imageUrl={listing.media?.find(m => m.media_type === 'IMAGE')?.url ?? null}
+                audioUrls={listing.media?.filter(m => m.media_type === 'AUDIO').map(m => m.url)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

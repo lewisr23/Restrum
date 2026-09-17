@@ -35,10 +35,10 @@ export const OPERATOR = {
    * exercise data rights and to raise problems with an order, and the UK GDPR
    * gives you one month to answer a rights request.
    */
-  contactEmail: 'support@restrum.uk',
+  contactEmail: 'restrumsupport@gmail.com',
 
   /** For data protection questions specifically. Can be the same mailbox. */
-  privacyEmail: 'privacy@restrum.uk',
+  privacyEmail: 'restrumsupport@gmail.com',
 
   website: 'https://restrum.uk',
 

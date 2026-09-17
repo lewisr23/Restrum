@@ -8,11 +8,13 @@ use App\Catalog\ListingFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ListingResource;
 use App\Models\Category;
+use App\Enums\OrderStatus;
 use App\Models\Listing;
 use App\Search\ListingSearch;
 use App\Services\PriceInsightService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -339,6 +341,55 @@ class ListingController extends Controller
         // leaving it off makes the field silently ABSENT rather than an empty
         // array, and callers then have to handle two shapes for one resource.
         return new ListingResource($listing->load('seller', 'media', 'category', 'attributeValues'));
+    }
+
+    /**
+     * Take a listing down.
+     *
+     * Sellers sell things elsewhere, change their minds, and post the wrong
+     * thing, and until now had no way to undo any of it: the only delete
+     * route on the whole API was for individual media files. A listing that
+     * cannot be withdrawn is one the seller has to email someone about.
+     *
+     * A listing with a sale behind it is NOT deletable, by anyone. The
+     * orders table takes listing_id with cascadeOnDelete, so removing the
+     * row would take the order with it - the buyer's purchase history and
+     * the record behind a real card payment - and it would go quietly. The
+     * check below is what stands between a seller tidying up and an audit
+     * trail disappearing.
+     *
+     * Cancelled orders do not count: a checkout somebody abandoned is not a
+     * sale, and leaving those blocking deletion would mean one lapsed
+     * reservation froze a listing permanently.
+     */
+    public function destroy(Request $request, Listing $listing)
+    {
+        $this->authorize('delete', $listing);
+
+        $liveOrders = $listing->orders()
+            ->where('status', '!=', OrderStatus::CANCELLED->value)
+            ->exists();
+
+        if ($liveOrders) {
+            throw ValidationException::withMessages([
+                'listing' => 'This listing has a sale against it and cannot be deleted. '
+                    .'Its order history has to stay put.',
+            ]);
+        }
+
+        // Files first. Doing it the other way round means a failure here
+        // leaves media on disk with nothing in the database pointing at it,
+        // which nothing will ever clean up - the exact leak the per-listing
+        // upload cap exists to bound.
+        $disk = Storage::disk(config('media.disk'));
+
+        foreach ($listing->media as $media) {
+            $disk->delete($media->path);
+        }
+
+        $listing->delete();
+
+        return response()->json(['message' => 'Listing deleted.']);
     }
 
     public function update(Request $request, Listing $listing)
