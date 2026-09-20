@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ListingCard from './ListingCard';
+import ReportButton from './ReportButton';
 import { PinIcon } from './Icon';
 
 import { API } from '../lib/config';
@@ -32,6 +33,18 @@ interface SellerProfileData {
   // total.
   sold_listings: SellerListing[];
   sold_count: number;
+  // Feedback from completed orders, as opposed to endorsements, which only
+  // need a conversation and can therefore be traded between two accounts.
+  rating_average: number | null;
+  rating_count: number;
+  reviews: {
+    id: number;
+    rating: number;
+    comment: string | null;
+    reviewer_role: 'BUYER' | 'SELLER';
+    reviewer: string | null;
+    created_at: string;
+  }[];
   // Absent entirely when viewing anonymously or viewing your own profile -
   // see UserProfileResource on the backend.
   viewer_context?: {
@@ -198,6 +211,39 @@ function SellerProfile() {
         </div>
         {profile.bio && <p className="profile-header__bio">{profile.bio}</p>}
       </div>
+
+      <div className="profile-header__report">
+        <ReportButton userId={profile.id} label="Report this seller" />
+      </div>
+
+      {profile.rating_count > 0 && (
+        <>
+          <h2 className="page__title">
+            Feedback
+            <span className="text-muted">
+              {' '}{profile.rating_average} out of 5, from {profile.rating_count}{' '}
+              {profile.rating_count === 1 ? 'sale' : 'sales'}
+            </span>
+          </h2>
+          <ul className="review-list">
+            {profile.reviews.map(review => (
+              <li key={review.id} className="review">
+                <div className="review__head">
+                  <span className="review__stars" aria-label={`${review.rating} out of 5`}>
+                    {'★'.repeat(review.rating)}
+                    <span className="review__stars-off">{'★'.repeat(5 - review.rating)}</span>
+                  </span>
+                  <span className="text-muted">
+                    {review.reviewer ?? 'Someone'}
+                    {review.reviewer_role === 'BUYER' ? ' bought from them' : ' sold to them'}
+                  </span>
+                </div>
+                {review.comment && <p className="review__comment">{review.comment}</p>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h2 className="page__title">Listings from {profile.username}</h2>
       {profile.listings.length === 0 ? (

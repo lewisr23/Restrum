@@ -129,3 +129,43 @@
   font-size: $font-size-lg;
   border-radius: $radius-pill;
 }
+
+// Reporting. Understated on purpose: prominent enough to find when
+// something smells wrong, quiet enough that it does not make every honest
+// listing look suspect.
+.report {
+  margin-top: $space-md;
+  padding: $space-md;
+  border: 1px solid $color-border;
+  border-radius: $radius;
+
+  &__title {
+    margin: 0 0 $space-sm;
+    font-size: $font-size-sm;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $space-xs;
+  }
+
+  &__trigger {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+      color: $color-danger;
+    }
+  }
+
+  &__done {
+    margin: $space-sm 0 0;
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+  }
+}

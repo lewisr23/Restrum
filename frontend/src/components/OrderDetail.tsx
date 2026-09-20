@@ -60,6 +60,10 @@ function OrderDetail() {
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [dispatching, setDispatching] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewed, setReviewed] = useState(false);
   const [carrier, setCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [problem, setProblem] = useState('');
@@ -100,6 +104,33 @@ function OrderDetail() {
     const timer = setTimeout(load, 2500);
     return () => clearTimeout(timer);
   }, [justPaid, order, load]);
+
+  const handleReview = async () => {
+    if (!user || !order || rating < 1) return;
+    setReviewing(true);
+    setProblem('');
+    try {
+      const res = await fetch(`${API}/api/orders/${order.id}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ rating, comment: reviewComment || null }),
+      });
+      const body = await res.json().catch(() => null);
+      if (res.ok) {
+        setReviewed(true);
+      } else {
+        setProblem(body?.errors?.order?.[0] || body?.message || 'That did not work.');
+      }
+    } catch {
+      setProblem('Could not reach the server.');
+    } finally {
+      setReviewing(false);
+    }
+  };
 
   const handleDispatch = async () => {
     if (!user || !order) return;
@@ -259,6 +290,64 @@ function OrderDetail() {
                 <p className="order-detail__tracking-number">
                   Tracking: <strong>{order.tracking_number}</strong>
                 </p>
+              )}
+            </div>
+          )}
+
+          {(order.status === 'CONFIRMED' || order.status === 'RELEASED') && (
+            <div className="order-detail__action">
+              <h2 className="checkout__section-title">
+                {reviewed ? 'Thanks for the feedback' : `How did it go with ${counterparty?.username}?`}
+              </h2>
+              {reviewed ? (
+                <p className="order-detail__action-text">
+                  It is on their profile now. Feedback here comes only from people who
+                  actually bought or sold, which is what makes it worth reading.
+                </p>
+              ) : (
+                <>
+                  <p className="order-detail__action-text">
+                    Only people who completed an order can leave feedback, so yours
+                    carries weight. It goes on their profile.
+                  </p>
+                  <div className="rating-picker">
+                    {[1, 2, 3, 4, 5].map(value => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={
+                          'rating-picker__star'
+                          + (value <= rating ? ' rating-picker__star--on' : '')
+                        }
+                        onClick={() => setRating(value)}
+                        aria-label={`${value} out of 5`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <div className="field-group">
+                    <label className="field-label" htmlFor="reviewComment">
+                      Anything worth saying? (optional)
+                    </label>
+                    <textarea
+                      className="field"
+                      id="reviewComment"
+                      rows={3}
+                      maxLength={1000}
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      placeholder="Packed well, exactly as described..."
+                    />
+                  </div>
+                  <button
+                    className="btn-primary btn-lg"
+                    onClick={handleReview}
+                    disabled={reviewing || rating < 1}
+                  >
+                    {reviewing ? 'Saving...' : 'Leave feedback'}
+                  </button>
+                </>
               )}
             </div>
           )}

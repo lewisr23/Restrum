@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 import ListingCard from './ListingCard';
 import { API, mediaUrl } from '../lib/config';
+import ReportButton from './ReportButton';
 import { PinIcon, LockIcon } from './Icon';
 
 interface PassportEntry {
@@ -536,6 +537,15 @@ function PurchasePanel({
       )}
       {!isSeller && isSold && (
         <p className="purchase-panel__sold-note">This item has sold.</p>
+      )}
+
+      {/* Quiet, and at the bottom. A report link shouting at a buyer would
+          make every honest listing feel suspect, but it has to be findable
+          at the moment somebody smells something wrong. */}
+      {!isSeller && (
+        <div className="purchase-panel__report">
+          <ReportButton listingId={listing.id} label="Report this listing" />
+        </div>
       )}
 
       {!isSeller && (

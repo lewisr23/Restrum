@@ -71,3 +71,63 @@
     cursor: default;
   }
 }
+
+// Feedback from completed orders. Deliberately plainer than the endorsement
+// chips beside it: this is a record, not a badge.
+.review-list {
+  margin: 0 0 $space-xl;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: $space-sm;
+}
+
+.review {
+  padding: $space-sm $space-md;
+  border: 1px solid $color-border;
+  border-radius: $radius;
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: $space-xs;
+  }
+
+  &__stars {
+    color: $color-accent;
+    letter-spacing: 1px;
+  }
+
+  // The unearned stars, kept in the flow so every row is the same width and
+  // four out of five reads as four rather than just "some".
+  &__stars-off {
+    color: $color-border;
+  }
+
+  &__comment {
+    margin: $space-xs 0 0;
+    color: $color-text-soft;
+  }
+}
+
+// Picking a rating when leaving feedback.
+.rating-picker {
+  display: flex;
+  gap: $space-xxs;
+  margin-bottom: $space-sm;
+
+  &__star {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: $color-border;
+
+    &--on {
+      color: $color-accent;
+    }
+  }
+}

@@ -61,6 +61,9 @@ function Login() {
         </button>
       </form>
       <p className="auth-card__footer">
+        <Link className="auth-card__link" to="/forgot-password">Forgotten your password?</Link>
+      </p>
+      <p className="auth-card__footer">
         Don't have an account? <Link className="auth-card__link" to="/register">Register</Link>
       </p>
     </div>

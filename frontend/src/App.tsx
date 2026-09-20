@@ -14,6 +14,9 @@ import Faq from './components/Faq';
 import Terms from './components/Terms';
 import Privacy from './components/Privacy';
 import Login from './components/Login';
+import AdminReports from './components/AdminReports';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import Register from './components/Register';
 import MessagesPage from './components/Messages';
 import SellerProfile from './components/SellerProfile';
@@ -52,6 +55,9 @@ function App() {
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/register" element={<Register />} />
             </Routes>
           </div>
