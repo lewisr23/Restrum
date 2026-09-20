@@ -228,12 +228,102 @@ class EscrowService
     }
 
     /**
-     * Confirm paid orders the buyer never came back to.
+     * Mark an order as dispatched, with tracking where there is any.
+     *
+     * This is what starts the release clock. Before it existed the clock
+     * started at payment, which meant a seller who posted nothing was paid
+     * automatically a fortnight later unless the buyer actively complained:
+     * silence favoured whoever already had the buyer's money.
+     */
+    public function markDispatched(Order $order, ?string $carrier, ?string $trackingNumber): Order
+    {
+        return DB::transaction(function () use ($order, $carrier, $trackingNumber) {
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== OrderStatus::PAID) {
+                throw ValidationException::withMessages([
+                    'order' => 'Only a paid order that has not been completed can be marked as dispatched.',
+                ]);
+            }
+
+            // Re-dispatching is allowed on purpose: a seller who fat-fingers
+            // a tracking number needs to be able to correct it, and the
+            // alternative is a support request. The clock restarting is the
+            // right behaviour anyway, since the buyer is now waiting on the
+            // corrected parcel.
+            $locked->dispatched_at = now();
+            $locked->tracking_carrier = $carrier;
+            $locked->tracking_number = $trackingNumber;
+            $locked->save();
+
+            return $locked;
+        });
+    }
+
+    /**
+     * Refund buyers whose seller never posted anything.
+     *
+     * The counterpart to autoConfirmOverdue, and the reason that one is safe
+     * to run at all. A paid order with no dispatch record after the deadline
+     * is the commonest marketplace scam there is - take the money, send
+     * nothing, wait for the clock. Here the clock runs the other way.
+     *
+     * Collection-only orders are skipped: there is no parcel to dispatch and
+     * the buyer turns up in person, so their protection is simply not
+     * confirming receipt.
+     *
+     * @return array{refunded: int, failed: int}
+     */
+    public function refundUndispatched(): array
+    {
+        $cutoff = now()->subDays((int) config('services.stripe.dispatch_deadline_days'));
+
+        $stale = Order::query()
+            ->with('listing')
+            ->where('status', OrderStatus::PAID)
+            ->whereNull('dispatched_at')
+            ->whereNotNull('paid_at')
+            ->where('paid_at', '<=', $cutoff)
+            ->limit(100)
+            ->get()
+            ->reject(fn (Order $order) => (bool) $order->listing?->collection_only);
+
+        $refunded = 0;
+        $failed = 0;
+
+        foreach ($stale as $order) {
+            try {
+                if ($this->refund($order)) {
+                    $refunded++;
+                }
+            } catch (PaymentGatewayException $e) {
+                // Same reasoning as releaseDue: one stuck refund must not
+                // stop every other buyer getting their money back.
+                $failed++;
+
+                Log::error('Could not refund undispatched order '.$order->id, [
+                    'order_id' => $order->id,
+                    'seller_id' => $order->seller_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return ['refunded' => $refunded, 'failed' => $failed];
+    }
+
+    /**
+     * Confirm dispatched orders the buyer never came back to.
      *
      * Without this an order sits in escrow forever whenever a buyer simply
      * stops replying, which punishes the seller for the buyer's silence. The
      * window is long enough that a buyer with a genuine problem has had every
      * chance to say so, and raising a dispute stops the clock.
+     *
+     * The clock runs from DISPATCH, not payment. Keyed off payment it would
+     * pay out a seller who never posted, which is the whole scam this pair of
+     * methods exists to close. Collection-only orders have no dispatch, so
+     * they keep the payment clock.
      *
      * @return int how many orders were auto-confirmed
      */
@@ -242,11 +332,21 @@ class EscrowService
         $cutoff = now()->subDays((int) config('services.stripe.auto_release_days'));
 
         $overdue = Order::query()
+            ->with('listing')
             ->where('status', OrderStatus::PAID)
             ->whereNotNull('paid_at')
-            ->where('paid_at', '<=', $cutoff)
+            ->where(function ($query) use ($cutoff) {
+                $query
+                    ->where(fn ($q) => $q->whereNotNull('dispatched_at')->where('dispatched_at', '<=', $cutoff))
+                    ->orWhere(fn ($q) => $q->whereNull('dispatched_at')->where('paid_at', '<=', $cutoff));
+            })
             ->limit(200)
-            ->get();
+            ->get()
+            // An undispatched posted order is refundUndispatched's business,
+            // never this method's. Without this the two would race and the
+            // longer-running clock could still pay a seller who sent nothing.
+            ->reject(fn (Order $order) => $order->dispatched_at === null
+                && ! (bool) $order->listing?->collection_only);
 
         $confirmed = 0;
 

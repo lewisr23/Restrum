@@ -42,6 +42,16 @@ class SweepOrders extends Command
         $expired = $checkout->expireLapsedReservations();
         $this->line("Reservations expired: {$expired}");
 
+        // Before auto-confirm, not after. These two look at the same
+        // pool of paid orders and the refund has priority: a seller who
+        // never posted must not be paid by a clock that ran first.
+        $undispatched = $escrow->refundUndispatched();
+        $this->line("Buyers refunded for undispatched orders: {$undispatched['refunded']}");
+
+        if ($undispatched['failed'] > 0) {
+            $this->warn("Refunds that could not be made: {$undispatched['failed']}");
+        }
+
         $confirmed = $escrow->autoConfirmOverdue();
         $this->line("Orders auto-confirmed: {$confirmed}");
 

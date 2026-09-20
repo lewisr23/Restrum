@@ -23,6 +23,28 @@ class UserProfileResource extends JsonResource
             'community_verified' => $this->community_verified,
             'member_since' => $this->created_at,
             'endorsement_count' => $this->endorsementsReceived()->count(),
+
+            // Feedback from people who actually bought or sold, as opposed
+            // to endorsements, which only require a conversation and can
+            // therefore be manufactured by two accounts talking to each
+            // other. Both are shown; only this one costs anything to earn.
+            'rating_average' => $this->reviewsReceived()->count() > 0
+                ? round((float) $this->reviewsReceived()->avg('rating'), 1)
+                : null,
+            'rating_count' => $this->reviewsReceived()->count(),
+            'reviews' => $this->reviewsReceived()
+                ->with('reviewer:id,username')
+                ->latest()
+                ->limit(10)
+                ->get()
+                ->map(fn ($review) => [
+                    'id' => $review->id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'reviewer_role' => $review->reviewer_role,
+                    'reviewer' => $review->reviewer?->username,
+                    'created_at' => $review->created_at,
+                ]),
             'follower_count' => $this->followers()->count(),
             'following_count' => $this->following()->count(),
             // with('seller', 'media') - same reason as

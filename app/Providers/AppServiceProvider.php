@@ -8,6 +8,7 @@ use App\Services\Payments\StripePaymentGateway;
 use App\Services\Recommender\ListingRecommender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -61,5 +62,32 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(6)->by($request->ip()),
             Limit::perDay(60)->by($request->ip()),
         ]);
+
+        /*
+         * Password reset requests, which are free to send and land in
+         * somebody else's inbox.
+         *
+         * Limited by email as well as IP: by IP alone one person could
+         * still pick a victim and post their address repeatedly, which is
+         * harassment delivered by us. By email alone a script could work
+         * through a list from one machine.
+         */
+        RateLimiter::for('password-reset', fn (Request $request) => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(3)->by((string) $request->input('email')),
+        ]);
+
+        /*
+         * The reset link has to open the React app, not the API. Laravel's
+         * default builds a URL to a server-rendered route that does not
+         * exist here, so without this the email would send a working token
+         * to a 404.
+         */
+        ResetPassword::createUrlUsing(function ($notifiable, string $token) {
+            $email = urlencode($notifiable->getEmailForPasswordReset());
+
+            return rtrim((string) config('app.frontend_url'), '/')
+                ."/reset-password?token={$token}&email={$email}";
+        });
     }
 }

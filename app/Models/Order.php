@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
 /**
@@ -32,10 +33,16 @@ class Order extends Model
             'platform_fee' => 'decimal:2',
             'reserved_until' => 'datetime',
             'paid_at' => 'datetime',
+            'dispatched_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'released_at' => 'datetime',
             'refunded_at' => 'datetime',
         ];
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 
     public function listing(): BelongsTo

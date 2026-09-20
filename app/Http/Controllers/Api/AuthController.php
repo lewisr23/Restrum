@@ -56,6 +56,15 @@ class AuthController extends Controller
             ]);
         }
 
+        // Checked after the password, deliberately. Answering "suspended"
+        // to anyone who types the username would tell a stranger which
+        // accounts have been actioned.
+        if ($user->suspended_at !== null) {
+            throw ValidationException::withMessages([
+                'login' => 'This account is suspended. Email support if you think that is wrong.',
+            ]);
+        }
+
         return response()->json([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => $user,

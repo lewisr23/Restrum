@@ -18,4 +18,16 @@ class OrderPolicy
     {
         return $user->id === $order->buyer_id || $user->id === $order->seller_id;
     }
+
+    /**
+     * Only the seller can say they posted it.
+     *
+     * Obvious, and worth enforcing rather than assuming: this claim is what
+     * starts the clock that eventually pays the seller, so a buyer being
+     * able to make it would hand the scam back.
+     */
+    public function dispatch(User $user, Order $order): bool
+    {
+        return $user->id === $order->seller_id;
+    }
 }

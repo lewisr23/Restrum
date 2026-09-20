@@ -62,6 +62,17 @@ return [
         // forever whenever a buyer simply never comes back, which punishes
         // the seller for the buyer's silence.
         'auto_release_days' => env('STRIPE_AUTO_RELEASE_DAYS', 14),
+
+        /*
+         * How long a seller has to actually post the thing before the buyer
+         * gets their money back.
+         *
+         * Separate from auto_release_days, and shorter, because the two
+         * count different risks: that one is a buyer who never came back to
+         * confirm, this one is a seller who never sent anything. Silence
+         * from a seller who has been paid should not cost the buyer.
+         */
+        'dispatch_deadline_days' => env('STRIPE_DISPATCH_DEADLINE_DAYS', 7),
     ],
 
     /*

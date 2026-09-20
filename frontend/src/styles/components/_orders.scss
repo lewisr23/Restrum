@@ -205,6 +205,23 @@ a.btn-ghost {
   padding-top: 40px;
   padding-bottom: $space-xxl;
 
+  // Where the parcel is. Set apart from the actions above it because it is
+  // a statement of fact rather than something to act on.
+  &__tracking {
+    margin-top: $space-lg;
+    padding-top: $space-lg;
+    border-top: 1px solid $color-border;
+  }
+
+  &__tracking-number {
+    margin: $space-xs 0 0;
+    font-family: monospace;
+    // Tracking numbers get read aloud and typed into courier sites, so they
+    // need to be selectable and hard to misread.
+    user-select: all;
+    word-break: break-all;
+  }
+
   &__head {
     display: flex;
     align-items: center;

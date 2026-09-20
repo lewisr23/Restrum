@@ -18,7 +18,10 @@ use Laravel\Sanctum\HasApiTokens;
 // stripe_account_id is hidden rather than merely unused by the resources: it
 // identifies a real Stripe account, and a marketplace has no reason to put one
 // seller's account id in front of another user.
-#[Hidden(['password', 'remember_token', 'stripe_account_id'])]
+// suspension_reason is hidden because it is an internal note, not a
+// public label, and is_admin because who moderates is not everyone's
+// business.
+#[Hidden(['password', 'remember_token', 'stripe_account_id', 'suspension_reason', 'is_admin'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -30,6 +33,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'community_verified' => 'boolean',
+            'is_admin' => 'boolean',
+            'suspended_at' => 'datetime',
             'stripe_transfers_enabled' => 'boolean',
             'stripe_payouts_enabled' => 'boolean',
             'stripe_synced_at' => 'datetime',
@@ -45,6 +50,12 @@ class User extends Authenticatable
      * in a form. Checking it alone is how a marketplace ends up taking a
      * buyer's money for an instrument whose seller can never receive it.
      */
+    /** Feedback written about this user. */
+    public function reviewsReceived()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'subject_id');
+    }
+
     public function canReceivePayments(): bool
     {
         return $this->stripe_account_id !== null

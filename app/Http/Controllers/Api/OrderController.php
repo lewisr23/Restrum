@@ -71,4 +71,34 @@ class OrderController extends Controller
 
         return new OrderResource($confirmed->load('listing.media', 'buyer', 'seller'));
     }
+
+    /**
+     * The seller says they have posted it.
+     *
+     * This is what starts the release clock, and the buyer's protection
+     * depends on it being the seller's own claim: an order nobody ever
+     * marked dispatched is refunded rather than released, so a seller who
+     * sends nothing gains nothing by saying nothing.
+     *
+     * Tracking is optional because not every service gives you a number,
+     * but it is the thing that makes a dispute resolvable, so the frontend
+     * asks for it rather than treating it as an afterthought.
+     */
+    public function dispatch(Request $request, Order $order)
+    {
+        $this->authorize('dispatch', $order);
+
+        $data = $request->validate([
+            'tracking_carrier' => ['nullable', 'string', 'max:60'],
+            'tracking_number' => ['nullable', 'string', 'max:60'],
+        ]);
+
+        $dispatched = $this->escrow->markDispatched(
+            $order,
+            $data['tracking_carrier'] ?? null,
+            $data['tracking_number'] ?? null,
+        );
+
+        return new OrderResource($dispatched->load('listing.media', 'buyer', 'seller'));
+    }
 }

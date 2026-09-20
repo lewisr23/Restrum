@@ -250,15 +250,23 @@ class OrderEscrowTest extends TestCase
     /**
      * Without this an order sits in escrow forever whenever a buyer simply
      * stops replying, which punishes the seller for the buyer's silence.
+     *
+     * Dispatched, because the clock now runs from dispatch rather than
+     * payment. An order nobody ever posted takes the opposite path and
+     * refunds the buyer, which is what DispatchProtectionTest covers.
      */
-    public function test_a_paid_order_the_buyer_never_confirms_releases_itself_eventually(): void
+    public function test_a_dispatched_order_the_buyer_never_confirms_releases_itself_eventually(): void
     {
         config()->set('services.stripe.auto_release_days', 14);
 
         $order = Order::factory()
             ->forListing($this->listing, $this->buyer)
             ->paid()
-            ->create(['paid_at' => now()->subDays(15)]);
+            ->create([
+                'paid_at' => now()->subDays(20),
+                'dispatched_at' => now()->subDays(15),
+                'tracking_number' => 'AB123456789GB',
+            ]);
 
         $this->artisan('orders:sweep')->assertSuccessful();
 

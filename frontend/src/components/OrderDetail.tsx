@@ -59,6 +59,9 @@ function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [carrier, setCarrier] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [problem, setProblem] = useState('');
 
   // Stripe sends the buyer back here with ?paid=1 the moment the card
@@ -97,6 +100,36 @@ function OrderDetail() {
     const timer = setTimeout(load, 2500);
     return () => clearTimeout(timer);
   }, [justPaid, order, load]);
+
+  const handleDispatch = async () => {
+    if (!user || !order) return;
+    setDispatching(true);
+    setProblem('');
+    try {
+      const res = await fetch(`${API}/api/orders/${order.id}/dispatch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          tracking_carrier: carrier || null,
+          tracking_number: trackingNumber || null,
+        }),
+      });
+      const body = await res.json().catch(() => null);
+      if (res.ok) {
+        setOrder(body.data);
+      } else {
+        setProblem(body?.errors?.order?.[0] || body?.message || 'That did not work. Try again in a moment.');
+      }
+    } catch {
+      setProblem('Could not reach the server.');
+    } finally {
+      setDispatching(false);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!user || !order) return;
@@ -174,6 +207,60 @@ function OrderDetail() {
                 </li>
               ))}
             </ol>
+          )}
+
+          {order.status === 'PAID' && order.viewer_role === 'SELLER' && !order.dispatched_at
+            && !order.listing?.collection_only && (
+            <div className="order-detail__action">
+              <h2 className="checkout__section-title">Have you posted it?</h2>
+              <p className="order-detail__action-text">
+                Tell us when it is on its way. This is what starts the clock on your
+                payout, and an order that is never marked as posted is refunded to the
+                buyer, so do not leave it.
+              </p>
+              <div className="field-group">
+                <label className="field-label" htmlFor="carrier">Carrier</label>
+                <input
+                  className="field"
+                  id="carrier"
+                  value={carrier}
+                  onChange={e => setCarrier(e.target.value)}
+                  placeholder="e.g. Royal Mail, Evri, DPD"
+                />
+              </div>
+              <div className="field-group">
+                <label className="field-label" htmlFor="tracking">Tracking number</label>
+                <input
+                  className="field"
+                  id="tracking"
+                  value={trackingNumber}
+                  onChange={e => setTrackingNumber(e.target.value)}
+                  placeholder="e.g. AB123456789GB"
+                />
+                <p className="field-hint">
+                  Optional, but it is the thing that settles an argument about whether
+                  the parcel arrived. Add it if the service gives you one.
+                </p>
+              </div>
+              <button className="btn-primary btn-lg" onClick={handleDispatch} disabled={dispatching}>
+                {dispatching ? 'Saving...' : 'Mark as posted'}
+              </button>
+            </div>
+          )}
+
+          {order.dispatched_at && (
+            <div className="order-detail__tracking">
+              <h2 className="checkout__section-title">On its way</h2>
+              <p className="order-detail__action-text">
+                Marked as posted on {new Date(order.dispatched_at).toLocaleDateString('en-GB')}
+                {order.tracking_carrier ? ` via ${order.tracking_carrier}` : ''}.
+              </p>
+              {order.tracking_number && (
+                <p className="order-detail__tracking-number">
+                  Tracking: <strong>{order.tracking_number}</strong>
+                </p>
+              )}
+            </div>
           )}
 
           {order.can_confirm && (

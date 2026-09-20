@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ConversationController;
@@ -10,6 +11,9 @@ use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\ListingMediaController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\PassportController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\StripeConnectController;
@@ -26,6 +30,9 @@ Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [PasswordResetController::class, 'request'])
+    ->middleware('throttle:password-reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -49,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);
+    Route::post('/orders/{order}/dispatch', [OrderController::class, 'dispatch']);
+    Route::post('/orders/{order}/review', [ReviewController::class, 'store']);
 
     // Seller payouts. GET reports where Stripe has got to, POST returns a
     // fresh link into Stripe's hosted onboarding.
@@ -67,6 +76,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/users/{user}/endorse', [EndorsementController::class, 'store']);
     Route::post('/users/{user}/follow', [FollowController::class, 'toggle']);
+
+    Route::post('/listings/{listing}/report', [ReportController::class, 'listing']);
+    Route::post('/users/{user}/report', [ReportController::class, 'user']);
+
+    // Moderation. The middleware answers 404 rather than 403, so these do
+    // not advertise themselves to anyone who is not already an admin.
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/reports', [AdminController::class, 'reports']);
+        Route::post('/reports/{report}/resolve', [AdminController::class, 'resolve']);
+        Route::post('/users/{user}/suspend', [AdminController::class, 'suspend']);
+        Route::post('/users/{user}/reinstate', [AdminController::class, 'reinstate']);
+        Route::post('/listings/{listing}/remove', [AdminController::class, 'removeListing']);
+    });
 
     Route::post('/listings/{listing}/passport/entries', [PassportController::class, 'addEntry']);
     Route::put('/listings/{listing}/passport/entries/{entry}', [PassportController::class, 'updateEntry']);

@@ -52,6 +52,9 @@ class OrderResource extends JsonResource
 
             'reserved_until' => $this->reserved_until,
             'paid_at' => $this->paid_at,
+            'dispatched_at' => $this->dispatched_at,
+            'tracking_carrier' => $this->tracking_carrier,
+            'tracking_number' => $this->tracking_number,
             'confirmed_at' => $this->confirmed_at,
             'released_at' => $this->released_at,
             'refunded_at' => $this->refunded_at,
