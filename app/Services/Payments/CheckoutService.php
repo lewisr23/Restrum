@@ -121,7 +121,19 @@ class CheckoutService
                 ]);
             }
 
-            $amount = (string) $locked->price;
+            // Collection only means the buyer turns up for it, so there is
+            // nothing to charge carriage for. Reading it off the locked row
+            // rather than the one passed in matters for the same reason the
+            // price does: this is the copy nobody else can change underneath
+            // the transaction.
+            $itemPrice = (string) $locked->price;
+            $postage = $locked->collection_only ? '0.00' : (string) $locked->postage_price;
+
+            // What Stripe charges, and therefore what the platform holds in
+            // escrow. Postage is inside it deliberately: the buyer committing
+            // to a total they can see is the whole point, and a seller chasing
+            // postage separately after the money moved is what this replaces.
+            $amount = bcadd($itemPrice, $postage, 2);
 
             $order = new Order;
             $order->listing_id = $locked->id;
@@ -130,7 +142,12 @@ class CheckoutService
             // it is a fact about the sale, not a pointer to the listing.
             $order->seller_id = $seller->id;
             $order->amount = $amount;
-            $order->platform_fee = $this->platformFee($amount);
+            $order->postage = $postage;
+            // On the item alone. The seller is not making a margin on postage,
+            // they are recovering what the courier charged them, and taking a
+            // percentage of that is the sort of thing sellers notice and
+            // resent. It also keeps the fee stable if a seller revises postage.
+            $order->platform_fee = $this->platformFee($itemPrice);
             $order->currency = 'GBP';
             $order->status = OrderStatus::PENDING;
             $order->reserved_until = now()->addMinutes(

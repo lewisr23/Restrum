@@ -66,7 +66,7 @@ function appearance(): Appearance {
  * The form itself, which has to be a child of <Elements> because that is
  * what useStripe and useElements read from.
  */
-function PaymentForm({ orderId, price, sellerName }: { orderId: number; price: string; sellerName: string }) {
+function PaymentForm({ orderId, price, postage, collectionOnly, total, sellerName }: { orderId: number; price: string; postage: string; collectionOnly: boolean; total: string; sellerName: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -152,18 +152,37 @@ function PaymentForm({ orderId, price, sellerName }: { orderId: number; price: s
 
         <div className="payment-note">
           <p>
-            Arrange collection or postage with {sellerName} in chat once you
-            have paid. If you have not confirmed after 14 days and have not
-            told us there is a problem, the payment is released to the seller
-            automatically.
+            {collectionOnly
+              ? `Arrange collection with ${sellerName} in chat once you have paid.`
+              : `Postage is included in the total below, so ${sellerName} posts it to you once payment clears. Confirm your address with them in chat.`}
+            {' '}If you have not confirmed after 14 days and have not told us there is a
+            problem, the payment is released to the seller automatically.
           </p>
         </div>
       </div>
 
       <div className="order-summary">
+        {/* Itemised rather than one figure. This used to show the item price
+            labelled "Total", which was true only while postage did not
+            exist; the moment carriage is charged, a single number is the
+            one thing a buyer will dispute. */}
+        <div className="order-summary__row">
+          <span>Item</span>
+          <span>£{price}</span>
+        </div>
+        <div className="order-summary__row">
+          <span>Postage</span>
+          <span>
+            {collectionOnly
+              ? 'Collection'
+              : Number(postage) === 0
+                ? 'Free'
+                : `£${postage}`}
+          </span>
+        </div>
         <div className="order-summary__row order-summary__row--total">
           <span>Total</span>
-          <span className="order-summary__total-value">£{price}</span>
+          <span className="order-summary__total-value">£{total}</span>
         </div>
 
         {problem && <div className="notice notice--error">{problem}</div>}
@@ -173,7 +192,7 @@ function PaymentForm({ orderId, price, sellerName }: { orderId: number; price: s
           className="btn-primary btn-block btn-lg"
           disabled={!stripe || !mounted || paying}
         >
-          {paying ? 'Taking payment...' : `Pay £${price}`}
+          {paying ? 'Taking payment...' : `Pay £${total}`}
         </button>
 
         <p className="order-summary__caveat">
@@ -340,6 +359,9 @@ function Checkout() {
           <PaymentForm
             orderId={payment.orderId}
             price={listing.price}
+            postage={listing.postage_price}
+            collectionOnly={listing.collection_only}
+            total={listing.total_price ?? listing.price}
             sellerName={listing.seller.username}
           />
         </Elements>

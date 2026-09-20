@@ -470,6 +470,18 @@ function PurchasePanel({
         £{listing.price}
         {isSold && <span className="purchase-panel__sold">SOLD</span>}
       </h2>
+      {/* Stated before the buy button, not after it. The total is the
+          number someone decides on, and finding out about carriage at the
+          payment screen is the thing every marketplace gets complained
+          about for. */}
+      <p className="purchase-panel__postage">
+        {listing.collection_only
+          ? 'Collection only, no postage'
+          : Number(listing.postage_price) === 0
+            ? 'Free postage'
+            : `+ £${listing.postage_price} postage`}
+      </p>
+
       <div>
         <PriceContext listing={listing} />
       </div>
@@ -492,7 +504,7 @@ function PurchasePanel({
           className="btn-primary btn-block btn-lg purchase-panel__action--primary"
           onClick={onBuyNow}
         >
-          {`Buy Now for £${listing.price}`}
+          {`Buy Now for £${listing.total_price ?? listing.price}`}
         </button>
       )}
       {!isSeller && !isSold && !showMessageBox && (

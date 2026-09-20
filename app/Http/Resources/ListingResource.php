@@ -14,6 +14,14 @@ class ListingResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'price' => $this->price,
+            'postage_price' => $this->postage_price,
+            'collection_only' => $this->collection_only,
+            // What the buyer will actually be charged. Computed here rather
+            // than in the client so the figure on the card, the figure on
+            // the listing and the figure Stripe charges cannot drift.
+            'total_price' => $this->collection_only
+                ? $this->price
+                : bcadd((string) $this->price, (string) $this->postage_price, 2),
             'location' => $this->location,
 
             // An object rather than the single word this used to be. The

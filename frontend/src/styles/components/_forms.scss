@@ -95,6 +95,23 @@
   color: $color-text-soft;
 }
 
+// A checkbox sitting with its label inside a field group. The filter panel
+// has its own (.facet__option) but that one carries a count column and
+// facet spacing, neither of which belongs on a form.
+.field-check {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  margin-top: $space-xs;
+  font-size: $font-size-sm;
+  color: $color-text-soft;
+  cursor: pointer;
+
+  input {
+    cursor: pointer;
+  }
+}
+
 .field-hint {
   font-size: $font-size-xs;
   color: $color-text-muted;

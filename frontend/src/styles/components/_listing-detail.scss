@@ -181,6 +181,12 @@
     font-size: $font-size-xl;
   }
 
+  &__postage {
+    margin: $space-xs 0 0;
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+
   &__price {
     margin: $space-md 0 0;
     font-size: 28px;

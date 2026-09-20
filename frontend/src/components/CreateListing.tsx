@@ -34,6 +34,8 @@ function CreateListing() {
   const [form, setForm] = useState({
     title: '',
     price: '',
+    postagePrice: '',
+    collectionOnly: false,
     location: '',
     condition: 'GOOD',
     description: '',
@@ -102,6 +104,11 @@ function CreateListing() {
           title: form.title,
           description: form.description,
           price: parseFloat(form.price),
+          // Blank means free postage rather than unknown. A listing that
+          // cannot say what postage costs is the thing this field exists
+          // to prevent, so there is no "ask me" option.
+          postage_price: form.collectionOnly ? 0 : parseFloat(form.postagePrice || '0'),
+          collection_only: form.collectionOnly,
           location: form.location,
           category,
           brand: brand || null,
@@ -177,6 +184,35 @@ function CreateListing() {
         <div className="field-group">
           <label className="field-label" htmlFor="price">Price (£) *</label>
           <input className="field" id="price" name="price" type="number" value={form.price} onChange={handleChange} placeholder="e.g. 450" required />
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="postagePrice">Postage (£)</label>
+          <input
+            className="field"
+            id="postagePrice"
+            name="postagePrice"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.postagePrice}
+            onChange={handleChange}
+            placeholder="e.g. 15 - leave blank for free postage"
+            disabled={form.collectionOnly}
+          />
+          <label className="field-check">
+            <input
+              type="checkbox"
+              name="collectionOnly"
+              checked={form.collectionOnly}
+              onChange={e => setForm(f => ({ ...f, collectionOnly: e.target.checked }))}
+            />
+            Collection only, no postage
+          </label>
+          <p className="field-hint">
+            Buyers pay this on top of your price, and it comes to you in full. We only take
+            our fee on the item itself, not on postage.
+          </p>
         </div>
 
         <div className="field-group">

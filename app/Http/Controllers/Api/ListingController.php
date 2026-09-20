@@ -438,6 +438,12 @@ class ListingController extends Controller
             'title' => [$required, 'string', 'max:200'],
             'description' => [$required, 'string'],
             'price' => [$required, 'numeric', 'min:0'],
+            // Capped rather than merely non-negative. Postage is recovering
+            // what a courier charged, and a four figure postage line on a
+            // cheap item is either a mistake or a way to dodge the fee,
+            // which is charged on the item alone.
+            'postage_price' => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'collection_only' => ['nullable', 'boolean'],
             'location' => [$required, 'string', 'max:120'],
             'category' => [$required, 'string', 'exists:categories,slug'],
             'brand' => ['nullable', 'string', Rule::in(Brands::all())],

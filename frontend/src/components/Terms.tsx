@@ -61,8 +61,15 @@ function Terms() {
         </ul>
         <p>
           Prices are in pounds sterling and include everything you are charging
-          for the item itself. Agree postage or collection with the buyer
-          separately.
+          for the item itself. Set your postage cost on the listing, or mark it
+          collection only. The buyer pays the item price and the postage
+          together, we hold both, and the postage reaches you in full: our fee
+          is charged on the item alone.
+        </p>
+        <p>
+          The postage you state is what you are agreeing to charge, so quote
+          for a courier that will actually carry the item. You cannot ask the
+          buyer for more once they have paid.
         </p>
         <p>
           You keep ownership of the photographs, audio and video you upload. By

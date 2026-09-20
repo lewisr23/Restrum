@@ -51,6 +51,8 @@ function EditListing() {
   const [form, setForm] = useState({
     title: '',
     price: '',
+    postagePrice: '',
+    collectionOnly: false,
     location: '',
     condition: 'GOOD',
     description: '',
@@ -94,6 +96,8 @@ function EditListing() {
         setForm({
           title: listing.title,
           price: String(listing.price),
+          postagePrice: String(listing.postage_price ?? ''),
+          collectionOnly: Boolean(listing.collection_only),
           location: listing.location,
           condition: listing.condition,
           description: listing.description || '',
@@ -169,6 +173,8 @@ function EditListing() {
           title: form.title,
           description: form.description,
           price: parseFloat(form.price),
+          postage_price: form.collectionOnly ? 0 : parseFloat(form.postagePrice || '0'),
+          collection_only: form.collectionOnly,
           location: form.location,
           category,
           brand: brand || null,
@@ -228,6 +234,34 @@ function EditListing() {
         <div className="field-group">
           <label className="field-label" htmlFor="price">Price (£) *</label>
           <input className="field" id="price" name="price" type="number" value={form.price} onChange={handleChange} required />
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="postagePrice">Postage (£)</label>
+          <input
+            className="field"
+            id="postagePrice"
+            name="postagePrice"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.postagePrice}
+            onChange={handleChange}
+            placeholder="Leave blank for free postage"
+            disabled={form.collectionOnly}
+          />
+          <label className="field-check">
+            <input
+              type="checkbox"
+              name="collectionOnly"
+              checked={form.collectionOnly}
+              onChange={e => setForm(f => ({ ...f, collectionOnly: e.target.checked }))}
+            />
+            Collection only, no postage
+          </label>
+          <p className="field-hint">
+            Comes to you in full. Our fee is on the item only.
+          </p>
         </div>
 
         <div className="field-group">

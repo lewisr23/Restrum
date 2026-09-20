@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 // status is deliberately NOT fillable - a listing starts ACTIVE and only
 // moves to SOLD via the offer-accept flow, never by direct request input.
-#[Fillable(['title', 'description', 'price', 'location', 'category_id', 'brand', 'condition'])]
+#[Fillable(['title', 'description', 'price', 'postage_price', 'collection_only', 'location', 'category_id', 'brand', 'condition'])]
 class Listing extends Model
 {
     use HasFactory;
@@ -21,6 +21,8 @@ class Listing extends Model
     {
         return [
             'price' => 'decimal:2',
+            'postage_price' => 'decimal:2',
+            'collection_only' => 'boolean',
         ];
     }
 

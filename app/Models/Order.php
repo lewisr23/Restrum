@@ -28,6 +28,7 @@ class Order extends Model
         return [
             'status' => OrderStatus::class,
             'amount' => 'decimal:2',
+            'postage' => 'decimal:2',
             'platform_fee' => 'decimal:2',
             'reserved_until' => 'datetime',
             'paid_at' => 'datetime',
