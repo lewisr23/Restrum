@@ -5,10 +5,6 @@ instruments in the UK. Sellers list gear with photos, audio and video, buyers
 search it, and the two talk in real time. Every instrument carries a service
 history that moves with it between owners.
 
-This is the PHP build. The parts worth reading are the Elasticsearch analyzers
-behind gear search, the queued indexing, and how search degrades to SQL when
-the cluster is unavailable. All three are explained below.
-
 ## Stack
 
 **Backend:** PHP 8.3, Laravel 13, Sanctum for token auth, Reverb for WebSockets, MySQL 8, Elasticsearch 8, Redis for queued work
