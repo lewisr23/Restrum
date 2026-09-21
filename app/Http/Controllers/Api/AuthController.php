@@ -28,6 +28,13 @@ class AuthController extends Controller
             'bio' => $data['bio'] ?? null,
         ]);
 
+        // Called outright rather than left to Laravel's Registered event.
+        // That listener is only wired up by an EventServiceProvider, which
+        // this app does not have, so firing the event here would have sent
+        // no mail at all and looked like it had. Firing it AND calling this
+        // would send two the day somebody adds one.
+        $user->sendEmailVerificationNotification();
+
         return response()->json([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => $user,

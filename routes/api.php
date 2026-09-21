@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\EndorsementController;
 use App\Http\Controllers\Api\FollowController;
 use App\Http\Controllers\Api\ListingController;
@@ -34,16 +35,27 @@ Route::post('/forgot-password', [PasswordResetController::class, 'request'])
     ->middleware('throttle:password-reset');
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
+// Opened from a mail client, which sends no bearer token, so the signature
+// is the whole of the authentication here. Throttled as well as signed: the
+// signature is unguessable but the route is public, and a public route that
+// hits the database on every call is worth a limit.
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:email-verification');
 
     // Must be registered BEFORE GET /listings/{listing} below - Laravel
     // matches routes in registration order, so {listing} would otherwise
     // swallow "saved" as if it were an id.
     Route::get('/listings/saved', [ListingController::class, 'saved']);
 
-    Route::post('/listings', [ListingController::class, 'store']);
+    Route::post('/listings', [ListingController::class, 'store'])->middleware('verified');
     Route::put('/listings/{listing}', [ListingController::class, 'update']);
     Route::delete('/listings/{listing}', [ListingController::class, 'destroy']);
     Route::post('/listings/{listing}/save', [ListingController::class, 'toggleSave']);
@@ -51,7 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Replaces the old POST /listings/{listing}/buy, which marked a listing
     // sold without any money changing hands. This one reserves the listing
     // and hands back a Stripe Checkout URL.
-    Route::post('/listings/{listing}/checkout', [CheckoutController::class, 'store']);
+    Route::post('/listings/{listing}/checkout', [CheckoutController::class, 'store'])
+        ->middleware('verified');
 
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
@@ -69,9 +82,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/conversations', [ConversationController::class, 'index']);
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);
-    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store'])
+        ->middleware('verified');
 
-    Route::post('/listings/{listing}/messages', [MessageController::class, 'startOrContinue']);
+    Route::post('/listings/{listing}/messages', [MessageController::class, 'startOrContinue'])
+        ->middleware('verified');
     Route::post('/messages/{message}/respond', [MessageController::class, 'respond']);
 
     Route::post('/users/{user}/endorse', [EndorsementController::class, 'store']);

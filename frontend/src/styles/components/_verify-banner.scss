@@ -1,0 +1,62 @@
+@use '../abstracts' as *;
+
+// The unconfirmed-address notice, between the navbar and the page.
+//
+// Warning-coloured rather than danger-coloured: nothing has gone wrong, a
+// step is simply outstanding. It is not dismissable because it is also the
+// only way back for someone whose link has expired.
+.verify-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm $space-md;
+
+  padding: $space-sm $space-lg;
+  border-bottom: 1px solid rgba($color-warning, 0.35);
+  background: rgba($color-warning, 0.08);
+  color: $color-text-soft;
+  font-size: $font-size-sm;
+
+  &__text {
+    margin: 0;
+    flex: 1 1 320px;
+    line-height: 1.5;
+
+    strong {
+      color: $color-warning;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+    flex-wrap: wrap;
+  }
+
+  &__button {
+    padding: $space-xs $space-md;
+    border: 1px solid rgba($color-warning, 0.55);
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $color-warning;
+    font: inherit;
+    cursor: pointer;
+    transition: background $transition, border-color $transition;
+
+    &:hover:not(:disabled) {
+      background: rgba($color-warning, 0.15);
+      border-color: $color-warning;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+
+  &__message {
+    color: $color-text-muted;
+  }
+}

@@ -17,6 +17,8 @@ import Login from './components/Login';
 import AdminReports from './components/AdminReports';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import EmailVerified from './components/EmailVerified';
+import VerifyEmailBanner from './components/VerifyEmailBanner';
 import Register from './components/Register';
 import MessagesPage from './components/Messages';
 import SellerProfile from './components/SellerProfile';
@@ -36,6 +38,12 @@ function App() {
       <BrowserRouter>
         <div className="app-shell">
           <Navbar />
+
+          {/* Above the routes rather than inside one: an unconfirmed
+              address matters on every page, and the banner renders
+              nothing for everyone else. */}
+          <VerifyEmailBanner />
+
           <div className="app-shell__main">
             <Routes>
               <Route path="/" element={<Browse />} />
@@ -58,6 +66,7 @@ function App() {
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/email-verified" element={<EmailVerified />} />
               <Route path="/register" element={<Register />} />
             </Routes>
           </div>

@@ -103,6 +103,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Email Verification
+    |--------------------------------------------------------------------------
+    |
+    | How long a verification link stays good for, in minutes. Laravel reads
+    | this key itself but does not ship it in this file, and leaving it to
+    | the framework default meant the expiry quoted in the email was a
+    | number written in two places that could drift apart.
+    |
+    */
+
+    'verification' => [
+        'expire' => (int) env('AUTH_VERIFICATION_EXPIRE', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Password Confirmation Timeout
     |--------------------------------------------------------------------------
     |

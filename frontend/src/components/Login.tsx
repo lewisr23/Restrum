@@ -27,7 +27,13 @@ function Login() {
         return;
       }
       const data = await res.json();
-      login({ id: data.user.id, username: data.user.username, email: data.user.email, token: data.token });
+      login({
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        email_verified_at: data.user.email_verified_at ?? null,
+        token: data.token,
+      });
       navigate('/');
     } catch {
       setError('Could not connect to server.');

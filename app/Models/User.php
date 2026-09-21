@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Notifications\VerifyEmailAddress;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -22,7 +24,7 @@ use Laravel\Sanctum\HasApiTokens;
 // public label, and is_admin because who moderates is not everyone's
 // business.
 #[Hidden(['password', 'remember_token', 'stripe_account_id', 'suspension_reason', 'is_admin'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -39,6 +41,17 @@ class User extends Authenticatable
             'stripe_payouts_enabled' => 'boolean',
             'stripe_synced_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Restrum's own wording instead of Laravel's stock verification email.
+     *
+     * The default text says nothing about why a marketplace is asking,
+     * which is the part that gets the link clicked.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailAddress);
     }
 
     /**

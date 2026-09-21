@@ -78,6 +78,17 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         /*
+         * Resending a verification link. Cheaper to abuse than a password
+         * reset, since the sender has to be logged in and the mail can only
+         * go to their own address, so the limit is about stopping a stuck
+         * client from hammering Brevo's quota rather than about harassment.
+         */
+        RateLimiter::for('email-verification', fn (Request $request) => [
+            Limit::perMinute(2)->by($request->user()?->id ?: $request->ip()),
+            Limit::perHour(10)->by($request->user()?->id ?: $request->ip()),
+        ]);
+
+        /*
          * The reset link has to open the React app, not the API. Laravel's
          * default builds a URL to a server-rendered route that does not
          * exist here, so without this the email would send a working token
