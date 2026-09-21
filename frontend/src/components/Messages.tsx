@@ -14,6 +14,10 @@ interface ChatMessage {
   offer_amount: number | null;
   offer_status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null;
   created_at: string;
+
+  // Null for almost every message. When set, it names what the off-platform
+  // scanner spotted, and the bubble carries a warning underneath.
+  safety_flags: string[] | null;
 }
 
 interface ConversationSummary {
@@ -25,6 +29,54 @@ interface ConversationSummary {
   latest_message_preview: string | null;
   has_endorsed_other: boolean;
   unread_count: number;
+}
+
+// Which scanner signals get the stronger wording. Mirrors the SEVERE list
+// in app/Services/Safety/OffPlatformScanner.php. Duplicated rather than
+// sent down with each message because it is a presentation decision, and a
+// wrong entry here softens a warning rather than breaking anything.
+const SEVERE_FLAGS = [
+  'bank_details',
+  'bank_account_digits',
+  'iban_digits',
+  'bank_transfer',
+  'friends_and_family',
+  'untraceable_rail',
+  'dodging_fees',
+];
+
+/**
+ * The warning under a message that looked like it was steering the sale off
+ * Restrum.
+ *
+ * Shown to both people, not just the recipient. The one being targeted needs
+ * it most, but a seller who sees their own message carrying a notice learns
+ * where the line is, and an honest one who just offered their phone number
+ * for a collection finds out why that looked odd.
+ *
+ * The message itself is never hidden. See OffPlatformScanner for the
+ * reasoning: a block teaches evasion, and plenty of these are innocent.
+ */
+function SafetyWarning({ flags, mine }: { flags: string[]; mine: boolean }) {
+  const severe = flags.some(f => SEVERE_FLAGS.includes(f));
+
+  return (
+    <div className={`bubble__warning${severe ? ' bubble__warning--severe' : ''}`}>
+      {mine ? (
+        <p>
+          {severe
+            ? 'This reads like an offer to settle up away from Restrum. Payments made outside the site are not covered by anything here, and asking for one can get an account suspended.'
+            : 'Heads up: swapping contact details or naming another payment app makes a buyer wary, because it is how most scams on marketplaces start.'}
+        </p>
+      ) : (
+        <p>
+          {severe
+            ? 'Careful. This message is pointing you away from paying through Restrum. If you pay this way your money is gone the moment you send it: there is no escrow, no refund and nobody to appeal to. Report it if it feels wrong.'
+            : 'Just so you know: paying anywhere other than through Restrum leaves you with no buyer protection, no escrow and no refund.'}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function ConversationRow({ conv, active, onClick }: { conv: ConversationSummary; active: boolean; onClick: () => void }) {
@@ -303,6 +355,10 @@ function ChatPanel({
                   </>
                 )}
                 {!isOffer && <p className="bubble__text">{m.content}</p>}
+
+                {m.safety_flags && m.safety_flags.length > 0 && (
+                  <SafetyWarning flags={m.safety_flags} mine={mine} />
+                )}
               </div>
               <p className="bubble__time">
                 {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

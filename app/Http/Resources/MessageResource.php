@@ -18,6 +18,11 @@ class MessageResource extends JsonResource
             'offer_amount' => $this->offer_amount,
             'offer_status' => $this->offer_status,
             'read_by_recipient' => $this->read_by_recipient,
+
+            // Null for almost every message. When it is not, the client
+            // shows a warning under the message rather than hiding it: see
+            // OffPlatformScanner for why this warns instead of blocking.
+            'safety_flags' => $this->safety_flags,
             'created_at' => $this->created_at,
         ];
     }

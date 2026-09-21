@@ -278,3 +278,26 @@
     text-align: right;
   }
 }
+
+// The off-platform payment warning, under the message it belongs to rather
+// than as a separate bubble: it is a note about that message, and floating
+// it on its own made it read like a third person in the conversation.
+.bubble__warning {
+  margin-top: $space-xs;
+  padding: $space-xs $space-sm;
+  border-left: 3px solid $color-warning;
+  border-radius: 0 $radius-sm $radius-sm 0;
+  background: rgba($color-warning, 0.1);
+
+  p {
+    margin: 0;
+    font-size: $font-size-xs;
+    line-height: 1.5;
+    color: $color-text-soft;
+  }
+
+  &--severe {
+    border-left-color: $color-danger;
+    background: rgba($color-danger, 0.12);
+  }
+}

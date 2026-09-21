@@ -98,7 +98,7 @@ function AdminReports() {
               <div className="review__head">
                 <strong>{REASON_LABELS[report.reason] ?? report.reason}</strong>
                 <span className="text-muted">
-                  reported by {report.reporter?.username ?? 'a deleted user'}
+                  reported by {report.reporter?.username ?? 'Restrum (flagged automatically)'}
                   {' on '}
                   {new Date(report.created_at).toLocaleDateString('en-GB')}
                 </span>

@@ -9,12 +9,15 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Listing;
 use App\Models\Message;
+use App\Services\Safety\MessageSafetyReviewer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class MessageController extends Controller
 {
+    public function __construct(private MessageSafetyReviewer $safety) {}
+
     /**
      * Starts a conversation with a listing's seller if one doesn't already
      * exist for this (listing, buyer) pair, or continues it if it does -
@@ -40,16 +43,20 @@ class MessageController extends Controller
             'buyer_id' => $request->user()->id,
         ]);
 
-        // A sold listing deliberately does NOT block a new conversation here.
-        // This marketplace processes no payments: buying marks the item sold
-        // and everything that actually completes the sale - paying, agreeing
-        // collection or postage - happens in the conversation afterwards. An
-        // earlier version refused new conversations on sold listings, which
-        // blocked the buyer from the exact next step the checkout page tells
-        // them to take, every time. Nor can the buyer be special-cased: buy()
-        // deliberately records no purchase, so there is nothing to check them
-        // against - and messaging a seller about something already sold is
-        // ordinary marketplace behaviour regardless.
+        // A sold listing deliberately does NOT block a new conversation.
+        // Selling is only the start of the exchange: the buyer still has to
+        // ask where their parcel is, agree a collection time, or sort out a
+        // problem with what arrived, and every one of those conversations
+        // begins after the listing stops being available. An earlier
+        // version refused them, which shut the buyer out at exactly the
+        // point they most needed to reach the seller. Messaging a seller
+        // about something already sold is ordinary marketplace behaviour
+        // regardless of who is asking.
+        //
+        // (This comment used to say the site processed no payments and that
+        // buyer and seller settled up privately in the conversation. That
+        // stopped being true when Stripe escrow landed, and the rule it was
+        // justifying is now justified by the paragraph above instead.)
         if (! $conversation->exists) {
             $conversation->seller_id = $listing->seller_id;
         }
@@ -67,6 +74,11 @@ class MessageController extends Controller
         // ListingController::store's status/condition handling). created_at
         // no longer needs this: the model writes it on the app's clock now.
         $message->refresh();
+
+        // Before the broadcast, so a message that arrives live carries its
+        // warning with it rather than growing one on the next page load.
+        $this->safety->review($message);
+
         MessageSent::dispatch($message);
 
         return response()->json([
@@ -102,6 +114,7 @@ class MessageController extends Controller
             'offer_status' => $isOffer ? 'PENDING' : null,
         ]);
         $message->refresh(); // see startOrContinue() above for why
+        $this->safety->review($message);
         MessageSent::dispatch($message);
 
         // Direct assignment, not update(['last_message_at' => ...]) -

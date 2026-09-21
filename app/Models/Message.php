@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // (see the Conversation model for why "no #[Fillable] at all" is NOT the
 // safe default it looks like - it blocks legitimate server-side creation
 // too, since Eloquent's default is an empty allow-list, not unguarded).
-#[Fillable(['sender_id', 'content', 'message_type', 'offer_amount', 'offer_status'])]
+#[Fillable(['sender_id', 'content', 'message_type', 'offer_amount', 'offer_status', 'safety_flags'])]
 class Message extends Model
 {
     // Only created_at exists on this table - messages are immutable once sent.
@@ -30,6 +30,7 @@ class Message extends Model
         return [
             'offer_amount' => 'decimal:2',
             'read_by_recipient' => 'boolean',
+            'safety_flags' => 'array',
             'created_at' => 'datetime',
         ];
     }
