@@ -6,6 +6,16 @@
 @use '../abstracts' as *;
 
 :root {
+  /*
+   * Native controls are drawn by the browser, not by this stylesheet, and
+   * they follow color-scheme rather than any colour set here. Left at its
+   * default of "light" on a near-black page, the number input's spinner
+   * arrows came out as a white block sitting inside a dark field, the
+   * select dropdown opened white, and the scrollbars were light grey.
+   * Styling the input itself cannot reach any of them.
+   */
+  color-scheme: dark;
+
   --bg: #{$color-bg};
   --bg-sunken: #{$color-bg-sunken};
   --bg-raised: #{$color-bg-raised};

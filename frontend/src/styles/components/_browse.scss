@@ -104,6 +104,17 @@
     border-radius: $radius-sm;
     font-size: $font-size-sm;
 
+    // No stepper. color-scheme: dark makes the arrows match the page, but
+    // they are still the wrong control here: nobody reaches for a price
+    // ceiling one pound at a time, and they eat a third of a 70px field.
+    appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+
     &:focus {
       @include focus-ring;
     }
@@ -134,5 +145,64 @@
 
   &__main {
     flex: 1;
+  }
+}
+
+// Results that are being replaced, not removed.
+//
+// Every facet click used to unmount the grid and put the word "Loading" in
+// its place, so the page collapsed to a single line of text and then grew
+// back. Dimming what is already there keeps the layout still and makes a
+// fast response look instant instead of looking like a reload.
+.browse__grid--stale {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity $transition;
+}
+
+// First load only, when there is genuinely nothing to keep on screen.
+// Shaped like a real card so the page lands at its final height.
+.listing-skeleton {
+  @include surface;
+  overflow: hidden;
+
+  &__media {
+    aspect-ratio: 4 / 3;
+    background: $color-bg-elevated;
+  }
+
+  &__line {
+    height: 12px;
+    margin: $space-sm $space-sm 0;
+    border-radius: $radius-sm;
+    background: $color-bg-elevated;
+
+    &--title {
+      width: 75%;
+    }
+
+    &--price {
+      width: 40%;
+      margin-bottom: $space-md;
+    }
+  }
+
+  // One shared pulse, deliberately slow. A fast shimmer on nine tiles reads
+  // as an error state rather than as waiting.
+  &__media,
+  &__line {
+    animation: skeleton-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-skeleton__media,
+  .listing-skeleton__line {
+    animation: none;
   }
 }

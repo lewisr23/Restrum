@@ -15,7 +15,10 @@ export function filtersToParams(filters: BrowseFilters): URLSearchParams {
   if (filters.category) params.set('category', filters.category);
   if (filters.minPrice) params.set('min_price', filters.minPrice);
   if (filters.maxPrice) params.set('max_price', filters.maxPrice);
-  if (filters.availability !== 'all') params.set('availability', filters.availability);
+  // 'available' is the default at both ends now, so only the opt-in needs
+  // to travel. Writing the default into the URL would put ?availability= on
+  // every link anyone shares.
+  if (filters.availability !== 'available') params.set('availability', filters.availability);
   if (filters.sort !== 'newest') params.set('sort', filters.sort);
 
   filters.brands.forEach(v => params.append('brands[]', v));
@@ -49,7 +52,7 @@ export function paramsToFilters(params: URLSearchParams): BrowseFilters {
     category: params.get('category'),
     minPrice: params.get('min_price') ?? '',
     maxPrice: params.get('max_price') ?? '',
-    availability: params.get('availability') === 'available' ? 'available' : 'all',
+    availability: params.get('availability') === 'all' ? 'all' : 'available',
     sort: params.get('sort') ?? 'newest',
     brands: params.getAll('brands[]'),
     conditions: params.getAll('conditions[]'),
@@ -98,10 +101,12 @@ export function activeFilters(filters: BrowseFilters): ActiveFilter[] {
     });
   }
 
-  if (filters.availability === 'available') {
+  // Only the non-default state earns a chip. "Available only" is now what
+  // everyone gets, and a chip for the default is one more thing to read.
+  if (filters.availability === 'all') {
     chips.push({
-      label: 'Available only',
-      remove: f => ({ ...f, availability: 'all' }),
+      label: 'Including sold',
+      remove: f => ({ ...f, availability: 'available' }),
     });
   }
 

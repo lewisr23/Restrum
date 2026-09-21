@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { CategoryContext, Facets, FacetCount } from '../lib/catalog';
+import { CatalogCategory, CategoryContext, Facets, FacetCount } from '../lib/catalog';
 
 export type BrowseFilters = {
   category: string | null;
@@ -24,7 +24,14 @@ export const EMPTY_FILTERS: BrowseFilters = {
   attributes: {},
   minPrice: '',
   maxPrice: '',
-  availability: 'all',
+
+  // Sold gear is hidden until it is asked for, which is what the API has
+  // always done by default (see ListingFilter). This said 'all', so the
+  // client overrode that default on every request and browse shipped
+  // showing gear nobody can buy. A Telecaster somebody else already bought
+  // is not an answer to "show me a Telecaster", it is a row to read and
+  // discard.
+  availability: 'available',
   sort: 'newest',
 };
 
@@ -138,12 +145,14 @@ function FilterPanel({
   filters,
   onChange,
   onPickCategory,
+  departments,
 }: {
   category: CategoryContext | null;
   facets: Facets | null;
   filters: BrowseFilters;
   onChange: (next: BrowseFilters) => void;
   onPickCategory: (slug: string | null) => void;
+  departments: CatalogCategory[];
 }) {
   if (!facets) return null;
 
@@ -191,7 +200,7 @@ function FilterPanel({
           </div>
         )}
 
-        {branches.length > 0 ? (
+        {branches.length > 0 && (
           <div className="filter-panel__branches">
             {branches.map(branch => (
               <button
@@ -204,19 +213,53 @@ function FilterPanel({
               </button>
             ))}
           </div>
-        ) : (
-          category && (
-            <p className="filter-panel__leaf">
-              {/* Two different situations that both leave nothing to show,
-                  and telling a buyer the wrong one is worse than telling
-                  them nothing: a leaf has no subcategories at all, while a
-                  department with empty subcategories has plenty and simply
-                  has nothing listed in them yet. */}
-              {category.is_leaf
-                ? 'You are as deep as this branch goes.'
-                : 'Nothing listed further down this branch yet.'}
-            </p>
-          )
+        )}
+
+        {branches.length === 0 && category && (
+          <p className="filter-panel__leaf">
+            {/* Two different situations that both leave nothing to show, and
+                telling a buyer the wrong one is worse than telling them
+                nothing: a leaf has no subcategories at all, while a
+                department with empty subcategories has plenty and simply has
+                nothing listed in them yet. */}
+            {category.is_leaf
+              ? 'You are as deep as this branch goes.'
+              : 'Nothing listed further down this branch yet.'}
+          </p>
+        )}
+
+        {/* Every department, always reachable from here.
+            Previously the only way to move sideways from Guitars to Keys was
+            the chip rail in the hero, which meant scrolling back up past the
+            results to a control that had left the screen. Two navigators in
+            two places doing one job. This panel is now the whole navigator,
+            and the hero rail is a front door rather than the only way
+            through.
+
+            Always collapsed. Open by default it repeated most of the list of
+            stocked departments directly above it, which at the top of the
+            shop is the same fourteen names twice. */}
+        {departments.length > 0 && (
+          <details className="filter-panel__departments">
+            <summary className="filter-panel__departments-summary">
+              {category === null ? 'All departments' : 'Browse another department'}
+            </summary>
+            <div className="filter-panel__branches">
+              {departments.map(department => (
+                <button
+                  key={department.slug}
+                  className={`filter-panel__branch${
+                    category && category.path.split('/')[0] === department.slug
+                      ? ' filter-panel__branch--current'
+                      : ''
+                  }`}
+                  onClick={() => onPickCategory(department.slug)}
+                >
+                  <span>{department.name}</span>
+                </button>
+              ))}
+            </div>
+          </details>
         )}
       </div>
 
@@ -245,13 +288,17 @@ function FilterPanel({
           />
         </div>
 
+        {/* Phrased as opting IN to sold gear rather than opting out of it,
+            so the unchecked default is the one a buyer wants. The old
+            "Hide sold listings" was unchecked by default, which meant the
+            quiet state was the wrong one. */}
         <label className="facet__option facet__option--standalone">
           <input
             type="checkbox"
-            checked={filters.availability === 'available'}
-            onChange={e => set({ availability: e.target.checked ? 'available' : 'all' })}
+            checked={filters.availability === 'all'}
+            onChange={e => set({ availability: e.target.checked ? 'all' : 'available' })}
           />
-          <span className="facet__label">Hide sold listings</span>
+          <span className="facet__label">Include sold listings</span>
         </label>
       </div>
 
