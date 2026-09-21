@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePublishedHeight } from '../lib/stickyHeights';
 import { useAuth } from '../context/AuthContext';
 
 // Account dropdown. Consolidates "My Listings", Saved and Messages under one
@@ -97,8 +98,12 @@ function Navbar() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Everything else that sticks to the top of the window sits below this,
+  // so its height has to be readable from CSS. See lib/stickyHeights.
+  const navRef = usePublishedHeight<HTMLElement>('--nav-height');
+
   return (
-    <nav className="site-nav">
+    <nav className="site-nav" ref={navRef}>
       {/* An inner wrapper on the same container as every page below it, so
           the logo lines up with the hero text and the listing grid instead
           of floating out at the window edge on its own. */}

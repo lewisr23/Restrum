@@ -90,15 +90,11 @@
   @include surface;
   padding: $space-md;
 
-  // Follows the results on a long page, so the filters are still there after
-  // scrolling through eighty listings. Capped and scrollable, because the
-  // panel under a record category is taller than most windows.
-  @include media-up('lg') {
-    position: sticky;
-    top: 80px;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
-  }
+  // The sticking is done by .browse__panel, the wrapper, not here. A sticky
+  // element can only travel within its own parent's box, and this element's
+  // parent is exactly its own height, so sticky on it does nothing at all.
+  // It worked before the drawer wrapper existed, when this WAS the grid
+  // item.
 
   &__section {
     padding-bottom: $space-md;
@@ -384,4 +380,136 @@
     color: $color-text;
     text-align: right;
   }
+}
+
+// The filter column, and on narrow screens the drawer it becomes.
+//
+// The panel used to stack above the results below lg, which meant scrolling
+// past every facet in the category to reach the first listing. That was
+// noted at the time as "the right answer on a phone and the wrong amount of
+// machinery to add before anyone has used this on one". Someone has now.
+.browse__panel {
+  min-width: 0;
+
+  // Follows the results on a long page, so the filters are still there after
+  // scrolling through eighty listings. Capped and scrollable, because the
+  // panel under a record category is taller than most windows.
+  @include media-up('lg') {
+    position: sticky;
+
+    // Clears both of the things above it. The filter panel used to say 80px
+    // here, a guess at the navbar's height that was wrong by 15px even
+    // before the browse bar existed to sit between them. Both heights are
+    // measured and published by the components themselves: see
+    // lib/stickyHeights.
+    top: calc(var(--nav-height, 65px) + var(--browse-bar-height, 0px) + #{$space-md});
+    max-height: calc(100vh - var(--nav-height, 65px) - var(--browse-bar-height, 0px) - #{$space-xl});
+    overflow-y: auto;
+  }
+
+  @include media-down('lg') {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: $z-nav + 1;
+
+    width: min(340px, 86vw);
+    display: flex;
+    flex-direction: column;
+    background: $color-bg-raised;
+    border-right: 1px solid $color-border;
+
+    // Off-canvas until asked for. Transformed rather than hidden, so it
+    // slides rather than appearing, and so its contents stay in the
+    // document for anything reading the page.
+    transform: translateX(-100%);
+    transition: transform $transition;
+
+    &--open {
+      transform: translateX(0);
+    }
+  }
+}
+
+// The drawer's own header. There is no need for one when the panel is just
+// a column on the page, so it only exists at drawer widths.
+.browse__panel-head {
+  display: none;
+
+  @include media-down('lg') {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+    padding: $space-md;
+    border-bottom: 1px solid $color-border;
+  }
+}
+
+.browse__panel-title {
+  margin: 0;
+  font-size: $font-size-lg;
+}
+
+.browse__panel-close {
+  @include button-reset;
+  padding: $space-xs $space-md;
+  border: 1px solid $color-border-input;
+  border-radius: $radius-sm;
+  color: $color-text;
+  font-size: $font-size-sm;
+  font-weight: 600;
+
+  &:hover {
+    border-color: $color-accent;
+    color: $color-accent;
+  }
+}
+
+.browse__scrim {
+  @include button-reset;
+  position: fixed;
+  inset: 0;
+  z-index: $z-nav;
+  background: rgba(0, 0, 0, 0.6);
+
+  @include media-up('lg') {
+    display: none;
+  }
+}
+
+// Sideways moves between departments, from inside the panel.
+.filter-panel__departments {
+  margin-top: $space-sm;
+
+  &-summary {
+    cursor: pointer;
+    padding: $space-xs 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::before {
+      content: '+ ';
+      color: $color-text-faint;
+    }
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+
+  &[open] &-summary::before {
+    content: '\2212 ';
+  }
+}
+
+.filter-panel__branch--current {
+  color: $color-accent;
+  font-weight: 600;
 }

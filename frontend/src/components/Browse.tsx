@@ -7,6 +7,7 @@ import { API } from '../lib/config';
 import { useCatalog, CatalogCategory, CategoryContext, Facets } from '../lib/catalog';
 import { CategoryIcon, AllCategoriesIcon } from './Icon';
 import { filtersToParams, paramsToFilters, activeFilters, hasActiveFilters } from '../lib/browse';
+import { usePublishedHeight } from '../lib/stickyHeights';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first' },
@@ -97,6 +98,105 @@ function Hero({
   );
 }
 
+/**
+ * What replaces the hero once someone is actually shopping.
+ *
+ * The hero is a front door: a headline, a paragraph of pitch, three tick
+ * points and fourteen department chips, around seven hundred pixels of it.
+ * That is the right thing to meet a first visitor with and the wrong thing
+ * to put above the results on every single filter change, which is what it
+ * used to do. Narrowing to left-handed 7 strings under GBP 400 and being
+ * shown the sales pitch again each time is what made browsing feel heavy.
+ *
+ * So the hero appears in exactly one state, the front door, and the moment
+ * a category, a search or a filter is in play this takes its place: the
+ * same search box, where you are, how many there are, and the sort, in one
+ * sticky strip.
+ */
+function BrowseBar({
+  search,
+  onSearch,
+  category,
+  total,
+  loading,
+  sort,
+  onSort,
+  onPickCategory,
+  activeCount,
+  onOpenFilters,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  category: CategoryContext | null;
+  total: number | null;
+  loading: boolean;
+  sort: string;
+  onSort: (v: string) => void;
+  onPickCategory: (slug: string | null) => void;
+  activeCount: number;
+  onOpenFilters: () => void;
+}) {
+  // The filter panel sticks below this, so it needs to know how tall it is.
+  // Two rows at narrow widths, one at wide, so it cannot be a constant.
+  const barRef = usePublishedHeight<HTMLDivElement>('--browse-bar-height');
+
+  return (
+    <div className="browse-bar" ref={barRef}>
+      <div className="browse-bar__inner">
+        <div className="browse-bar__row">
+          <input
+            type="text"
+            className="browse-bar__search"
+            placeholder="Search gear: Stratocaster, SM58, OP-1..."
+            value={search}
+            onChange={e => onSearch(e.target.value)}
+          />
+
+          <select
+            className="field field--select browse-bar__sort"
+            value={sort}
+            onChange={e => onSort(e.target.value)}
+            aria-label="Sort results"
+          >
+            {SORT_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+
+          {/* Below lg the filter panel is a drawer, so it needs a handle.
+              The count is on it because a closed drawer otherwise hides the
+              fact that anything is filtering the results at all. */}
+          <button className="browse-bar__filters" onClick={onOpenFilters}>
+            Filters{activeCount > 0 && <span className="browse-bar__filters-count">{activeCount}</span>}
+          </button>
+        </div>
+
+        <div className="browse-bar__row browse-bar__row--meta">
+          <nav className="browse-bar__crumbs" aria-label="Category">
+            <button className="browse-bar__crumb" onClick={() => onPickCategory(null)}>All gear</button>
+            {(category?.breadcrumbs ?? []).map(crumb => (
+              <button
+                key={crumb.slug}
+                className="browse-bar__crumb"
+                onClick={() => onPickCategory(crumb.slug)}
+                disabled={crumb.slug === category?.slug}
+              >
+                {crumb.name}
+              </button>
+            ))}
+          </nav>
+
+          {!loading && total !== null && (
+            <span className="browse-bar__total">
+              {total} {total === 1 ? 'listing' : 'listings'}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Browse() {
   const [params, setParams] = useSearchParams();
   const { catalog } = useCatalog();
@@ -115,6 +215,17 @@ function Browse() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Separate from `loading`, because the two want opposite treatment. The
+  // very first load has nothing to show and gets skeletons; every load after
+  // it already has results on screen and should keep them, dimmed, rather
+  // than replacing the grid with the word "Loading". Blanking the results on
+  // every tickbox was the thing that made filtering feel like it was
+  // reloading the site.
+  const [settled, setSettled] = useState(false);
+
+  // Below lg the panel is a drawer rather than a column.
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const apply = useCallback((next: BrowseFilters) => {
     setPage(1);
@@ -163,11 +274,13 @@ function Browse() {
         setMeta(body.meta);
         setError('');
         setLoading(false);
+        setSettled(true);
       })
       .catch(err => {
         if (!live) return;
         setError(err.message || 'Could not connect to the server.');
         setLoading(false);
+        setSettled(true);
       });
 
     return () => { live = false; };
@@ -176,51 +289,95 @@ function Browse() {
 
   const pickCategory = (slug: string | null) => {
     apply({ ...filters, category: slug, attributes: {} });
+    setDrawerOpen(false);
     setTimeout(() => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
 
   const chips = activeFilters(filters);
 
+  // The front door versus the shop floor. Anything at all narrowing the view
+  // means somebody is shopping rather than arriving, and the hero stands
+  // down for the compact bar. Picking a department counts, which is why
+  // category is in here and not just the filters.
+  const browsing = filters.category !== null || filters.search !== '' || hasActiveFilters(filters);
+
   return (
     <div>
-      <Hero
-        search={searchText}
-        onSearch={setSearchText}
-        departments={catalog?.categories ?? []}
-        onPickCategory={pickCategory}
-        selectedCategory={filters.category}
-      />
+      {browsing ? (
+        <BrowseBar
+          search={searchText}
+          onSearch={setSearchText}
+          category={category}
+          total={facets?.total ?? null}
+          loading={loading && !settled}
+          sort={filters.sort}
+          onSort={value => apply({ ...filters, sort: value })}
+          onPickCategory={pickCategory}
+          activeCount={chips.length}
+          onOpenFilters={() => setDrawerOpen(true)}
+        />
+      ) : (
+        <Hero
+          search={searchText}
+          onSearch={setSearchText}
+          departments={catalog?.categories ?? []}
+          onPickCategory={pickCategory}
+          selectedCategory={filters.category}
+        />
+      )}
 
       <div ref={gridRef} className="browse browse--faceted">
-        <FilterPanel
-          category={category}
-          facets={facets}
-          filters={filters}
-          onChange={apply}
-          onPickCategory={pickCategory}
-        />
+        {/* The scrim only exists while the drawer is open, and closing on it
+            is the gesture everyone tries first. */}
+        {drawerOpen && (
+          <button
+            className="browse__scrim"
+            aria-label="Close filters"
+            onClick={() => setDrawerOpen(false)}
+          />
+        )}
+
+        <div className={`browse__panel${drawerOpen ? ' browse__panel--open' : ''}`}>
+          <div className="browse__panel-head">
+            <h2 className="browse__panel-title">Filters</h2>
+            <button className="browse__panel-close" onClick={() => setDrawerOpen(false)}>Done</button>
+          </div>
+
+          <FilterPanel
+            category={category}
+            facets={facets}
+            filters={filters}
+            onChange={apply}
+            onPickCategory={pickCategory}
+            departments={catalog?.categories ?? []}
+          />
+        </div>
 
         <div className="browse__results">
           <div className="browse__header">
             <h2 className="browse__heading">
               {category ? category.name : 'Latest gear'}
-              {!loading && !error && facets && (
+              {settled && !error && facets && (
                 <span className="browse__count">
                   {facets.total} {facets.total === 1 ? 'listing' : 'listings'}
                 </span>
               )}
             </h2>
 
-            <select
-              className="field field--select browse__sort"
-              value={filters.sort}
-              onChange={e => apply({ ...filters, sort: e.target.value })}
-              aria-label="Sort results"
-            >
-              {SORT_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            {/* Only when the hero is showing. Once browsing, the sort lives
+                in the bar at the top instead of being duplicated here. */}
+            {!browsing && (
+              <select
+                className="field field--select browse__sort"
+                value={filters.sort}
+                onChange={e => apply({ ...filters, sort: e.target.value })}
+                aria-label="Sort results"
+              >
+                {SORT_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {chips.length > 0 && (
@@ -245,10 +402,24 @@ function Browse() {
             </div>
           )}
 
-          {loading && <p className="text-muted">Loading...</p>}
           {error && <p className="text-error">{error}</p>}
 
-          {!loading && !error && listings.length === 0 && (
+          {/* First load only: nine placeholder cards in the shape of the real
+              ones, so the page has its final layout before the data lands
+              rather than growing into it. */}
+          {!settled && !error && (
+            <div className="browse__grid">
+              {Array.from({ length: 9 }, (_, i) => (
+                <div key={i} className="listing-skeleton" aria-hidden="true">
+                  <div className="listing-skeleton__media" />
+                  <div className="listing-skeleton__line listing-skeleton__line--title" />
+                  <div className="listing-skeleton__line listing-skeleton__line--price" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {settled && !error && listings.length === 0 && (
             <div className="browse__empty">
               Nothing here yet{category ? ` in ${category.name}` : ''}
               {filters.search ? ` matching “${filters.search}”` : ''}
@@ -256,21 +427,23 @@ function Browse() {
             </div>
           )}
 
-          <div className="browse__grid">
-            {listings.map(listing => (
-              <ListingCard
-                key={listing.id}
-                id={listing.id}
-                title={listing.title}
-                price={listing.price}
-                location={listing.location}
-                category={listing.category}
-                status={listing.status}
-                imageUrl={listing.media?.find((m: any) => m.media_type === 'IMAGE')?.url ?? null}
-                audioUrls={listing.media?.filter((m: any) => m.media_type === 'AUDIO').map((m: any) => m.url)}
-              />
-            ))}
-          </div>
+          {settled && (
+            <div className={`browse__grid${loading ? ' browse__grid--stale' : ''}`}>
+              {listings.map(listing => (
+                <ListingCard
+                  key={listing.id}
+                  id={listing.id}
+                  title={listing.title}
+                  price={listing.price}
+                  location={listing.location}
+                  category={listing.category}
+                  status={listing.status}
+                  imageUrl={listing.media?.find((m: any) => m.media_type === 'IMAGE')?.url ?? null}
+                  audioUrls={listing.media?.filter((m: any) => m.media_type === 'AUDIO').map((m: any) => m.url)}
+                />
+              ))}
+            </div>
+          )}
 
           {meta && meta.last_page > 1 && (
             <div className="browse__pagination">

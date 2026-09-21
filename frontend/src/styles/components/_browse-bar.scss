@@ -1,0 +1,158 @@
+@use '../abstracts' as *;
+
+// The strip that replaces the hero once somebody is shopping.
+//
+// Sticky under the navbar rather than scrolling away, because the search
+// box, the breadcrumb and the sort are the three things you reach for
+// repeatedly while narrowing, and the alternative is scrolling to the top
+// of a long result set for every one of them.
+.browse-bar {
+  position: sticky;
+
+  // Below the navbar, not underneath it. This was `top: 0`, which stuck the
+  // bar at the very top of the window where the navbar, being taller and a
+  // z-index higher, covered it completely the moment you scrolled. The
+  // height is measured and published by the navbar itself rather than
+  // written here, because it changes with the breakpoint. See
+  // lib/stickyHeights.
+  top: var(--nav-height, 65px);
+  z-index: $z-nav - 1;
+
+  background: rgba($color-bg-sunken, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid $color-border;
+
+  &__inner {
+    @include page-container;
+    display: flex;
+    flex-direction: column;
+    gap: $space-xs;
+    padding-top: $space-sm;
+    padding-bottom: $space-sm;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+
+    &--meta {
+      justify-content: space-between;
+      gap: $space-md;
+    }
+  }
+
+  &__search {
+    flex: 1;
+    min-width: 0;
+    padding: 10px $space-md;
+    background: $color-bg-card;
+    color: $color-text;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-pill;
+    font-size: $font-size-md;
+
+    &::placeholder {
+      color: $color-text-faint;
+    }
+
+    &:focus {
+      @include focus-ring;
+    }
+  }
+
+  &__sort {
+    display: none;
+    width: auto;
+    min-width: 180px;
+
+    @include media-up('md') {
+      display: block;
+    }
+  }
+
+  // The drawer handle. Hidden once the panel is a real column beside the
+  // results and there is nothing to open.
+  &__filters {
+    @include button-reset;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: $space-xs;
+    padding: 10px $space-md;
+    border: 1px solid $color-border-input;
+    border-radius: $radius-pill;
+    color: $color-text;
+    font-size: $font-size-sm;
+    font-weight: 600;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+
+    @include media-up('lg') {
+      display: none;
+    }
+  }
+
+  &__filters-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: $radius-pill;
+    background: $color-accent;
+    color: #fff;
+    font-size: $font-size-xs;
+  }
+
+  // Breadcrumb. Scrolls sideways rather than wrapping to a second line,
+  // which would change the bar's height as you go deeper and shift the
+  // results under it every time.
+  &__crumbs {
+    display: flex;
+    align-items: center;
+    gap: $space-xxs;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__crumb {
+    @include button-reset;
+    flex-shrink: 0;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    white-space: nowrap;
+
+    &:not(:first-child)::before {
+      content: '›';
+      margin: 0 $space-xxs;
+      color: $color-text-faint;
+    }
+
+    &:hover:not(:disabled) {
+      color: $color-accent;
+    }
+
+    // The one you are on. Not a link to where you already are.
+    &:disabled {
+      color: $color-text;
+      font-weight: 600;
+      cursor: default;
+    }
+  }
+
+  &__total {
+    flex-shrink: 0;
+    color: $color-text-faint;
+    font-size: $font-size-sm;
+  }
+}
