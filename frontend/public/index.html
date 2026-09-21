@@ -2,14 +2,50 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+
+    <!-- Two icons on purpose. The SVG is what modern browsers use and it
+         stays sharp on any display; the .ico is the fallback, and it holds
+         sizes from 16 up to 256 because Windows and older browsers each
+         pick a different one out of the file. Both are generated from the
+         same geometry as the LogoMark component, by
+         scripts/generate-brand-assets.py. -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
+    <link rel="icon" href="%PUBLIC_URL%/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#141414" />
     <meta
       name="description"
       content="Restrum, the UK marketplace for secondhand instruments and gear. Real condition history, fair price context, community-verified sellers."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+
+    <!-- What a link to the site unfurls into on LinkedIn, X, Facebook,
+         Slack and anywhere else that reads Open Graph. Without these a
+         shared link renders as a grey box with a bare URL under it.
+         The image URL has to be absolute: a scraper resolves it from its
+         own server, not from the page it found it on. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Restrum" />
+    <meta property="og:url" content="https://restrum.uk/" />
+    <meta property="og:title" content="Restrum: UK Secondhand Instrument Marketplace" />
+    <meta
+      property="og:description"
+      content="Buy and sell secondhand instruments and gear with the money held safely until it arrives. Real condition history, fair price context, verified sellers."
+    />
+    <meta property="og:image" content="https://restrum.uk/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Restrum, the UK marketplace for secondhand instruments and gear" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Restrum: UK Secondhand Instrument Marketplace" />
+    <meta
+      name="twitter:description"
+      content="Buy and sell secondhand instruments and gear with the money held safely until it arrives."
+    />
+    <meta name="twitter:image" content="https://restrum.uk/og-image.png" />
+
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

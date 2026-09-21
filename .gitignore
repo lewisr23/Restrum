@@ -26,3 +26,11 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Editor and assistant scratch. None of this belongs to the project.
+/.claude
+/.cursor
+/.aider*
+/CLAUDE.md
+/AGENTS.md
+/Environment changes - *.txt

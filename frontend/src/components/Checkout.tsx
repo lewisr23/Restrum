@@ -48,7 +48,7 @@ function appearance(): Appearance {
   return {
     theme: 'night',
     variables: {
-      colorPrimary: token('--accent', '#4caf50'),
+      colorPrimary: token('--accent', '#8c70f4'),
       colorBackground: token('--bg-card', '#1e1e1e'),
       colorText: token('--text', '#f2f2f2'),
       colorTextSecondary: token('--text-muted', '#9a9a9a'),

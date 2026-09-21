@@ -58,25 +58,37 @@ function AccountMenu({ username, userId }: { username: string; userId: number })
   );
 }
 
-// Logo mark: a guitar pick with an audio waveform cut through it, tying
-// together both halves of what Restrum is, instruments and the audio and
-// video demos. A solid silhouette with hard strokes rather than stacked
-// circles, because anything finer turns into a blob at navbar size, which is
-// the only size it ever renders at.
+// Logo mark: a plectrum with a single wave drawn through it.
+//
+// Two earlier versions are worth not repeating. The first stacked five bars
+// inside a near-circular blob, which read as an audio player rather than a
+// marketplace: a stack of bars on a coloured round shape is the shape every
+// music app uses. The second had those bars centred on x=23.4 while the
+// pick's own axis is x=22, and with heights 5/13/20/11/4 they were not
+// symmetric either, so the whole thing sat visibly off.
+//
+// So: a real plectrum silhouette, flat shoulders and a proper tip rather
+// than a circle, and one continuous wave instead of bars. The wave is three
+// cubic segments approximating one and a half sine cycles, symmetric about
+// x=22 and centred on y=21.9.
+//
+// scripts/generate-brand-assets.py draws the favicon, PWA icons and social
+// card from these same numbers. Change them here and re-run it, or the tab
+// icon and the navbar stop matching.
 function LogoMark() {
   return (
     <svg width="40" height="40" viewBox="0 0 44 44" fill="none" aria-hidden="true">
       <path
-        d="M22 4 C31 4 39 9.5 39 17.5 C39 26 30 37 22 40 C14 37 5 26 5 17.5 C5 9.5 13 4 22 4 Z"
+        d="M22 3.5 C29.5 3.5 36.5 7 37.6 12.5 C38.8 18.5 32.5 32.5 22 40.8 C11.5 32.5 5.2 18.5 6.4 12.5 C7.5 7 14.5 3.5 22 3.5 Z"
         fill="var(--accent)"
       />
-      <g stroke="#12140f" strokeWidth="2.6" strokeLinecap="round">
-        <line x1="14" y1="19" x2="14" y2="24" />
-        <line x1="18.7" y1="15" x2="18.7" y2="28" />
-        <line x1="23.4" y1="11.5" x2="23.4" y2="31.5" />
-        <line x1="28.1" y1="16" x2="28.1" y2="27" />
-        <line x1="32.8" y1="19.5" x2="32.8" y2="23.5" />
-      </g>
+      <path
+        d="M12.4 21.9 C14.53 14.7 16.67 14.7 18.8 21.9 C20.93 29.1 23.07 29.1 25.2 21.9 C27.33 14.7 29.47 14.7 31.6 21.9"
+        stroke="#12140f"
+        strokeWidth="2.9"
+        strokeLinecap="round"
+        fill="none"
+      />
     </svg>
   );
 }

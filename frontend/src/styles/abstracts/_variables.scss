@@ -25,9 +25,15 @@ $color-text-muted: #9a9a9a;
 $color-text-faint: #666666;
 
 // Brand.
-$color-accent:       #4caf50;
-$color-accent-hover: #5cbf60;
-$color-accent-dark:  #2e7d32;
+//
+// Violet rather than the green this started on. Green on a near-black page
+// is Spotify's signature and the site kept being read as a music player
+// rather than a marketplace. It also freed up green: $color-good below is
+// the "excellent condition" and "fair price" colour, and having the brand
+// and that status sit in the same hue muddied both.
+$color-accent:       #8c70f4;
+$color-accent-hover: #a48ef7;
+$color-accent-dark:  #6446d0;
 
 // Status. Used by the fair price indicator, condition dots and error text.
 $color-good:    #8bc34a;
