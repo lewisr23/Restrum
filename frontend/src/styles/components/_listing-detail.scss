@@ -20,7 +20,7 @@
   }
 
   &__description {
-    @include surface(mix($color-bg, $color-bg-raised, 50%), $radius-sm + 2px);
+    @include surface(color-mix(in srgb, var(--bg) 50%, var(--bg-raised)), $radius-sm + 2px);
     margin-top: $space-xl;
     padding: $space-md;
   }
@@ -28,14 +28,14 @@
   &__description-label {
     margin: 0 0 $space-xs;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
 
   &__description-body {
     margin: 0;
-    color: $color-text-soft;
+    color: var(--text-soft);
     line-height: 1.6;
   }
 }
@@ -49,8 +49,8 @@
     justify-content: center;
     width: 100%;
     overflow: hidden;
-    background: $color-bg-sunken;
-    border: 1px solid $color-border-strong;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border-strong);
     border-radius: $radius-sm + 2px;
   }
 
@@ -73,7 +73,7 @@
     margin: 0 0 $space-sm;
     text-align: center;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__audio-player {
@@ -124,16 +124,16 @@
     width: 64px;
     height: 64px;
     overflow: hidden;
-    background: $color-bg-raised;
-    border: 1px solid $color-border-strong;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-strong);
     border-radius: $radius-sm - 2px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: 20px;
     cursor: pointer;
     object-fit: cover;
 
     &--active {
-      border: 2px solid $color-accent;
+      border: 2px solid var(--accent);
     }
   }
 
@@ -143,8 +143,8 @@
     justify-content: center;
     width: 100%;
     aspect-ratio: 4 / 3;
-    background: mix($color-bg, $color-bg-raised, 50%);
-    border: 1px solid $color-border-strong;
+    background: color-mix(in srgb, var(--bg) 50%, var(--bg-raised));
+    border: 1px solid var(--border-strong);
     border-radius: $radius-sm + 2px;
     color: #555;
     font-size: 14px;
@@ -171,7 +171,7 @@
   &__category {
     margin: 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -184,21 +184,33 @@
   &__postage {
     margin: $space-xs 0 0;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__price {
     margin: $space-md 0 0;
     font-size: 28px;
-    color: $color-accent;
+    color: var(--accent);
+  }
+
+  // The deal this buyer already struck in chat, restated where they decide.
+  &__agreed {
+    margin: $space-sm 0;
+    padding: $space-xs $space-sm;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 $radius-sm $radius-sm 0;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    color: var(--text-soft);
   }
 
   &__sold {
     margin-left: $space-sm;
     padding: 3px 10px;
-    background: $color-accent;
+    background: var(--accent);
     border-radius: $radius-sm - 2px;
-    color: $color-bg;
+    color: var(--bg);
     font-size: $font-size-sm;
     font-weight: 700;
     vertical-align: middle;
@@ -214,7 +226,7 @@
 
   &__sold-note {
     margin-top: $space-md;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: 14px;
   }
 
@@ -229,33 +241,33 @@
   }
 
   &__seller {
-    @include surface(mix($color-bg, $color-bg-raised, 50%), $radius-sm + 2px);
+    @include surface(color-mix(in srgb, var(--bg) 50%, var(--bg-raised)), $radius-sm + 2px);
     margin-top: 20px;
     padding: $space-md;
     cursor: pointer;
     transition: border-color $transition;
 
     &:hover {
-      border-color: $color-accent;
+      border-color: var(--accent);
     }
   }
 
   &__seller-line {
     margin: 0;
     font-size: 14px;
-    color: $color-text-soft;
+    color: var(--text-soft);
   }
 
   &__seller-verified {
     margin-left: $space-xs;
-    color: $color-accent;
+    color: var(--accent);
     font-weight: 700;
   }
 
   &__seller-link {
     margin-left: $space-xs;
     font-size: $font-size-sm;
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &__seller-location {
@@ -264,7 +276,7 @@
     gap: 5px;
     margin: 6px 0 0;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 }
 
@@ -273,8 +285,8 @@
   margin-top: $space-xs;
 
   &--saved {
-    border-color: $color-accent;
-    color: $color-accent;
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 
@@ -287,10 +299,10 @@
   gap: 8px;
   margin: $space-md 0 0;
   padding: 10px $space-sm;
-  background: mix($color-accent, $color-bg, 8%);
-  border: 1px solid mix($color-accent, $color-bg, 24%);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--bg));
   border-radius: $radius-sm;
-  color: $color-text-muted;
+  color: var(--text-muted);
   font-size: $font-size-sm;
   line-height: 1.5;
 
@@ -300,7 +312,7 @@
     // Aligned to the first line of text rather than the box's centre, which
     // is where it would land once the copy wraps to two lines.
     margin-top: 2px;
-    color: $color-accent;
+    color: var(--accent);
   }
 }
 
@@ -316,17 +328,17 @@
   font-size: $font-size-sm;
 
   &--below {
-    @include tinted($color-accent);
+    @include tinted(var(--accent));
     border: none;
   }
 
   &--typical {
-    @include tinted($color-good);
+    @include tinted(var(--good));
     border: none;
   }
 
   &--above {
-    @include tinted($color-warning);
+    @include tinted(var(--warning));
     border: none;
   }
 }
@@ -334,9 +346,9 @@
 .reference-price {
   margin: 0 0 $space-xs;
   font-size: $font-size-sm;
-  color: $color-text-muted;
+  color: var(--text-muted);
 
   &__caveat {
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 }

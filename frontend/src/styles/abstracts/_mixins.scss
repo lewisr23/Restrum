@@ -1,7 +1,6 @@
 // Reusable pieces of styling. Anything repeated in three or more places
 // belongs here rather than being copied.
 
-@use 'sass:color';
 @use 'variables' as *;
 
 // Mobile first: styles inside apply at the named breakpoint and above.
@@ -17,18 +16,55 @@
   }
 }
 
+// The three typographic voices.
+//
+// Width is a property in its own right on a variable font, so a font-family
+// alone cannot express "Archivo, but narrow". These exist so no component
+// has to remember the pairing of family and width, and so changing the
+// contrast is one edit rather than thirty.
+
+// The Restrum wordmark: narrow, heavy, tight. Stands in for Placard.
+@mixin wordmark {
+  font-family: $font-wordmark;
+  font-stretch: $width-condensed;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+// Headings, buttons, prices, labels: anything that carries weight. Stands in
+// for Venus Extended. Wide letterforms need less tracking, not more, so this
+// pulls the spacing in slightly rather than opening it up.
+@mixin display-text($weight: 700) {
+  font-family: $font-display;
+  font-stretch: $width-expanded;
+  font-weight: $weight;
+  letter-spacing: -0.005em;
+}
+
+// Interface text that is neither a heading nor prose: inputs, small print,
+// anything where a serif would read as decoration rather than as reading
+// matter.
+@mixin ui-text {
+  font-family: $font-ui;
+  font-stretch: 100%;
+}
+
 // A visible focus ring that does not rely on the browser default, which is
 // invisible against a dark background.
-@mixin focus-ring($color: $color-accent) {
+@mixin focus-ring($color: var(--accent)) {
   outline: none;
   border-color: $color;
-  box-shadow: 0 0 0 3px rgba($color, 0.25);
+  // color-mix rather than rgba(): the argument is now a CSS custom property,
+  // which Sass cannot take apart into channels at build time. That is the
+  // trade for being able to change the whole palette at runtime, and it is
+  // the same swap every tinted colour in this file has made.
+  box-shadow: 0 0 0 3px color-mix(in srgb, #{$color} 25%, transparent);
 }
 
 // The standard panel look: card background, hairline border, rounded.
-@mixin surface($background: $color-bg-card, $radius-size: $radius) {
+@mixin surface($background: var(--bg-card), $radius-size: $radius) {
   background: $background;
-  border: 1px solid $color-border;
+  border: 1px solid var(--border);
   border-radius: $radius-size;
 }
 
@@ -70,8 +106,8 @@
 }
 
 // A translucent status pill: tinted background, matching border and text.
-@mixin tinted($color, $opacity: 0.12) {
-  background: rgba($color, $opacity);
-  border: 1px solid rgba($color, 0.4);
+@mixin tinted($color, $percent: 12%) {
+  background: color-mix(in srgb, #{$color} #{$percent}, transparent);
+  border: 1px solid color-mix(in srgb, #{$color} 40%, transparent);
   color: $color;
 }

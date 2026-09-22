@@ -39,5 +39,5 @@
 .empty-state {
   padding: $space-xxl $space-md;
   text-align: center;
-  color: $color-text-muted;
+  color: var(--text-muted);
 }

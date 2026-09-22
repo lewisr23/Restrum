@@ -247,3 +247,32 @@ export function LockIcon({ size = 14, className }: { size?: number; className?: 
     </Svg>
   );
 }
+
+/**
+ * The two faces of the theme toggle, drawn on the same 24 unit grid as the
+ * rest of the set so they sit level with the buttons either side of them.
+ */
+export function SunIcon({ size = 16, className }: { size?: number; className?: string }) {
+  return (
+    <Svg size={size} className={className}>
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2.6v2.4M12 19v2.4M21.4 12H19M5 12H2.6M18.6 5.4l-1.7 1.7M7.1 16.9l-1.7 1.7M18.6 18.6l-1.7-1.7M7.1 7.1 5.4 5.4" />
+    </Svg>
+  );
+}
+
+export function MoonIcon({ size = 16, className }: { size?: number; className?: string }) {
+  return (
+    <Svg size={size} className={className}>
+      <path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z" />
+    </Svg>
+  );
+}
+export function BellIcon({ size = 16, className }: { size?: number; className?: string }) {
+  return (
+    <Svg size={size} className={className}>
+      <path d="M18 9.4a6 6 0 1 0-12 0c0 5.1-2 6.6-2 6.6h16s-2-1.5-2-6.6z" />
+      <path d="M13.7 19.4a2 2 0 0 1-3.4 0" />
+    </Svg>
+  );
+}

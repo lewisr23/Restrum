@@ -9,21 +9,21 @@
   margin: 0 0 $space-lg;
   padding: $space-sm $space-md;
   border-radius: $radius-sm;
-  border: 1px solid $color-border;
-  background: $color-bg-raised;
-  color: $color-text-soft;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-soft);
   font-size: $font-size-sm;
   line-height: 1.55;
 
   &--muted {
-    border-color: mix($color-accent, $color-bg, 24%);
-    background: mix($color-accent, $color-bg, 8%);
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--bg));
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg));
   }
 
   &--error {
-    border-color: mix($color-danger, $color-bg, 34%);
-    background: mix($color-danger, $color-bg, 12%);
-    color: mix($color-danger, $color-text, 40%);
+    border-color: color-mix(in srgb, var(--danger) 34%, var(--bg));
+    background: color-mix(in srgb, var(--danger) 12%, var(--bg));
+    color: color-mix(in srgb, var(--danger) 40%, var(--text));
   }
 }
 
@@ -38,11 +38,11 @@ a.btn-ghost {
 // should not look like one, e.g. "check again" inside a sentence.
 .link-button {
   @include button-reset;
-  color: $color-accent;
+  color: var(--accent);
   text-decoration: underline;
 
   &:hover {
-    color: $color-accent-hover;
+    color: var(--accent-hover);
   }
 }
 
@@ -51,7 +51,7 @@ a.btn-ghost {
 .protection-steps {
   margin: 0 0 $space-lg;
   padding-left: $space-lg;
-  color: $color-text-muted;
+  color: var(--text-muted);
   font-size: $font-size-sm;
   line-height: 1.6;
 
@@ -60,7 +60,7 @@ a.btn-ghost {
 
     strong {
       display: block;
-      color: $color-text;
+      color: var(--text);
     }
   }
 }
@@ -112,7 +112,7 @@ a.btn-ghost {
   transition: border-color 0.15s ease;
 
   &:hover {
-    border-color: $color-border-strong;
+    border-color: var(--border-strong);
   }
 
   &__image {
@@ -120,19 +120,19 @@ a.btn-ghost {
     height: 64px;
     object-fit: cover;
     border-radius: $radius-sm;
-    background: $color-bg-sunken;
+    background: var(--bg-sunken);
 
     &--empty {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: $color-text-faint;
+      color: var(--text-faint);
     }
   }
 
   &__meta {
     margin: 0 0 2px;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-xs;
   }
 
@@ -144,7 +144,7 @@ a.btn-ghost {
 
   &__status {
     margin: 0;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
   }
 
@@ -167,36 +167,36 @@ a.btn-ghost {
 .order-status {
   padding: 3px 10px;
   border-radius: $radius-pill;
-  border: 1px solid $color-border-strong;
-  background: $color-bg-elevated;
-  color: $color-text-muted;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
   font-size: $font-size-xs;
   text-transform: capitalize;
   white-space: nowrap;
 
   &--paid,
   &--confirmed {
-    border-color: mix($color-accent, $color-bg, 40%);
-    background: mix($color-accent, $color-bg, 14%);
-    color: $color-accent-hover;
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--bg));
+    background: color-mix(in srgb, var(--accent) 14%, var(--bg));
+    color: var(--accent-hover);
   }
 
   &--released {
-    border-color: mix($color-good, $color-bg, 40%);
-    background: mix($color-good, $color-bg, 14%);
-    color: $color-good;
+    border-color: color-mix(in srgb, var(--good) 40%, var(--bg));
+    background: color-mix(in srgb, var(--good) 14%, var(--bg));
+    color: var(--good);
   }
 
   &--disputed {
-    border-color: mix($color-warning, $color-bg, 40%);
-    background: mix($color-warning, $color-bg, 14%);
-    color: $color-warning;
+    border-color: color-mix(in srgb, var(--warning) 40%, var(--bg));
+    background: color-mix(in srgb, var(--warning) 14%, var(--bg));
+    color: var(--warning);
   }
 
   &--refunded,
   &--cancelled {
-    border-color: mix($color-danger, $color-bg, 30%);
-    color: mix($color-danger, $color-text, 40%);
+    border-color: color-mix(in srgb, var(--danger) 30%, var(--bg));
+    color: color-mix(in srgb, var(--danger) 40%, var(--text));
   }
 }
 
@@ -210,7 +210,7 @@ a.btn-ghost {
   &__tracking {
     margin-top: $space-lg;
     padding-top: $space-lg;
-    border-top: 1px solid $color-border;
+    border-top: 1px solid var(--border);
   }
 
   &__tracking-number {
@@ -248,7 +248,7 @@ a.btn-ghost {
 
   &__lede {
     margin: 0 0 $space-lg;
-    color: $color-text-soft;
+    color: var(--text-soft);
     font-size: $font-size-md;
     line-height: 1.6;
   }
@@ -256,19 +256,19 @@ a.btn-ghost {
   &__action {
     margin-top: $space-lg;
     padding-top: $space-lg;
-    border-top: 1px solid $color-border;
+    border-top: 1px solid var(--border);
   }
 
   &__action-text {
     margin: 0 0 $space-md;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
     line-height: 1.6;
   }
 
   &__action-note {
     margin: $space-sm 0 0;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-xs;
     line-height: 1.6;
   }
@@ -280,7 +280,7 @@ a.btn-ghost {
     text-decoration: none;
 
     &:hover {
-      color: $color-accent;
+      color: var(--accent);
     }
   }
 }
@@ -299,7 +299,7 @@ a.btn-ghost {
     display: flex;
     align-items: center;
     gap: $space-sm;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-sm;
   }
 
@@ -311,29 +311,29 @@ a.btn-ghost {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 1px solid $color-border-strong;
+    border: 1px solid var(--border-strong);
     font-size: $font-size-xs;
   }
 
   &__step--done {
-    color: $color-text-muted;
+    color: var(--text-muted);
 
     .order-progress__marker {
-      border-color: mix($color-accent, $color-bg, 40%);
-      background: mix($color-accent, $color-bg, 20%);
-      color: $color-accent-hover;
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--bg));
+      background: color-mix(in srgb, var(--accent) 20%, var(--bg));
+      color: var(--accent-hover);
     }
   }
 
   // Listed after --done so it wins on the stage that is both: the one just
   // reached is ticked like the others, and picked out as where things stand.
   &__step--current {
-    color: $color-text;
+    color: var(--text);
     font-weight: 600;
 
     .order-progress__marker {
-      border-color: $color-accent;
-      background: $color-accent;
+      border-color: var(--accent);
+      background: var(--accent);
       color: #fff;
     }
   }
@@ -364,8 +364,8 @@ a.btn-ghost {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: mix($color-accent, $color-bg, 20%);
-    color: $color-accent-hover;
+    background: color-mix(in srgb, var(--accent) 20%, var(--bg));
+    color: var(--accent-hover);
   }
 
   &__state-title {
@@ -375,7 +375,7 @@ a.btn-ghost {
 
   &__state-text {
     margin: 0;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
     line-height: 1.6;
   }
@@ -383,7 +383,7 @@ a.btn-ghost {
   &__points {
     margin: $space-md 0 $space-lg;
     padding-left: $space-lg;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
     line-height: 1.8;
   }
@@ -397,7 +397,7 @@ a.btn-ghost {
 
   &__footnote {
     margin: $space-md 0 0;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-xs;
   }
 }

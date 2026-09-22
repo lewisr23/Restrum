@@ -1,9 +1,64 @@
-// SCSS variables exist only at build time, but plenty of the app still sets
-// colours from TypeScript. Re-publishing the palette as CSS custom
-// properties keeps both able to read the same values, with the SCSS
-// definitions in abstracts/_variables.scss as the one source.
+// The palette, published as CSS custom properties.
+//
+// Every colour in the app resolves to one of these at RUNTIME rather than at
+// build time. That is what makes the light theme possible: the stylesheets
+// no longer contain colour values at all, only names, so switching themes is
+// a matter of redefining eighteen properties on <html> instead of shipping a
+// second stylesheet. abstracts/_variables.scss holds the dark values those
+// names start from, and is still the one place a brand colour is written.
+//
+// The cost of the arrangement is that Sass can no longer take a colour apart,
+// so rgba($color-accent, 0.25) had to become color-mix(). That is a fair
+// trade and the browser support is universal now, but it is the reason a
+// stylesheet here reads a little more verbosely than it used to.
 
 @use '../abstracts' as *;
+
+// The light theme. A mixin rather than a selector so the same values can be
+// attached both to the system preference and to an explicit choice without
+// being written twice and drifting apart.
+@mixin light-palette {
+  color-scheme: light;
+
+  // Not pure white. A sheet of #ffffff behind a page of small text is the
+  // reason people say light themes hurt to read; the cards sit at white and
+  // the page sits just below it, so surfaces still separate.
+  --bg: #f4f4f6;
+  --bg-sunken: #eaeaee;
+  --bg-raised: #ffffff;
+  --bg-card: #ffffff;
+  --bg-elevated: #f0f0f3;
+
+  --border: #e0e0e6;
+  --border-strong: #cbcbd4;
+  --border-input: #b4b4bf;
+
+  --text: #18181b;
+  --text-soft: #3c3c45;
+  --text-muted: #67676f;
+  --text-faint: #96969f;
+
+  // Darker than the dark theme's violet, because the same hue that reads
+  // clearly on near-black is barely legible on white. The three shades keep
+  // their relationship to each other: --accent-dark fills the primary
+  // button, --accent is its hover and the colour of prices and links.
+  --accent: #6446d0;
+  --accent-hover: #7a5fe2;
+  --accent-dark: #503aad;
+
+  // Status colours darkened for the same reason. The green in particular:
+  // #8bc34a on white is decorative rather than readable.
+  --good: #4e7d1f;
+  --warning: #9a5b00;
+  --danger: #c62828;
+
+  // A shadow that reads as depth on a dark page reads as dirt on a light
+  // one, so the light theme keeps the same three steps at a fraction of the
+  // opacity, and spreads them wider to compensate.
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.14);
+}
 
 :root {
   /*
@@ -39,10 +94,34 @@
   --warning: #{$color-warning};
   --danger: #{$color-danger};
 
+  // Three steps of depth, named rather than written out at each call site,
+  // because the light theme needs different values for the same intent.
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.55);
+
   --font-body: #{$font-body};
   --font-display: #{$font-display};
+  --font-ui: #{$font-ui};
 
   --radius-sm: #{$radius-sm};
   --radius: #{$radius};
   --radius-lg: #{$radius-lg};
+}
+
+/*
+ * What the machine asked for, unless the person asked for something else.
+ * The :not() is what makes the toggle in the header win over the operating
+ * system: a visitor who has explicitly chosen dark keeps it on a laptop set
+ * to light, which is the whole point of offering the choice.
+ */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    @include light-palette;
+  }
+}
+
+/* An explicit choice, which beats both of the above. */
+:root[data-theme='light'] {
+  @include light-palette;
 }

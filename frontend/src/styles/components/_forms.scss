@@ -5,15 +5,15 @@
 %field-base {
   width: 100%;
   padding: $space-sm;
-  background: $color-bg-raised;
-  color: $color-text;
-  border: 1px solid $color-border-input;
+  background: var(--bg-raised);
+  color: var(--text);
+  border: 1px solid var(--border-input);
   border-radius: $radius-sm;
   font-size: 14px;
   transition: border-color $transition, box-shadow $transition;
 
   &::placeholder {
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &:focus {
@@ -47,25 +47,25 @@
     &::file-selector-button {
       margin-right: $space-sm;
       padding: 6px $space-sm;
-      background: $color-bg-elevated;
-      border: 1px solid $color-border-input;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-input);
       border-radius: $radius-sm - 2px;
-      color: $color-text-soft;
+      color: var(--text-soft);
       font: inherit;
       cursor: pointer;
     }
 
     &:hover::file-selector-button {
-      border-color: $color-accent;
-      color: $color-accent;
+      border-color: var(--accent);
+      color: var(--accent);
     }
   }
 
   &--invalid {
-    border-color: $color-danger;
+    border-color: var(--danger);
 
     &:focus {
-      @include focus-ring($color-danger);
+      @include focus-ring(var(--danger));
     }
   }
 }
@@ -86,13 +86,13 @@
 .form__status {
   margin: 0 0 $space-md;
   font-size: $font-size-sm;
-  color: $color-accent;
+  color: var(--accent);
 }
 
 .field-label {
   font-size: $font-size-sm;
   font-weight: 600;
-  color: $color-text-soft;
+  color: var(--text-soft);
 }
 
 // A checkbox sitting with its label inside a field group. The filter panel
@@ -104,7 +104,7 @@
   gap: $space-xs;
   margin-top: $space-xs;
   font-size: $font-size-sm;
-  color: $color-text-soft;
+  color: var(--text-soft);
   cursor: pointer;
 
   input {
@@ -114,12 +114,12 @@
 
 .field-hint {
   font-size: $font-size-xs;
-  color: $color-text-muted;
+  color: var(--text-muted);
 }
 
 .field-error {
   font-size: $font-size-sm;
-  color: $color-danger;
+  color: var(--danger);
 }
 
 // The oversized search box on the homepage hero.
@@ -136,7 +136,7 @@
 .report {
   margin-top: $space-md;
   padding: $space-md;
-  border: 1px solid $color-border;
+  border: 1px solid var(--border);
   border-radius: $radius;
 
   &__title {
@@ -154,18 +154,18 @@
     border: none;
     padding: 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-decoration: underline;
     cursor: pointer;
 
     &:hover {
-      color: $color-danger;
+      color: var(--danger);
     }
   }
 
   &__done {
     margin: $space-sm 0 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 }

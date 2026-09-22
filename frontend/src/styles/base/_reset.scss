@@ -13,8 +13,8 @@
 
 body {
   margin: 0;
-  background-color: $color-bg;
-  color: $color-text;
+  background-color: var(--bg);
+  color: var(--text);
   font-family: $font-body;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -28,8 +28,29 @@ body {
 
 h1,
 h2,
-h3 {
-  font-family: $font-display;
+h3,
+h4 {
+  @include display-text;
+  line-height: 1.15;
+}
+
+// Prose gets the serif's reading size rather than the interface's. A serif
+// at 14px on a dark background is a squint; at 16 with open leading it is
+// the thing it was drawn for.
+p {
+  line-height: 1.6;
+}
+
+// Controls stay in the grotesque. A serif inside a text field reads as a
+// document being quoted rather than a box to type in, and the numerals in
+// particular are harder to check at a glance, which matters on a page where
+// one of them is a price.
+button,
+input,
+textarea,
+select,
+label {
+  @include ui-text;
 }
 
 code {
@@ -42,11 +63,10 @@ select,
 [contenteditable='true'] {
   user-select: text;
   cursor: text;
-  font-family: $font-body;
 }
 
 ::selection {
-  background: rgba($color-accent, 0.35);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 // A dark scrollbar, since the default light one cuts straight through the
@@ -56,14 +76,14 @@ select,
 }
 
 ::-webkit-scrollbar-track {
-  background: $color-bg;
+  background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: $color-border-strong;
+  background: var(--border-strong);
   border-radius: $radius-sm;
 
   &:hover {
-    background: $color-border-input;
+    background: var(--border-input);
   }
 }

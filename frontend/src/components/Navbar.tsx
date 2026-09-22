@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublishedHeight } from '../lib/stickyHeights';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 
 // Account dropdown. Consolidates "My Listings", Saved and Messages under one
 // menu rather than loose navbar buttons, so the navbar doesn't keep growing
@@ -119,8 +121,17 @@ function Navbar() {
       </div>
 
       <div className="site-nav__actions">
+        {/* Before the account controls rather than buried inside the menu:
+            it is the one setting on the site, and someone who needs a light
+            page needs it on the page they are looking at now. */}
+        <ThemeToggle />
+
         {user ? (
           <>
+            {/* Renders nothing for a signed-out visitor, so it sits inside
+                the branch that already knows there is somebody to notify. */}
+            <NotificationBell />
+
             <button className="btn-primary" onClick={() => navigate('/create')}>+ Sell Gear</button>
             <AccountMenu username={user.username} userId={user.id} />
           </>

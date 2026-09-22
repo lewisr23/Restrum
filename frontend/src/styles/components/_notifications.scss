@@ -1,0 +1,158 @@
+@use '../abstracts' as *;
+
+// The bell and its panel.
+//
+// Deliberately the same shape as the account menu beside it: same trigger
+// size, same dropdown treatment, same click-outside behaviour. Two dropdowns
+// in one bar that behave differently is the sort of thing nobody can name
+// but everybody notices.
+.notification-bell {
+  position: relative;
+
+  &__trigger {
+    @include button-reset;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border-input);
+    border-radius: $radius-sm - 2px;
+    color: var(--text-muted);
+    transition: color $transition, border-color $transition;
+
+    &:hover {
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  // Overlapping the bell's top right corner rather than sitting beside it,
+  // so the button keeps its square footprint however many are waiting.
+  &__count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $radius-pill;
+    background: var(--accent-dark);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+}
+
+.notification-panel {
+  position: absolute;
+  top: calc(100% + #{$space-xxs + 2px});
+  right: 0;
+  z-index: $z-dropdown;
+  width: 340px;
+  max-width: calc(100vw - #{$space-lg});
+  @include surface(var(--bg-elevated));
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-sm;
+    padding: 10px $space-sm 10px $space-md;
+    border-bottom: 1px solid var(--border);
+  }
+
+  &__title {
+    @include display-text;
+    margin: 0;
+    font-size: $font-size-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  &__clear {
+    @include button-reset;
+    @include ui-text;
+    font-size: $font-size-xs;
+    color: var(--accent);
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__empty {
+    margin: 0;
+    padding: $space-lg $space-md;
+    font-size: $font-size-sm;
+    color: var(--text-muted);
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    // Roughly five rows. Past that it is a page rather than a dropdown, and
+    // nobody scrolls a bell looking for something specific.
+    max-height: 380px;
+    overflow-y: auto;
+  }
+}
+
+.notification-item {
+  @include button-reset;
+  display: block;
+  width: 100%;
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  transition: background $transition;
+
+  &:hover {
+    background: var(--bg-raised);
+  }
+
+  // A left edge in the accent rather than a bolder weight or a coloured
+  // background: unread has to be visible at a glance without making the
+  // read ones look disabled.
+  &--unread {
+    border-left: 3px solid var(--accent);
+    padding-left: $space-md - 3px;
+  }
+
+  &__title {
+    display: block;
+    @include ui-text;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  &__body {
+    display: block;
+    margin-top: 2px;
+    font-size: $font-size-xs;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+
+  &__time {
+    display: block;
+    margin-top: 4px;
+    @include ui-text;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+}

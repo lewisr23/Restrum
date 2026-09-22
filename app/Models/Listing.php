@@ -11,7 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 // status is deliberately NOT fillable - a listing starts ACTIVE and only
-// moves to SOLD via the offer-accept flow, never by direct request input.
+// moves to SOLD when money has actually been taken for it (EscrowService, on
+// the payment webhook) or a moderator removes it, never by direct request
+// input. Accepting a price offer used to sell a listing too; it now agrees a
+// price and leaves the sale to checkout like any other purchase.
 #[Fillable(['title', 'description', 'price', 'postage_price', 'collection_only', 'location', 'category_id', 'brand', 'condition'])]
 class Listing extends Model
 {

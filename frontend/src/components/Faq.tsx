@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { OPERATOR, PLATFORM_FEE_PERCENT, AUTO_RELEASE_DAYS, RESERVATION_MINUTES } from '../lib/legal';
+import { OPERATOR, PLATFORM_FEE_PERCENT, AUTO_RELEASE_DAYS, RESERVATION_MINUTES, OFFER_HOURS } from '../lib/legal';
 
 // Frequently asked questions.
 //
@@ -91,6 +91,27 @@ const SECTIONS: { title: string; questions: Question[] }[] = [
             back on sale. There is only one of most things here, which is rather
             the point.
           </p>
+        ),
+      },
+      {
+        q: 'I made an offer and the seller accepted. Have I bought it?',
+        a: (
+          <>
+            <p>
+              Not yet. Accepting fixes the price for you, it does not take the
+              item off the market. You have {OFFER_HOURS} hours to pay at the
+              agreed figure, and the Pay button appears in the conversation and
+              on the listing itself.
+            </p>
+            <p>
+              Until you pay, anyone else can still buy it at the asking price,
+              and whoever pays first gets it. That cuts both ways and it is
+              meant to: a seller who says yes to an offer should not lose the
+              sale to someone who then goes quiet for a week. Postage is not
+              part of the haggle, since the seller is recovering what the
+              courier charges rather than making a margin on it.
+            </p>
+          </>
         ),
       },
       {

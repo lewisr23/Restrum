@@ -12,11 +12,18 @@ use Tests\Support\InteractsWithPayments;
 use Tests\TestCase;
 
 /**
- * Two paths can sell a listing: starting a checkout, and the accept branch of
- * MessageController::respond. Both used to read the listing's status and then
- * write it without holding the row, so two concurrent requests could both see
+ * Selling a listing goes through checkout, and only through checkout. It used
+ * to be two paths - a checkout, and the accept branch of
+ * MessageController::respond - and both read the listing's status and then
+ * wrote it without holding the row, so two concurrent requests could both see
  * ACTIVE and both sell it, and a purchase racing an accepted offer left the
  * final price decided by whichever committed last.
+ *
+ * Accepting an offer no longer sells anything, which removes the cross-path
+ * race rather than fixing it. What is left to protect is that accepting on a
+ * listing already sold is still refused, and that both paths still read the
+ * status under a lock: the accept branch decides on that status even though
+ * it no longer writes it.
  *
  * A genuine race cannot be reproduced in a single-threaded test run, so this
  * covers it from two directions instead: the sequential cross-path cases,
@@ -159,7 +166,7 @@ class ListingSaleConcurrencyTest extends TestCase
         );
     }
 
-    public function test_accepting_an_offer_locks_the_listing_row_before_selling_it(): void
+    public function test_accepting_an_offer_locks_the_listing_row_before_reading_its_status(): void
     {
         $offer = $this->makePendingOffer(400);
 

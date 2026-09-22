@@ -5,7 +5,7 @@
 .similar {
   margin-top: $space-xl;
   padding-top: $space-lg;
-  border-top: 1px solid $color-border-strong;
+  border-top: 1px solid var(--border-strong);
 
   &__heading {
     margin: 0 0 $space-md;

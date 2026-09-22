@@ -2,7 +2,7 @@
 
 // Login and registration share one narrow centred card.
 .auth-card {
-  @include surface($color-bg-sunken);
+  @include surface(var(--bg-sunken));
   max-width: 400px;
   margin: 80px auto;
   padding: $space-xl;
@@ -26,7 +26,7 @@
     margin: $space-lg 0 0;
     text-align: center;
     font-size: 14px;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   // Sits directly under the submit button, smaller and quieter than the
@@ -37,11 +37,11 @@
     text-align: center;
     font-size: $font-size-xs;
     line-height: 1.6;
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &__link {
-    color: $color-accent;
+    color: var(--accent);
     text-decoration: none;
 
     &:hover {

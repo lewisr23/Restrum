@@ -18,21 +18,21 @@
 
   &__updated {
     margin: 0 0 $space-lg;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-sm;
   }
 
   &__intro {
     margin: 0 0 $space-xl;
     padding-bottom: $space-lg;
-    border-bottom: 1px solid $color-border;
-    color: $color-text-soft;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-soft);
     font-size: $font-size-md + 1px;
     line-height: 1.7;
   }
 
   &__body {
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-md;
     line-height: 1.75;
 
@@ -50,21 +50,21 @@
     }
 
     strong {
-      color: $color-text;
+      color: var(--text);
     }
 
     a {
-      color: $color-accent;
+      color: var(--accent);
 
       &:hover {
-        color: $color-accent-hover;
+        color: var(--accent-hover);
       }
     }
 
     code {
       padding: 1px 5px;
       border-radius: 4px;
-      background: $color-bg-sunken;
+      background: var(--bg-sunken);
       font-size: $font-size-sm;
     }
   }
@@ -80,7 +80,7 @@
 
   &__clause-title {
     margin: 0 0 $space-sm;
-    color: $color-text;
+    color: var(--text);
     font-size: $font-size-lg;
     line-height: 1.4;
   }
@@ -88,7 +88,7 @@
   // Hanging number, so the clause headings line up down the left edge and a
   // reader scanning for "clause 7" can find it without reading the titles.
   &__clause-number {
-    color: $color-accent;
+    color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
 }

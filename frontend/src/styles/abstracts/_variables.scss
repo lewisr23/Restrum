@@ -41,9 +41,28 @@ $color-warning: #ff9800;
 $color-danger:  #f44336;
 
 // Typography.
-$font-body:    ('Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-$font-display: ('Space Grotesk', 'Inter', sans-serif);
-$font-mono:    (source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace);
+//
+// Three roles, two families. Archivo is a variable grotesque with a width
+// axis, so the condensed wordmark and the extended bold text are one
+// typeface at two settings: they cannot drift apart the way two separately
+// chosen faces do, and it is one file to download rather than two.
+//
+// These stand in for Placard, Venus Extended and Century Expanded, which are
+// licensed Monotype and Linotype faces that cannot be served from a free
+// CDN. The widths are set through the mixins below rather than baked into
+// these stacks, because font-stretch is a separate property from
+// font-family and a stack alone cannot carry it.
+$font-wordmark: ('Archivo', 'Arial Narrow', 'Helvetica Neue', sans-serif);
+$font-display:  ('Archivo', 'Helvetica Neue', Arial, sans-serif);
+$font-ui:       ('Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+$font-body:     ('Source Serif 4', Georgia, 'Times New Roman', serif);
+$font-mono:     (source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace);
+
+// How wide Archivo is asked to be in each role. 100% is its normal width,
+// so these are the two ends of the contrast: a narrow wordmark against wide
+// headings and buttons.
+$width-condensed: 68%;
+$width-expanded:  118%;
 
 $font-size-xs: 12px;
 $font-size-sm: 13px;

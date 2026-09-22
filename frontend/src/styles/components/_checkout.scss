@@ -27,7 +27,7 @@
   &__section-title {
     margin: 0 0 $space-md;
     font-size: $font-size-lg - 2px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -45,7 +45,7 @@
     gap: $space-md;
     margin-bottom: $space-lg;
     padding-bottom: $space-lg;
-    border-bottom: 1px solid $color-border;
+    border-bottom: 1px solid var(--border);
   }
 
   &__thumb {
@@ -65,14 +65,14 @@
   &__item-seller {
     margin: 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   &__verified {
     margin-left: 6px;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   // Breathing room between Stripe's iframe and the note under it. The
@@ -115,7 +115,7 @@
   &__text {
     margin: 0 auto $space-xs;
     max-width: 400px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-md;
     line-height: 1.6;
   }
@@ -133,11 +133,11 @@
   }
 
   &__strong {
-    color: $color-text;
+    color: var(--text);
   }
 
   &__price {
-    color: $color-accent;
+    color: var(--accent);
   }
 }
 
@@ -146,14 +146,14 @@
   display: block;
   padding: 14px $space-md;
   margin-bottom: 10px;
-  background: $color-bg-raised;
-  border: 1px solid $color-border;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
   border-radius: $radius-sm + 2px;
   cursor: pointer;
 
   &--selected {
-    background: mix($color-accent, $color-bg-card, 12%);
-    border-color: $color-accent;
+    background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+    border-color: var(--accent);
   }
 
   &__radio {
@@ -167,7 +167,7 @@
   &__desc {
     margin: 6px 0 0 $space-lg;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
     line-height: 1.5;
   }
 }
@@ -176,19 +176,19 @@
 .payment-note {
   margin-top: 20px;
   padding: 14px $space-md;
-  background: $color-bg-raised;
-  border: 1px solid $color-border;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
   border-radius: $radius-sm + 2px;
 
   p {
     margin: 0;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
     line-height: 1.6;
   }
 
   strong {
-    color: $color-text;
+    color: var(--text);
   }
 }
 
@@ -208,14 +208,14 @@
   &__seller {
     margin: 0 0 $space-xxs;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   &__verified {
     margin-left: 6px;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__title {
@@ -228,30 +228,38 @@
     display: flex;
     justify-content: space-between;
     padding: $space-sm 0;
-    border-top: 1px solid $color-border;
+    border-top: 1px solid var(--border);
     font-size: 14px;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__row--total {
     margin-bottom: $space-md;
-    border-bottom: 1px solid $color-border;
-    color: $color-text;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
     font-size: $font-size-md;
     font-weight: 700;
   }
 
+  // "Agreed with <seller>", under the Item line when the buyer is paying a
+  // price that was negotiated rather than the one on the listing.
+  &__note {
+    display: block;
+    margin-top: 2px;
+    font-size: $font-size-xs;
+    color: var(--accent);
+  }
+
   &__total-value {
-    font-family: $font-display;
+    @include display-text;
     font-size: $font-size-lg;
-    font-weight: 700;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__caveat {
     margin: 10px 0 0;
     font-size: $font-size-xs;
-    color: $color-text-faint;
+    color: var(--text-faint);
     text-align: center;
   }
 }

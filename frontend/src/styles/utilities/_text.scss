@@ -4,25 +4,25 @@
 // line or two belongs in a component partial with a name of its own.
 
 .text-muted {
-  color: $color-text-muted;
+  color: var(--text-muted);
 }
 
 .text-faint {
-  color: $color-text-faint;
+  color: var(--text-faint);
 }
 
 .text-error {
-  color: $color-danger;
+  color: var(--danger);
 }
 
 .text-accent {
-  color: $color-accent;
+  color: var(--accent);
 }
 
 // An inline word or phrase that behaves as a link but is not an anchor,
 // usually because it triggers client side navigation.
 .link-inline {
-  color: $color-accent;
+  color: var(--accent);
   cursor: pointer;
 
   &:hover {

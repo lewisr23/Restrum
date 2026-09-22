@@ -18,11 +18,11 @@
   gap: $space-xs;
   padding: 11px $space-md 11px 14px;
   border-radius: $radius-pill;
-  background: linear-gradient(135deg, $color-accent, $color-accent-dark);
+  background: var(--accent-dark);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 8px 24px rgba(#000, 0.45), 0 0 0 1px rgba($color-accent, 0.4);
+  box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
   transition:
     transform $transition,
     box-shadow $transition,
@@ -30,7 +30,7 @@
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(#000, 0.5), 0 0 0 1px rgba($color-accent, 0.6);
+    box-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent);
   }
 
   &:active {
@@ -61,10 +61,10 @@
   max-width: calc(100vw - #{$space-lg * 2});
   max-height: min(560px, calc(100vh - 140px));
   overflow: hidden;
-  border: 1px solid $color-border-strong;
+  border: 1px solid var(--border-strong);
   border-radius: $radius-lg;
-  background: $color-bg-raised;
-  box-shadow: 0 20px 50px rgba(#000, 0.55);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
 
   // Rises into place rather than appearing. Short, and the panel is opened
   // by a deliberate click, so there is no risk of it being missed.
@@ -79,8 +79,8 @@
 
   &__head {
     padding: 14px $space-md;
-    border-bottom: 1px solid $color-border;
-    background: linear-gradient(180deg, mix($color-accent, $color-bg-raised, 10%), $color-bg-raised);
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-raised));
   }
 
   &__title {
@@ -91,7 +91,7 @@
 
   &__subtitle {
     margin: 2px 0 0;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-xs;
   }
 
@@ -106,7 +106,7 @@
 
   &__intro-text {
     margin: 0 0 $space-md;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
     line-height: 1.6;
   }
@@ -122,17 +122,17 @@
   &__opener {
     @include button-reset;
     padding: 8px 10px;
-    border: 1px solid $color-border;
+    border: 1px solid var(--border);
     border-radius: $radius-sm;
-    background: $color-bg-card;
-    color: $color-text-soft;
+    background: var(--bg-card);
+    color: var(--text-soft);
     font-size: $font-size-sm;
     text-align: left;
     transition: border-color $transition, color $transition;
 
     &:hover {
-      border-color: $color-accent;
-      color: $color-text;
+      border-color: var(--accent);
+      color: var(--text);
     }
   }
 
@@ -140,8 +140,8 @@
     margin: 0;
     padding: $space-xs $space-sm;
     border-radius: $radius-sm;
-    background: mix($color-danger, $color-bg, 12%);
-    color: mix($color-danger, $color-text, 40%);
+    background: color-mix(in srgb, var(--danger) 12%, var(--bg));
+    color: color-mix(in srgb, var(--danger) 40%, var(--text));
     font-size: $font-size-sm;
   }
 
@@ -149,17 +149,17 @@
     display: flex;
     gap: $space-xs;
     padding: $space-sm $space-md;
-    border-top: 1px solid $color-border;
+    border-top: 1px solid var(--border);
   }
 
   &__input {
     flex: 1;
     min-width: 0;
     padding: 9px $space-sm;
-    border: 1px solid $color-border-input;
+    border: 1px solid var(--border-input);
     border-radius: $radius-sm;
-    background: $color-bg-sunken;
-    color: $color-text;
+    background: var(--bg-sunken);
+    color: var(--text);
     font-family: inherit;
     font-size: $font-size-sm;
 
@@ -172,7 +172,7 @@
     @include button-reset;
     padding: 9px $space-md;
     border-radius: $radius-sm;
-    background: $color-accent;
+    background: var(--accent);
     color: #fff;
     font-size: $font-size-sm;
     font-weight: 600;
@@ -183,14 +183,14 @@
     }
 
     &:hover:not(:disabled) {
-      background: $color-accent-hover;
+      background: var(--accent-hover);
     }
   }
 
   &__footnote {
     margin: 0;
     padding: 0 $space-md $space-sm;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: 11px;
   }
 }
@@ -216,15 +216,15 @@
     align-items: flex-end;
 
     .adviser-msg__text {
-      background: mix($color-accent, $color-bg-raised, 22%);
-      color: $color-text;
+      background: color-mix(in srgb, var(--accent) 22%, var(--bg-raised));
+      color: var(--text);
       border-bottom-right-radius: $radius-sm - 2px;
     }
   }
 
   &--assistant .adviser-msg__text {
-    background: $color-bg-card;
-    color: $color-text-soft;
+    background: var(--bg-card);
+    color: var(--text-soft);
     border-bottom-left-radius: $radius-sm - 2px;
   }
 
@@ -242,15 +242,15 @@
   align-items: center;
   gap: $space-xs;
   padding: 6px;
-  border: 1px solid $color-border;
+  border: 1px solid var(--border);
   border-radius: $radius-sm;
-  background: $color-bg-card;
+  background: var(--bg-card);
   color: inherit;
   text-decoration: none;
   transition: border-color $transition, transform $transition;
 
   &:hover {
-    border-color: $color-accent;
+    border-color: var(--accent);
     transform: translateX(2px);
   }
 
@@ -260,13 +260,13 @@
     height: 38px;
     object-fit: cover;
     border-radius: $radius-sm - 2px;
-    background: $color-bg-sunken;
+    background: var(--bg-sunken);
 
     &--empty {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: $color-text-faint;
+      color: var(--text-faint);
     }
   }
 
@@ -283,7 +283,7 @@
 
   &__meta {
     display: block;
-    color: $color-accent;
+    color: var(--accent);
     font-size: $font-size-xs;
   }
 }
@@ -299,7 +299,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: $color-text-faint;
+    background: var(--text-faint);
     animation: adviser-blink 1.2s infinite ease-in-out;
 
     &:nth-child(2) { animation-delay: 0.15s; }

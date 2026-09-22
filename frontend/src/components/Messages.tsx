@@ -13,6 +13,11 @@ interface ChatMessage {
   message_type: 'TEXT' | 'PRICE_OFFER';
   offer_amount: number | null;
   offer_status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null;
+
+  // When an accepted offer stops being claimable. Accepting agrees a price
+  // rather than making a sale, so this is the deadline the buyer has to
+  // actually pay by, and after it the listing simply costs what it says.
+  offer_expires_at: string | null;
   created_at: string;
 
   // Null for almost every message. When set, it names what the off-platform
@@ -79,6 +84,88 @@ function SafetyWarning({ flags, mine }: { flags: string[]; mine: boolean }) {
   );
 }
 
+/** "Tomorrow at 14:00" is harder to misread than a bare timestamp. */
+function deadlineLabel(iso: string): string {
+  const when = new Date(iso);
+  const today = new Date();
+  const sameDay = when.toDateString() === today.toDateString();
+  const time = when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  return sameDay
+    ? `today at ${time}`
+    : `${when.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} at ${time}`;
+}
+
+/**
+ * What an accepted offer looks like to each side of it.
+ *
+ * It used to say "Accepted" and nothing else, which was accurate when
+ * accepting sold the item on the spot. Now it agrees a price and the buyer
+ * still has to pay, so the bubble has to say three things the old one did
+ * not: that the sale has not happened, what the deadline is, and, for the
+ * seller, that their listing is still on sale in the meantime. A seller who
+ * thinks they have sold something and has not is how a marketplace loses a
+ * seller.
+ */
+function AcceptedOffer({
+  message,
+  amIBuyer,
+  listing,
+  onPay,
+}: {
+  message: ChatMessage;
+  amIBuyer: boolean;
+  listing: ConversationSummary['listing'] | undefined;
+  onPay: () => void;
+}) {
+  const expired = message.offer_expires_at !== null && new Date(message.offer_expires_at) <= new Date();
+  const goneToSomeoneElse = listing?.status === 'SOLD';
+
+  if (goneToSomeoneElse) {
+    return (
+      <p className="bubble__status bubble__status--declined">
+        {amIBuyer
+          ? 'Accepted, but this has now sold. An agreed price does not hold the item: whoever pays first gets it.'
+          : 'Accepted, and this listing has since sold.'}
+      </p>
+    );
+  }
+
+  if (expired) {
+    return (
+      <p className="bubble__status bubble__status--declined">
+        {amIBuyer
+          ? 'Accepted, but the deadline to pay has passed. Make another offer if you are still interested.'
+          : 'Accepted, but they did not pay in time. The listing is back at its full price.'}
+      </p>
+    );
+  }
+
+  if (!amIBuyer) {
+    return (
+      <p className="bubble__status bubble__status--accepted">
+        Accepted. They have until {message.offer_expires_at ? deadlineLabel(message.offer_expires_at) : 'the deadline'} to
+        pay £{message.offer_amount}. It stays on sale until they do.
+      </p>
+    );
+  }
+
+  return (
+    <div className="bubble__accepted">
+      <p className="bubble__status bubble__status--accepted">
+        Accepted. Pay £{message.offer_amount} by{' '}
+        {message.offer_expires_at ? deadlineLabel(message.offer_expires_at) : 'the deadline'}.
+      </p>
+      <button className="btn-primary btn-sm" onClick={onPay}>
+        Pay £{message.offer_amount}
+      </button>
+      <p className="bubble__note">
+        It is still on sale to everyone else until you do, so it is first come first served.
+      </p>
+    </div>
+  );
+}
+
 function ConversationRow({ conv, active, onClick }: { conv: ConversationSummary; active: boolean; onClick: () => void }) {
   return (
     <div className={`conversation-row${active ? ' conversation-row--active' : ''}`} onClick={onClick}>
@@ -123,6 +210,7 @@ function ChatPanel({
   const [endorseError, setEndorseError] = useState('');
   const [respondingId, setRespondingId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
@@ -347,7 +435,12 @@ function ChatPanel({
                       <p className="bubble__status">Awaiting response...</p>
                     )}
                     {m.offer_status === 'ACCEPTED' && (
-                      <p className="bubble__status bubble__status--accepted">Accepted</p>
+                      <AcceptedOffer
+                        message={m}
+                        amIBuyer={mine}
+                        listing={conv?.listing}
+                        onPay={() => conv && navigate(`/checkout/${conv.listing.id}`)}
+                      />
                     )}
                     {m.offer_status === 'DECLINED' && (
                       <p className="bubble__status bubble__status--declined">Declined</p>

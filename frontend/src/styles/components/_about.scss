@@ -14,12 +14,12 @@
   &__hero {
     padding-bottom: $space-xl;
     margin-bottom: $space-xl;
-    border-bottom: 1px solid $color-border;
+    border-bottom: 1px solid var(--border);
   }
 
   &__eyebrow {
     margin: 0 0 $space-sm;
-    color: $color-accent;
+    color: var(--accent);
     font-size: $font-size-xs;
     font-weight: 600;
     text-transform: uppercase;
@@ -34,20 +34,16 @@
     line-height: 1.12;
   }
 
-  // The accent half of the headline, as a gradient rather than a flat green.
-  // background-clip on text needs an explicit transparent fill, and the
-  // -webkit- prefixed pair is still required in Safari.
+  // The accent half of the headline. It was a gradient clipped to the text,
+  // which meant the word changed colour across its own letters and needed
+  // three prefixed properties to do it. One colour says the same thing.
   &__title-accent {
-    background: linear-gradient(100deg, $color-accent, mix($color-good, $color-accent, 55%));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+    color: var(--accent);
   }
 
   &__lede {
     margin: $space-lg 0 0;
-    color: $color-text-soft;
+    color: var(--text-soft);
     font-size: $font-size-lg;
     line-height: 1.65;
   }
@@ -57,16 +53,16 @@
 
     p {
       margin: 0 0 $space-md;
-      color: $color-text-muted;
+      color: var(--text-muted);
       font-size: $font-size-md + 1px;
       line-height: 1.75;
     }
 
     a {
-      color: $color-accent;
+      color: var(--accent);
 
       &:hover {
-        color: $color-accent-hover;
+        color: var(--accent-hover);
       }
     }
   }
@@ -80,10 +76,8 @@
   &__section--cta {
     padding: $space-xl;
     border-radius: $radius-lg;
-    border: 1px solid mix($color-accent, $color-bg, 22%);
-    background:
-      radial-gradient(ellipse 70% 120% at 0% 0%, rgba($color-accent, 0.14), transparent),
-      $color-bg-raised;
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--bg));
+    background: var(--bg-raised);
   }
 
   &__actions {
@@ -95,7 +89,7 @@
 
   &__footnote {
     margin: 0;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-sm;
     line-height: 1.7;
   }
@@ -116,45 +110,23 @@
   position: relative;
   padding: $space-lg;
   overflow: hidden;
-  border: 1px solid $color-border;
+  border: 1px solid var(--border);
   border-radius: $radius;
-  background: $color-bg-card;
+  background: var(--bg-card);
   transition: border-color $transition, transform $transition;
-
-  // A wash of accent that grows on hover. Drawn as a pseudo element so the
-  // card's own background stays flat and the transition is a cheap opacity
-  // change rather than a repaint of a gradient.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 80% 100% at 100% 0%, rgba($color-accent, 0.13), transparent);
-    opacity: 0;
-    transition: opacity $transition;
-  }
 
   &:hover {
     transform: translateY(-2px);
-    border-color: mix($color-accent, $color-border, 55%);
-  }
-
-  &:hover::before {
-    opacity: 1;
-  }
-
-  // Everything above the wash.
-  > * {
-    position: relative;
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
   }
 
   &__number {
     display: block;
     margin-bottom: $space-xs;
-    font-family: $font-display;
+    @include display-text;
     font-size: $font-size-sm;
-    font-weight: 700;
     letter-spacing: 0.1em;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__title {
@@ -165,7 +137,7 @@
 
   &__body p {
     margin: 0 0 $space-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm + 1px;
     line-height: 1.65;
 
@@ -183,7 +155,7 @@
   &__head {
     padding-bottom: $space-xl;
     margin-bottom: $space-xl;
-    border-bottom: 1px solid $color-border;
+    border-bottom: 1px solid var(--border);
   }
 
   &__title {
@@ -194,7 +166,7 @@
 
   &__lede {
     margin: $space-md 0 0;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-md + 1px;
     line-height: 1.7;
   }
@@ -209,28 +181,28 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__list {
-    border-top: 1px solid $color-border;
+    border-top: 1px solid var(--border);
   }
 
   &__footer {
     margin: 0;
     padding-top: $space-lg;
-    border-top: 1px solid $color-border;
-    color: $color-text-faint;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
     font-size: $font-size-sm;
 
     a {
-      color: $color-accent;
+      color: var(--accent);
     }
   }
 }
 
 .faq-item {
-  border-bottom: 1px solid $color-border;
+  border-bottom: 1px solid var(--border);
 
   &__question {
     @include button-reset;
@@ -241,14 +213,14 @@
     width: 100%;
     padding: $space-md 0;
     text-align: left;
-    color: $color-text;
+    color: var(--text);
     font-size: $font-size-md + 1px;
     font-weight: 600;
     line-height: 1.45;
     transition: color $transition;
 
     &:hover {
-      color: $color-accent;
+      color: var(--accent);
     }
   }
 
@@ -283,7 +255,7 @@
   }
 
   &--open &__question {
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__answer {
@@ -292,7 +264,7 @@
 
     p {
       margin: 0 0 $space-sm;
-      color: $color-text-muted;
+      color: var(--text-muted);
       font-size: $font-size-md;
       line-height: 1.7;
 
@@ -302,7 +274,7 @@
     }
 
     a {
-      color: $color-accent;
+      color: var(--accent);
 
       &:hover {
         text-decoration: underline;

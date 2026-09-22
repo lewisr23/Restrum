@@ -3,7 +3,7 @@
 // Seller profile header: identity and stats on the left, follow and endorse
 // on the right, stacking on narrow screens.
 .profile-header {
-  @include surface(mix($color-bg, $color-bg-raised, 50%));
+  @include surface(color-mix(in srgb, var(--bg) 50%, var(--bg-raised)));
   padding: $space-lg;
   margin-bottom: $space-xl;
 
@@ -25,7 +25,7 @@
   &__verified {
     font-size: $font-size-sm;
     font-weight: 700;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__location {
@@ -33,18 +33,18 @@
     align-items: center;
     gap: 5px;
     margin: 0 0 $space-xxs;
-    color: $color-text-soft;
+    color: var(--text-soft);
   }
 
   &__stats {
     margin: 0 0 $space-sm;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__bio {
     margin: $space-sm 0 0;
-    color: $color-text-soft;
+    color: var(--text-soft);
     line-height: 1.6;
   }
 
@@ -59,8 +59,8 @@
 // rather than disappearing, so the action visibly took effect.
 .endorse-btn {
   &--done {
-    color: $color-accent;
-    border-color: rgba($color-accent, 0.5);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     cursor: default;
   }
 
@@ -84,7 +84,7 @@
 
 .review {
   padding: $space-sm $space-md;
-  border: 1px solid $color-border;
+  border: 1px solid var(--border);
   border-radius: $radius;
 
   &__head {
@@ -95,19 +95,19 @@
   }
 
   &__stars {
-    color: $color-accent;
+    color: var(--accent);
     letter-spacing: 1px;
   }
 
   // The unearned stars, kept in the flow so every row is the same width and
   // four out of five reads as four rather than just "some".
   &__stars-off {
-    color: $color-border;
+    color: var(--border);
   }
 
   &__comment {
     margin: $space-xs 0 0;
-    color: $color-text-soft;
+    color: var(--text-soft);
   }
 }
 
@@ -124,10 +124,10 @@
     font-size: 28px;
     line-height: 1;
     cursor: pointer;
-    color: $color-border;
+    color: var(--border);
 
     &--on {
-      color: $color-accent;
+      color: var(--accent);
     }
   }
 }

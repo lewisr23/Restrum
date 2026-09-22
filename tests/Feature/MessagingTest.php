@@ -180,7 +180,17 @@ class MessagingTest extends TestCase
             ->assertJsonValidationErrors('offer_amount');
     }
 
-    public function test_accepting_an_offer_sells_the_listing_at_the_agreed_price(): void
+    /**
+     * Accepting agrees a price. It does not sell anything.
+     *
+     * This is the inversion of what this method used to do, and the reason
+     * the flow was rebuilt: accepting marked the listing SOLD and rewrote
+     * its price, so an instrument left the market with no order behind it,
+     * nobody paid, and the asking price was gone for good. The sale now
+     * happens at checkout like every other sale, and until the buyer
+     * actually pays, the listing is still for sale at its own price.
+     */
+    public function test_accepting_an_offer_agrees_a_price_without_selling_the_listing(): void
     {
         $offer = $this->makePendingOffer(400);
 
@@ -190,8 +200,33 @@ class MessagingTest extends TestCase
             ->assertJsonPath('data.offer_status', 'ACCEPTED');
 
         $this->listing->refresh();
-        $this->assertSame('SOLD', $this->listing->status);
-        $this->assertEquals(400, $this->listing->price);
+        $this->assertSame('ACTIVE', $this->listing->status);
+        $this->assertEquals(500, $this->listing->price);
+    }
+
+    public function test_accepting_an_offer_gives_the_buyer_a_deadline_to_pay_by(): void
+    {
+        config(['services.stripe.offer_hours' => 48]);
+        $this->travelTo(now()->setDate(2026, 1, 15)->setTime(12, 0, 0));
+
+        $offer = $this->makePendingOffer(400);
+
+        $this->actingAs($this->seller)
+            ->postJson("/api/messages/{$offer->id}/respond", ['action' => 'accept'])
+            ->assertOk()
+            ->assertJsonPath('data.offer_expires_at', '2026-01-17T12:00:00.000000Z');
+    }
+
+    public function test_a_declined_offer_gets_no_deadline_because_there_is_nothing_to_claim(): void
+    {
+        $offer = $this->makePendingOffer(400);
+
+        $this->actingAs($this->seller)
+            ->postJson("/api/messages/{$offer->id}/respond", ['action' => 'decline'])
+            ->assertOk()
+            ->assertJsonPath('data.offer_expires_at', null);
+
+        $this->assertNull($offer->fresh()->offer_expires_at);
     }
 
     public function test_declining_an_offer_leaves_the_listing_on_sale_at_its_original_price(): void

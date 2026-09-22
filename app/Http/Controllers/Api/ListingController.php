@@ -10,6 +10,7 @@ use App\Http\Resources\ListingResource;
 use App\Models\Category;
 use App\Enums\OrderStatus;
 use App\Models\Listing;
+use App\Models\Message;
 use App\Search\ListingSearch;
 use App\Services\PriceInsightService;
 use Illuminate\Http\Request;
@@ -297,12 +298,41 @@ class ListingController extends Controller
 
         return (new ListingResource($listing))->additional([
             'price_insight' => $this->priceInsight->forListing($listing),
+
+            // A price this viewer has already been promised, so the buy
+            // button can offer it by name. It belongs here rather than on
+            // ListingResource because it is one query per listing: harmless
+            // on a page showing one, an N+1 the moment the same resource is
+            // used for a grid of forty.
+            'your_offer' => $viewerId ? $this->claimableOfferFor($viewerId, $listing) : null,
             // So the listing page can label each stored attribute without
             // knowing the taxonomy itself.
             'attribute_labels' => collect($listing->category?->facets() ?? [])
                 ->map(fn (array $definition) => $definition['label'])
                 ->all(),
         ]);
+    }
+
+    /**
+     * What this viewer would actually be charged for the item, if they have
+     * talked the seller down and the agreement is still standing.
+     *
+     * Deliberately a description rather than a decision: CheckoutService
+     * runs the same lookup again under a row lock when the money is
+     * involved, because anything read here is read outside a transaction and
+     * could be stale by the time a card is entered. This one only decides
+     * what a button says.
+     *
+     * @return array{amount: string, expires_at: string}|null
+     */
+    private function claimableOfferFor(int $viewerId, Listing $listing): ?array
+    {
+        $offer = Message::claimableBy($viewerId, $listing->id)->first();
+
+        return $offer === null ? null : [
+            'amount' => (string) $offer->offer_amount,
+            'expires_at' => $offer->offer_expires_at->toJSON(),
+        ];
     }
 
     // Buying lives in CheckoutController now. What used to be here marked a

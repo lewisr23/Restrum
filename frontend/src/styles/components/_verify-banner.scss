@@ -13,9 +13,9 @@
   gap: $space-sm $space-md;
 
   padding: $space-sm $space-lg;
-  border-bottom: 1px solid rgba($color-warning, 0.35);
-  background: rgba($color-warning, 0.08);
-  color: $color-text-soft;
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  color: var(--text-soft);
   font-size: $font-size-sm;
 
   &__text {
@@ -24,7 +24,7 @@
     line-height: 1.5;
 
     strong {
-      color: $color-warning;
+      color: var(--warning);
     }
   }
 
@@ -37,17 +37,17 @@
 
   &__button {
     padding: $space-xs $space-md;
-    border: 1px solid rgba($color-warning, 0.55);
+    border: 1px solid color-mix(in srgb, var(--warning) 55%, transparent);
     border-radius: $radius-sm;
     background: transparent;
-    color: $color-warning;
+    color: var(--warning);
     font: inherit;
     cursor: pointer;
     transition: background $transition, border-color $transition;
 
     &:hover:not(:disabled) {
-      background: rgba($color-warning, 0.15);
-      border-color: $color-warning;
+      background: color-mix(in srgb, var(--warning) 15%, transparent);
+      border-color: var(--warning);
     }
 
     &:disabled {
@@ -57,6 +57,6 @@
   }
 
   &__message {
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 }

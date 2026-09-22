@@ -50,6 +50,15 @@ class Order extends Model
         return $this->belongsTo(Listing::class);
     }
 
+    /**
+     * The accepted price offer this sale was struck at, when it was not
+     * simply bought at the asking price. Null for most orders.
+     */
+    public function offer(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'offer_id');
+    }
+
     public function buyer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'buyer_id');

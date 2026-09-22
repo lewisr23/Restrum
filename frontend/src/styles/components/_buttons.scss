@@ -30,27 +30,30 @@
   }
 }
 
-// Filled green. The primary action on any given screen, used once per view.
+// The primary action on any given screen, used once per view.
 //
-// A gradient rather than a flat fill, and a shadow tinted with the accent
-// rather than black: on a dark background a black shadow reads as a smudge,
+// A flat fill. It was a diagonal gradient, which on a small button is two
+// slightly different violets pretending to be lighting, and the hover state
+// was a third. One colour is easier to match elsewhere and easier to keep
+// legible against white text. The shadow stays tinted with the accent rather
+// than black, because on a dark background a black shadow reads as a smudge
 // where a coloured one reads as glow.
 .btn-primary {
   @extend %button-base;
   padding: 10px $space-lg - 4px;
-  background: linear-gradient(135deg, $color-accent-hover, $color-accent-dark);
+  background: var(--accent-dark);
   color: #fff;
-  box-shadow: 0 2px 10px rgba($color-accent, 0.22);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 22%, transparent);
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, mix(#fff, $color-accent-hover, 8%), $color-accent);
-    box-shadow: 0 6px 18px rgba($color-accent, 0.34);
+    background: var(--accent);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 34%, transparent);
     transform: translateY(-1px);
   }
 
   &:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba($color-accent, 0.24);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 24%, transparent);
   }
 }
 
@@ -58,13 +61,13 @@
 .btn-ghost {
   @extend %button-base;
   background: none;
-  border-color: $color-border-input;
-  color: $color-text;
+  border-color: var(--border-input);
+  color: var(--text);
 
   &:hover:not(:disabled) {
-    border-color: $color-accent;
-    color: $color-accent;
-    background: rgba($color-accent, 0.07);
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
   }
 }
 
@@ -72,12 +75,12 @@
 .btn-danger {
   @extend %button-base;
   background: none;
-  border-color: rgba($color-danger, 0.5);
-  color: $color-danger;
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+  color: var(--danger);
 
   &:hover:not(:disabled) {
-    background: rgba($color-danger, 0.12);
-    border-color: $color-danger;
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border-color: var(--danger);
   }
 }
 
@@ -89,15 +92,15 @@
   gap: 6px;
   margin-bottom: $space-lg;
   padding: $space-xs $space-md;
-  border: 1px solid $color-border-input;
+  border: 1px solid var(--border-input);
   border-radius: $radius-sm;
-  color: $color-text-soft;
+  color: var(--text-soft);
   font-size: 14px;
   transition: border-color $transition, color $transition;
 
   &:hover {
-    border-color: $color-accent;
-    color: $color-accent;
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 

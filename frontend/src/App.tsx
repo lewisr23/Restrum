@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import Browse from './components/Browse';
 import ListingDetail from './components/ListingDetail';
@@ -34,50 +35,52 @@ import GearAdviser from './components/GearAdviser';
 // faceted search is a file nobody can find anything in.
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="app-shell">
-          <Navbar />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="app-shell">
+            <Navbar />
 
-          {/* Above the routes rather than inside one: an unconfirmed
-              address matters on every page, and the banner renders
-              nothing for everyone else. */}
-          <VerifyEmailBanner />
+            {/* Above the routes rather than inside one: an unconfirmed
+                address matters on every page, and the banner renders
+                nothing for everyone else. */}
+            <VerifyEmailBanner />
 
-          <div className="app-shell__main">
-            <Routes>
-              <Route path="/" element={<Browse />} />
-              <Route path="/listing/:id" element={<ListingDetail />} />
-              <Route path="/listing/:id/edit" element={<EditListing />} />
-              <Route path="/checkout/:id" element={<Checkout />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/orders/:id" element={<OrderDetail />} />
-              <Route path="/sell/payments" element={<SellerPayments />} />
-              <Route path="/seller/:id" element={<SellerProfile />} />
-              <Route path="/saved" element={<SavedListings />} />
-              <Route path="/create" element={<CreateListing />} />
-              <Route path="/messages" element={<MessagesPage />} />
-              <Route path="/messages/:id" element={<MessagesPage />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/faq" element={<Faq />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin/reports" element={<AdminReports />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/email-verified" element={<EmailVerified />} />
-              <Route path="/register" element={<Register />} />
-            </Routes>
+            <div className="app-shell__main">
+              <Routes>
+                <Route path="/" element={<Browse />} />
+                <Route path="/listing/:id" element={<ListingDetail />} />
+                <Route path="/listing/:id/edit" element={<EditListing />} />
+                <Route path="/checkout/:id" element={<Checkout />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:id" element={<OrderDetail />} />
+                <Route path="/sell/payments" element={<SellerPayments />} />
+                <Route path="/seller/:id" element={<SellerProfile />} />
+                <Route path="/saved" element={<SavedListings />} />
+                <Route path="/create" element={<CreateListing />} />
+                <Route path="/messages" element={<MessagesPage />} />
+                <Route path="/messages/:id" element={<MessagesPage />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/faq" element={<Faq />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/admin/reports" element={<AdminReports />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/email-verified" element={<EmailVerified />} />
+                <Route path="/register" element={<Register />} />
+              </Routes>
+            </div>
+            <Footer />
+
+            {/* Outside the routes: the adviser is useful on any page, and it
+                renders nothing at all unless the server has an API key. */}
+            <GearAdviser />
           </div>
-          <Footer />
-
-          {/* Outside the routes: the adviser is useful on any page, and it
-              renders nothing at all unless the server has an API key. */}
-          <GearAdviser />
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

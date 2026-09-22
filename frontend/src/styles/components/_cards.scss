@@ -6,7 +6,7 @@
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(#000, 0.25);
+  box-shadow: var(--shadow-sm);
   transition:
     transform $transition,
     border-color $transition,
@@ -14,8 +14,8 @@
 
   &:hover {
     transform: translateY(-3px);
-    border-color: $color-accent;
-    box-shadow: 0 10px 24px rgba(#000, 0.4);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
   }
 
   &--sold {
@@ -50,11 +50,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, #232323, $color-bg-raised);
+    background: var(--bg-elevated);
     // The icon inherits this. Faint on purpose: it stands in for a
     // photograph nobody took, and should not compete with the listings that
     // do have one.
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &__badge {
@@ -63,9 +63,9 @@
     right: 10px;
     z-index: 1;
     padding: 2px $space-xs;
-    background: $color-accent;
+    background: var(--accent);
     border-radius: $radius-sm - 2px;
-    color: $color-bg;
+    color: var(--bg);
     font-size: 11px;
     font-weight: 700;
   }
@@ -100,7 +100,7 @@
   &__category {
     margin: 0 0 3px;
     font-size: 11px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 600;
@@ -116,10 +116,9 @@
 
   &__price {
     margin: 0 0 $space-xxs;
-    font-family: $font-display;
+    @include display-text;
     font-size: $font-size-lg;
-    font-weight: 700;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__location {
@@ -128,7 +127,7 @@
     gap: 4px;
     margin: 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 }
 

@@ -57,6 +57,13 @@ return [
         // is far too long to make a seller wait.
         'reservation_minutes' => env('STRIPE_RESERVATION_MINUTES', 30),
 
+        // How long an accepted offer stays claimable. Accepting does not take
+        // the instrument off the market, so this is the window in which the
+        // buyer can still pay the agreed price rather than the asking one,
+        // and the seller's guarantee that a discount they agreed to on a slow
+        // Tuesday is not hanging over the listing indefinitely.
+        'offer_hours' => env('STRIPE_OFFER_HOURS', 48),
+
         // How long the buyer has to confirm the item arrived before the money
         // releases to the seller anyway. Without it an order sits in escrow
         // forever whenever a buyer simply never comes back, which punishes

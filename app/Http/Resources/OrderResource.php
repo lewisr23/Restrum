@@ -26,6 +26,23 @@ class OrderResource extends JsonResource
             'amount' => $this->amount,
             'currency' => $this->currency,
 
+            // The total split into its parts. The checkout page used to
+            // itemise the LISTING's price and postage next to a total Stripe
+            // took from the order, which was only ever right because the two
+            // could not differ. An accepted offer makes them differ, and a
+            // buyer reading one number while being charged another is the
+            // single worst thing this page could do.
+            'item_price' => bcsub((string) $this->amount, (string) $this->postage, 2),
+            'postage' => $this->postage,
+
+            // Set when the buyer is paying a price the seller agreed to
+            // rather than the one on the listing, so the interface can say so
+            // instead of appearing to discount things by itself.
+            'agreed_offer' => $this->when($this->offer_id !== null, fn () => [
+                'id' => $this->offer_id,
+                'amount' => bcsub((string) $this->amount, (string) $this->postage, 2),
+            ]),
+
             // The seller's side of the split, shown to both parties. A buyer
             // seeing the fee is a marketplace being open about what it takes,
             // and hiding it only makes the first seller payout a surprise.

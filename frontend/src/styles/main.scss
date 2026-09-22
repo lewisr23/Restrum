@@ -30,6 +30,7 @@
 @use 'components/passport';
 @use 'components/similar';
 @use 'components/nav';
+@use 'components/notifications';
 @use 'components/footer';
 
 // Utilities last, so a helper can override a component when it needs to.

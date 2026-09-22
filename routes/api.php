@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\FollowController;
 use App\Http\Controllers\Api\ListingController;
 use App\Http\Controllers\Api\ListingMediaController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ReportController;
@@ -79,6 +80,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/listings/{listing}/media', [ListingMediaController::class, 'store']);
     Route::delete('/listings/{listing}/media/{media}', [ListingMediaController::class, 'destroy']);
+
+    // The bell. Polled rather than pushed: the websocket already exists for
+    // chat, but a notification is not time critical in the way a message in
+    // an open conversation is, and a minute's delay on "you sold something"
+    // costs nothing next to a second private channel per user.
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read', [NotificationController::class, 'read']);
 
     Route::get('/conversations', [ConversationController::class, 'index']);
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show']);

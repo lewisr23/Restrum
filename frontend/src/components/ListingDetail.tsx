@@ -434,6 +434,14 @@ function PurchasePanel({
 }) {
   const navigate = useNavigate();
 
+  // Set by the show endpoint when this viewer has an accepted price offer
+  // that has not run out. Checkout looks it up again under a row lock when
+  // the money is involved, so this only decides what the button says.
+  const agreed: { amount: string; expires_at: string } | null = listing.your_offer ?? null;
+  const agreedTotal = agreed
+    ? (Number(agreed.amount) + (listing.collection_only ? 0 : Number(listing.postage_price ?? 0))).toFixed(2)
+    : null;
+
   return (
     <div className="purchase-panel">
       <div className="purchase-panel__top">
@@ -500,12 +508,26 @@ function PurchasePanel({
         </p>
       )}
 
+      {/* A price this seller has already agreed with this buyer. Shown on
+          the button rather than only at checkout, because the buyer's
+          question on arriving back at the listing is whether the deal they
+          struck in chat still stands. */}
+      {!isSeller && !isSold && agreed && (
+        <p className="purchase-panel__agreed">
+          Your offer of £{agreed.amount} was accepted. Pay by{' '}
+          {new Date(agreed.expires_at).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}
+          {listing.collection_only || Number(listing.postage_price) === 0 ? '' : ', postage on top'}.
+        </p>
+      )}
+
       {!isSeller && !isSold && (
         <button
           className="btn-primary btn-block btn-lg purchase-panel__action--primary"
           onClick={onBuyNow}
         >
-          {`Buy Now for £${listing.total_price ?? listing.price}`}
+          {agreed
+            ? `Pay your agreed £${agreedTotal}`
+            : `Buy Now for £${listing.total_price ?? listing.price}`}
         </button>
       )}
       {!isSeller && !isSold && !showMessageBox && (
@@ -684,7 +706,7 @@ function ListingDetail() {
       // JsonResource::additional() merges extra keys at the top level). Fold
       // it into one object here so the rest of this component can just read
       // listing.price_insight consistently.
-      .then(body => { setListing({ ...body.data, price_insight: body.price_insight, attribute_labels: body.attribute_labels }); setLoading(false); })
+      .then(body => { setListing({ ...body.data, price_insight: body.price_insight, attribute_labels: body.attribute_labels, your_offer: body.your_offer }); setLoading(false); })
       .catch(() => { setError('Listing not found.'); setLoading(false); });
   }, [id, user?.token]);
 

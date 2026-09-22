@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { loadStripe, Stripe, Appearance } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 import { API, mediaUrl } from '../lib/config';
 
@@ -41,12 +42,17 @@ function stripeFor(key: string): Promise<Stripe | null> {
  * hardcoded copy of the palette is a second thing to forget when the first
  * one changes. The fallbacks are only for a stylesheet that has not loaded.
  */
-function appearance(): Appearance {
+function appearance(theme: 'light' | 'dark'): Appearance {
   const css = getComputedStyle(document.documentElement);
   const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
 
   return {
-    theme: 'night',
+    // Stripe's own base theme has to change with ours. The variables below
+    // only override what they name; everything Stripe draws and we do not
+    // mention - a dropdown, an error icon, the tab strip between payment
+    // methods - falls back to this, and 'night' on a white page is a black
+    // box in the middle of the checkout.
+    theme: theme === 'light' ? 'stripe' : 'night',
     variables: {
       colorPrimary: token('--accent', '#8c70f4'),
       colorBackground: token('--bg-card', '#1e1e1e'),
@@ -66,7 +72,7 @@ function appearance(): Appearance {
  * The form itself, which has to be a child of <Elements> because that is
  * what useStripe and useElements read from.
  */
-function PaymentForm({ orderId, price, postage, collectionOnly, total, sellerName }: { orderId: number; price: string; postage: string; collectionOnly: boolean; total: string; sellerName: string }) {
+function PaymentForm({ orderId, price, postage, collectionOnly, total, sellerName, agreedOffer }: { orderId: number; price: string; postage: string; collectionOnly: boolean; total: string; sellerName: string; agreedOffer: boolean }) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -167,7 +173,14 @@ function PaymentForm({ orderId, price, postage, collectionOnly, total, sellerNam
             exist; the moment carriage is charged, a single number is the
             one thing a buyer will dispute. */}
         <div className="order-summary__row">
-          <span>Item</span>
+          <span>
+            Item
+            {/* Named rather than left as a number that quietly differs from
+                the listing. A buyer who agreed 400 on a 500 guitar should
+                see why they are being charged 400, and a buyer who agreed
+                nothing should never see this line at all. */}
+            {agreedOffer && <span className="order-summary__note">Agreed with {sellerName}</span>}
+          </span>
           <span>£{price}</span>
         </div>
         <div className="order-summary__row">
@@ -208,12 +221,13 @@ function Checkout() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
 
   const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [payment, setPayment] = useState<{ orderId: number; clientSecret: string; key: string } | null>(null);
+  const [payment, setPayment] = useState<{ order: any; clientSecret: string; key: string } | null>(null);
   const [problem, setProblem] = useState('');
 
   // Reserving is a write, and StrictMode runs effects twice in development.
@@ -261,8 +275,13 @@ function Checkout() {
         const body = await res.json().catch(() => null);
 
         if (res.ok) {
+          // The ORDER is what the summary is drawn from, not the listing.
+          // They can disagree: an accepted price offer is charged at the
+          // agreed figure while the listing still asks its own price, and
+          // the number beside the card fields has to be the one Stripe is
+          // about to take.
           setPayment({
-            orderId: body.order.id,
+            order: body.order,
             clientSecret: body.client_secret,
             key: body.publishable_key,
           });
@@ -288,9 +307,13 @@ function Checkout() {
   // Rebuilt only when the secret or the key changes, because passing a fresh
   // options object on every render remounts the Element and throws away
   // whatever the buyer had typed into it.
+  // Rebuilt when the theme changes as well as when the secret does, because
+  // the Element is an iframe and cannot see our stylesheet: it is handed a
+  // snapshot of the palette at mount, so switching themes mid-checkout would
+  // otherwise leave the card fields in the old one.
   const elementsOptions = useMemo(
-    () => (payment ? { clientSecret: payment.clientSecret, appearance: appearance() } : null),
-    [payment],
+    () => (payment ? { clientSecret: payment.clientSecret, appearance: appearance(theme) } : null),
+    [payment, theme],
   );
 
   if (loading) return <div className="page text-muted">Loading...</div>;
@@ -357,12 +380,13 @@ function Checkout() {
       {payment && elementsOptions && (
         <Elements stripe={stripeFor(payment.key)} options={elementsOptions}>
           <PaymentForm
-            orderId={payment.orderId}
-            price={listing.price}
-            postage={listing.postage_price}
+            orderId={payment.order.id}
+            price={payment.order.item_price}
+            postage={payment.order.postage}
             collectionOnly={listing.collection_only}
-            total={listing.total_price ?? listing.price}
+            total={payment.order.amount}
             sellerName={listing.seller.username}
+            agreedOffer={Boolean(payment.order.agreed_offer)}
           />
         </Elements>
       )}

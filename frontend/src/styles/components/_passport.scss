@@ -4,7 +4,7 @@
 .passport {
   margin-top: $space-xl;
   padding-top: $space-lg;
-  border-top: 1px solid $color-border-strong;
+  border-top: 1px solid var(--border-strong);
 
   &__heading {
     margin: 0 0 $space-xxs;
@@ -14,13 +14,13 @@
   &__serial {
     margin: $space-xxs 0;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__empty {
     margin: $space-md 0;
     font-size: 14px;
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &__timeline {
@@ -46,14 +46,14 @@
     height: 10px;
     margin-top: $space-xxs;
     border-radius: 50%;
-    background: $color-accent;
+    background: var(--accent);
   }
 
   &__line {
     flex: 1;
     width: 2px;
     margin-top: $space-xxs;
-    background: $color-border-strong;
+    background: var(--border-strong);
   }
 
   &__body {
@@ -64,18 +64,18 @@
     margin: 0 0 2px;
     font-size: $font-size-sm;
     font-weight: 600;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__date {
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-weight: 400;
   }
 
   &__description {
     margin: 0;
     font-size: 14px;
-    color: $color-text-soft;
+    color: var(--text-soft);
     line-height: 1.5;
   }
 
@@ -83,14 +83,14 @@
     @include button-reset;
     margin-top: $space-xxs;
     padding: 2px $space-xs;
-    border: 1px solid $color-border-strong;
+    border: 1px solid var(--border-strong);
     border-radius: $radius-sm - 2px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: 11px;
 
     &:hover {
-      border-color: $color-accent;
-      color: $color-accent;
+      border-color: var(--accent);
+      color: var(--accent);
     }
   }
 
@@ -109,7 +109,7 @@
   &__form-label {
     margin: 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__form-actions {

@@ -55,6 +55,9 @@ export const AUTO_RELEASE_DAYS = 14;
 /** Matches STRIPE_RESERVATION_MINUTES in config/services.php. */
 export const RESERVATION_MINUTES = 30;
 
+/** Matches STRIPE_OFFER_HOURS in config/services.php. */
+export const OFFER_HOURS = 48;
+
 /** Which operator details are still unset, for the draft warning on the page. */
 export function missingOperatorDetails(): string[] {
   return Object.entries(OPERATOR)

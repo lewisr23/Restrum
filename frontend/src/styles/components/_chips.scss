@@ -6,27 +6,27 @@
   align-items: center;
   gap: $space-xxs + 2px;
   padding: $space-xxs 10px;
-  background: $color-bg-raised;
-  border: 1px solid $color-border;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
   border-radius: $radius-pill;
   font-size: $font-size-xs;
-  color: $color-text-muted;
+  color: var(--text-muted);
   white-space: nowrap;
 
   &--accent {
-    @include tinted($color-accent);
+    @include tinted(var(--accent));
   }
 
   &--good {
-    @include tinted($color-good);
+    @include tinted(var(--good));
   }
 
   &--warning {
-    @include tinted($color-warning);
+    @include tinted(var(--warning));
   }
 
   &--danger {
-    @include tinted($color-danger);
+    @include tinted(var(--danger));
   }
 }
 

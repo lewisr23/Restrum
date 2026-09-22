@@ -18,9 +18,9 @@
   top: var(--nav-height, 65px);
   z-index: $z-nav - 1;
 
-  background: rgba($color-bg-sunken, 0.92);
+  background: color-mix(in srgb, var(--bg-sunken) 92%, transparent);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid $color-border;
+  border-bottom: 1px solid var(--border);
 
   &__inner {
     @include page-container;
@@ -46,14 +46,14 @@
     flex: 1;
     min-width: 0;
     padding: 10px $space-md;
-    background: $color-bg-card;
-    color: $color-text;
-    border: 1px solid $color-border-input;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border-input);
     border-radius: $radius-pill;
     font-size: $font-size-md;
 
     &::placeholder {
-      color: $color-text-faint;
+      color: var(--text-faint);
     }
 
     &:focus {
@@ -80,15 +80,15 @@
     align-items: center;
     gap: $space-xs;
     padding: 10px $space-md;
-    border: 1px solid $color-border-input;
+    border: 1px solid var(--border-input);
     border-radius: $radius-pill;
-    color: $color-text;
+    color: var(--text);
     font-size: $font-size-sm;
     font-weight: 600;
 
     &:hover {
-      border-color: $color-accent;
-      color: $color-accent;
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     @include media-up('lg') {
@@ -104,7 +104,7 @@
     height: 20px;
     padding: 0 6px;
     border-radius: $radius-pill;
-    background: $color-accent;
+    background: var(--accent);
     color: #fff;
     font-size: $font-size-xs;
   }
@@ -128,23 +128,23 @@
   &__crumb {
     @include button-reset;
     flex-shrink: 0;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
     white-space: nowrap;
 
     &:not(:first-child)::before {
       content: '›';
       margin: 0 $space-xxs;
-      color: $color-text-faint;
+      color: var(--text-faint);
     }
 
     &:hover:not(:disabled) {
-      color: $color-accent;
+      color: var(--accent);
     }
 
     // The one you are on. Not a link to where you already are.
     &:disabled {
-      color: $color-text;
+      color: var(--text);
       font-weight: 600;
       cursor: default;
     }
@@ -152,7 +152,7 @@
 
   &__total {
     flex-shrink: 0;
-    color: $color-text-faint;
+    color: var(--text-faint);
     font-size: $font-size-sm;
   }
 }

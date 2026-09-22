@@ -9,6 +9,10 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Listing;
 use App\Models\Message;
+use App\Models\User;
+use App\Notifications\MessageReceived;
+use App\Notifications\OfferAnswered;
+use App\Notifications\OfferReceived;
 use App\Services\Safety\MessageSafetyReviewer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +84,7 @@ class MessageController extends Controller
         $this->safety->review($message);
 
         MessageSent::dispatch($message);
+        $this->tell($conversation, $message);
 
         return response()->json([
             'conversation' => new ConversationResource($conversation->load('listing', 'buyer', 'seller')),
@@ -116,6 +121,7 @@ class MessageController extends Controller
         $message->refresh(); // see startOrContinue() above for why
         $this->safety->review($message);
         MessageSent::dispatch($message);
+        $this->tell($conversation, $message);
 
         // Direct assignment, not update(['last_message_at' => ...]) -
         // last_message_at is deliberately not in Conversation's #[Fillable]
@@ -147,9 +153,12 @@ class MessageController extends Controller
         // Both the offer's PENDING check and the listing's availability are
         // read-then-write, so they run in one transaction with the rows held.
         // The listing lock is taken BEFORE the message lock deliberately:
-        // ListingController::buy takes the listing lock on its own, so as
+        // CheckoutService::reserve takes the listing lock on its own, so as
         // long as every path that sells a listing grabs that row first, the
-        // two cannot deadlock against each other.
+        // two cannot deadlock against each other. This path no longer sells
+        // anything, but it still decides on the listing's status, and the
+        // lock ordering is worth keeping consistent for whatever is added
+        // next rather than rediscovering it.
         $message = DB::transaction(function () use ($message, $conversation, $data) {
             $listing = Listing::whereKey($conversation->listing_id)->lockForUpdate()->firstOrFail();
             $offer = Message::whereKey($message->getKey())->lockForUpdate()->firstOrFail();
@@ -160,12 +169,10 @@ class MessageController extends Controller
                 ]);
             }
 
-            // Previously unchecked: nothing stopped a seller accepting an
-            // offer on a listing that had already sold, through buy() or
-            // through an offer accepted moments earlier in another
-            // conversation. That silently re-sold it and overwrote the price.
-            // Declining stays allowed, since tidying up a dead offer on a
-            // sold listing is reasonable and changes nothing about the sale.
+            // Accepting an offer on something already sold is meaningless:
+            // there is nothing left to sell at the agreed price. Declining
+            // stays allowed, since tidying up a dead offer on a sold listing
+            // is reasonable and changes nothing about the sale.
             if ($data['action'] === 'accept' && $listing->status !== 'ACTIVE') {
                 throw ValidationException::withMessages([
                     'action' => 'This listing is no longer available.',
@@ -173,20 +180,26 @@ class MessageController extends Controller
             }
 
             $offer->offer_status = $data['action'] === 'accept' ? 'ACCEPTED' : 'DECLINED';
-            $offer->save();
 
+            // What accepting now does, and does not do. It does NOT mark the
+            // listing sold or rewrite its price, which is what it used to do
+            // and is the reason this method needed rebuilding: that path took
+            // an instrument off the market with no order behind it, no money
+            // moved, and no buyer protection, while permanently overwriting
+            // the asking price with the last figure anyone happened to agree
+            // to. What it does instead is give this buyer a window in which
+            // checkout will charge the agreed price. The listing stays on
+            // sale for the whole of that window, so a buyer who haggles and
+            // then disappears costs the seller nothing, and whoever pays
+            // first gets it - which is the same rule the reservation system
+            // already applies to everyone else.
             if ($data['action'] === 'accept') {
-                // Direct property assignment + save(), not update() - 'price' and
-                // 'status' both need to change together here and this is the one
-                // place a listing legitimately moves to SOLD; going through the
-                // normal fillable update() path would both violate status's
-                // mass-assignment guard (see ListingController::store) and make
-                // it too easy to accidentally mark something sold from a
-                // different code path later.
-                $listing->price = $offer->offer_amount;
-                $listing->status = 'SOLD';
-                $listing->save();
+                $offer->offer_expires_at = now()->addHours(
+                    (int) config('services.stripe.offer_hours')
+                );
             }
+
+            $offer->save();
 
             return $offer;
         });
@@ -196,6 +209,36 @@ class MessageController extends Controller
         // place", not "append a new bubble", for this to render correctly.
         MessageSent::dispatch($message);
 
+        // The buyer is the one waiting on this answer, and an accepted offer
+        // is a price with a deadline on it. Somebody who only finds out by
+        // reopening the site has been given nothing.
+        $conversation->buyer?->notify(new OfferAnswered($message->load('conversation.listing')));
+
         return new MessageResource($message);
+    }
+
+    /**
+     * Put the new message in the other person's bell.
+     *
+     * An offer gets its own notification rather than a generic one, because
+     * it is not a remark, it is a decision waiting on the seller, and it is
+     * the only kind of message worth an email as well. See
+     * MessageReceived::emailsToo() for why ordinary chat is not.
+     */
+    private function tell(Conversation $conversation, Message $message): void
+    {
+        $recipientId = $message->sender_id === $conversation->buyer_id
+            ? $conversation->seller_id
+            : $conversation->buyer_id;
+
+        $recipient = User::find($recipientId);
+
+        if ($recipient === null) {
+            return;
+        }
+
+        $recipient->notify($message->message_type === 'PRICE_OFFER'
+            ? new OfferReceived($message->load('conversation.listing'))
+            : new MessageReceived($message->load('sender')));
     }
 }

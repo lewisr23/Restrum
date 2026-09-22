@@ -41,7 +41,24 @@ return [
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
-            'after_commit' => false,
+
+            /*
+             * Hold every job until the transaction that dispatched it has
+             * committed.
+             *
+             * Set here rather than per job because it is not a property of
+             * any one of them, it is a property of this application: nearly
+             * everything that dispatches a job does so from inside a
+             * transaction, and a worker runs on its own connection. Without
+             * this, a job can be picked up before the rows it describes are
+             * visible - a notification saying a guitar sold, reading the
+             * order and finding it still PENDING. It is a race that will
+             * never reproduce on a machine running the queue in the same
+             * process, which is every developer machine.
+             *
+             * Jobs dispatched outside a transaction are unaffected.
+             */
+            'after_commit' => true,
         ],
 
         'beanstalkd' => [

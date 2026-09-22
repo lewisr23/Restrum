@@ -1,13 +1,13 @@
 @use '../abstracts' as *;
 
 .hero {
-  // Two soft green pools of light over a vertical fade, so the top of the
-  // page has some depth without an image to load.
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 0%, rgba($color-accent, 0.12), transparent),
-    radial-gradient(ellipse 60% 50% at 90% 10%, rgba($color-accent, 0.07), transparent),
-    linear-gradient(180deg, #161616 0%, $color-bg 100%);
-  border-bottom: 1px solid $color-border;
+  // Flat. This was two pools of violet light over a vertical fade, which is
+  // the sort of thing that looks like depth in a mockup and like a dirty
+  // screen on a real monitor. The page now separates by surface and rule,
+  // the same way the rest of the site does, which also means the hero holds
+  // up in a light theme instead of needing a second gradient drawn for it.
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 
   &__inner {
     @include page-container(1300px);
@@ -16,23 +16,23 @@
   }
 
   &__title {
+    @include display-text(800);
     margin: 0;
-    max-width: 720px;
+    max-width: 780px;
     // Scales with the viewport instead of stepping at a breakpoint.
-    font-size: clamp(32px, 5vw, 52px);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
+    font-size: clamp(30px, 4.6vw, 48px);
+    letter-spacing: -0.015em;
+    line-height: 1.08;
   }
 
   &__title-accent {
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__lede {
     margin: $space-md 0 0;
     max-width: 560px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: 17px;
     line-height: 1.6;
   }
@@ -54,12 +54,12 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
   }
 
   &__tick {
-    color: $color-accent;
+    color: var(--accent);
     font-weight: 700;
   }
 
@@ -84,10 +84,10 @@
   align-items: center;
   gap: 7px;
   padding: 7px $space-sm 7px 10px;
-  border: 1px solid $color-border-strong;
+  border: 1px solid var(--border-strong);
   border-radius: $radius-pill;
   background: rgba(255, 255, 255, 0.02);
-  color: $color-text-soft;
+  color: var(--text-soft);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
@@ -122,34 +122,17 @@
     color $transition,
     box-shadow $transition;
 
-  // A light sweeping across the chip on hover. Pure decoration, and the one
-  // flourish on the page: it costs nothing, it only ever runs under the
-  // cursor, and it makes the row feel like something rather than a list of
-  // buttons.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      115deg,
-      transparent 35%,
-      rgba(255, 255, 255, 0.09) 50%,
-      transparent 65%
-    );
-    translate: -130% 0;
-    transition: translate 650ms ease;
-  }
+  // There used to be a light sweeping across the chip on hover, drawn as an
+  // angled gradient. It went with the rest of them. The lift and the accent
+  // border below are enough to say the chip is live, and they say it on the
+  // frame the cursor arrives rather than over two thirds of a second.
 
   &:hover {
     transform: translateY(-2px);
-    border-color: $color-accent;
-    background: mix($color-accent, $color-bg, 10%);
-    color: $color-text;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  }
-
-  &:hover::before {
-    translate: 130% 0;
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
   }
 
   &:active {
@@ -177,9 +160,9 @@
 
   // The department currently being browsed.
   &--active {
-    border-color: $color-accent;
-    background: mix($color-accent, $color-bg, 16%);
-    color: $color-accent-hover;
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, var(--bg));
+    color: var(--accent-hover);
 
     .dept-chip__icon {
       transform: scale(1.1);

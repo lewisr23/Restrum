@@ -6,6 +6,11 @@ use App\Enums\OrderStatus;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Models\User;
+use App\Notifications\GearSold;
+use App\Notifications\OrderDispatched;
+use App\Notifications\OrderRefunded;
+use App\Notifications\PaymentHeld;
+use App\Notifications\PayoutSent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +36,29 @@ class EscrowService
     public function __construct(private readonly PaymentGateway $gateway) {}
 
     /**
+     * Tell the people involved what just happened to their sale.
+     *
+     * Called AFTER the transaction rather than inside it, and only when the
+     * transition actually took place. Both halves matter. Stripe redelivers
+     * webhooks, so a method that ran its notifications unconditionally would
+     * email a seller twice about one sale; and a notification queued inside
+     * a transaction can reach a worker before the rows it describes are
+     * visible to anyone else.
+     *
+     * A missing recipient is not an error here. An account can be deleted
+     * between a sale and its payout, and refusing to notify the other party
+     * because of it would be the wrong way round.
+     *
+     * @param  callable(Order): array<int, array{0: ?User, 1: object}>  $plan
+     */
+    private function announce(Order $order, callable $plan): void
+    {
+        foreach ($plan($order) as [$recipient, $notification]) {
+            $recipient?->notify($notification);
+        }
+    }
+
+    /**
      * Record that Stripe took the buyer's money, and take the listing off
      * the market.
      *
@@ -41,7 +69,7 @@ class EscrowService
      */
     public function markPaid(Order $order, ?string $paymentIntentId): bool
     {
-        return DB::transaction(function () use ($order, $paymentIntentId) {
+        $paid = DB::transaction(function () use ($order, $paymentIntentId) {
             $locked = $this->lockOrderAndListing($order);
 
             if ($locked === null || ! $locked->status->canTransitionTo(OrderStatus::PAID)) {
@@ -64,6 +92,18 @@ class EscrowService
 
             return true;
         });
+
+        // Only on the transition, never on a redelivered webhook. Stripe
+        // retries, and being told twice that a guitar sold must not mean
+        // being emailed twice that it did.
+        if ($paid) {
+            $this->announce($order->fresh()->load('listing'), fn (Order $o) => [
+                [$o->seller, new GearSold($o)],
+                [$o->buyer, new PaymentHeld($o)],
+            ]);
+        }
+
+        return $paid;
     }
 
     /**
@@ -123,7 +163,7 @@ class EscrowService
 
         $transferId = $this->gateway->payOutSeller($order, "transfer_order_{$order->id}");
 
-        return DB::transaction(function () use ($order, $transferId) {
+        $released = DB::transaction(function () use ($order, $transferId) {
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             if (! $locked->status->canTransitionTo(OrderStatus::RELEASED)) {
@@ -146,6 +186,14 @@ class EscrowService
 
             return true;
         });
+
+        if ($released) {
+            $this->announce($order->fresh()->load('listing'), fn (Order $o) => [
+                [$o->seller, new PayoutSent($o)],
+            ]);
+        }
+
+        return $released;
     }
 
     /**
@@ -190,7 +238,7 @@ class EscrowService
      */
     public function settleRefund(Order $order): bool
     {
-        return DB::transaction(function () use ($order) {
+        $refunded = DB::transaction(function () use ($order) {
             $locked = $this->lockOrderAndListing($order);
 
             if ($locked === null || ! $locked->status->canTransitionTo(OrderStatus::REFUNDED)) {
@@ -203,6 +251,14 @@ class EscrowService
 
             return true;
         });
+
+        if ($refunded) {
+            $this->announce($order->fresh()->load('listing'), fn (Order $o) => [
+                [$o->buyer, new OrderRefunded($o)],
+            ]);
+        }
+
+        return $refunded;
     }
 
     /**
@@ -237,7 +293,7 @@ class EscrowService
      */
     public function markDispatched(Order $order, ?string $carrier, ?string $trackingNumber): Order
     {
-        return DB::transaction(function () use ($order, $carrier, $trackingNumber) {
+        $dispatched = DB::transaction(function () use ($order, $carrier, $trackingNumber) {
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== OrderStatus::PAID) {
@@ -258,6 +314,12 @@ class EscrowService
 
             return $locked;
         });
+
+        $this->announce($dispatched->load('listing'), fn (Order $o) => [
+            [$o->buyer, new OrderDispatched($o)],
+        ]);
+
+        return $dispatched;
     }
 
     /**

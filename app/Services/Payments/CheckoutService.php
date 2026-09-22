@@ -4,6 +4,7 @@ namespace App\Services\Payments;
 
 use App\Enums\OrderStatus;
 use App\Models\Listing;
+use App\Models\Message;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -121,12 +122,19 @@ class CheckoutService
                 ]);
             }
 
+            // A price the seller has already agreed to with this buyer beats
+            // the asking price. Looked up inside the lock like everything
+            // else that decides the amount, and only ever downward in
+            // practice: an offer is a number the seller accepted, so honouring
+            // it is the whole point rather than a concession.
+            $offer = $this->claimableOffer($buyer, $locked);
+
             // Collection only means the buyer turns up for it, so there is
             // nothing to charge carriage for. Reading it off the locked row
             // rather than the one passed in matters for the same reason the
             // price does: this is the copy nobody else can change underneath
             // the transaction.
-            $itemPrice = (string) $locked->price;
+            $itemPrice = (string) ($offer?->offer_amount ?? $locked->price);
             $postage = $locked->collection_only ? '0.00' : (string) $locked->postage_price;
 
             // What Stripe charges, and therefore what the platform holds in
@@ -141,6 +149,10 @@ class CheckoutService
             // Denormalised deliberately, see the orders migration: who sold
             // it is a fact about the sale, not a pointer to the listing.
             $order->seller_id = $seller->id;
+            // Why this order is priced the way it is. An order that charges
+            // less than its listing asks and cannot say why is the sort of
+            // thing that gets queried months later with nothing to answer it.
+            $order->offer_id = $offer?->id;
             $order->amount = $amount;
             $order->postage = $postage;
             // On the item alone. The seller is not making a margin on postage,
@@ -157,6 +169,19 @@ class CheckoutService
 
             return $order;
         });
+    }
+
+    /**
+     * The price this buyer has already been promised for this listing, if
+     * there is one and it has not run out.
+     *
+     * The query lives on the model (Message::scopeClaimableBy) because the
+     * listing page runs the same one to decide what the buy button promises,
+     * and those two must not be able to drift apart.
+     */
+    private function claimableOffer(User $buyer, Listing $listing): ?Message
+    {
+        return Message::claimableBy($buyer->id, $listing->id)->first();
     }
 
     /**

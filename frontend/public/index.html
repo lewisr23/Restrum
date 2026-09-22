@@ -49,10 +49,41 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Two families, three roles. Archivo is a variable grotesque with a width
+      axis, so the condensed wordmark and the extended bold text are the same
+      typeface at two widths rather than two unrelated faces that have to be
+      made to get along. Source Serif carries the reading text.
+
+      These stand in for Placard, Venus Extended and Century Expanded, which
+      are licensed Monotype and Linotype faces and cannot be served from a
+      free CDN. Swapping any of them for the real thing is an @font-face
+      block and one line in abstracts/_variables.scss.
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Source+Serif+4:opsz,wght@8..60,400..600&display=swap"
       rel="stylesheet"
     />
+    <!--
+      The theme has to be on <html> before the first paint, or a visitor who
+      chose light gets a flash of the dark page while the bundle downloads.
+      That is the one thing a stylesheet cannot do for itself, so it is four
+      lines of inline script rather than a component: by the time React runs,
+      ThemeContext has already agreed with what is on screen.
+
+      No stored choice means no attribute, which leaves the page following
+      prefers-color-scheme through the media query in base/_tokens.scss.
+    -->
+    <script>
+      try {
+        var saved = localStorage.getItem('restrum.theme');
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) {
+        /* Site data blocked. The media query still applies. */
+      }
+    </script>
     <title>Restrum: UK Secondhand Instrument Marketplace</title>
   </head>
   <body>

@@ -26,10 +26,10 @@
 
   &__count {
     margin-left: 10px;
-    font-family: $font-body;
+    @include ui-text;
     font-size: 14px;
     font-weight: 500;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__filters {
@@ -50,9 +50,9 @@
   &__empty {
     padding: $space-xxl $space-lg;
     text-align: center;
-    border: 1px dashed $color-border-strong;
+    border: 1px dashed var(--border-strong);
     border-radius: $radius;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-md;
   }
 }
@@ -61,16 +61,16 @@
 .filter-pill {
   @include button-reset;
   padding: 7px 14px;
-  background: $color-bg-card;
-  border: 1px solid $color-border;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: $radius-pill;
-  color: $color-text;
+  color: var(--text);
   font-size: $font-size-sm;
   font-weight: 600;
   transition: background $transition, color $transition, border-color $transition;
 
   &:hover {
-    border-color: $color-border-strong;
+    border-color: var(--border-strong);
   }
 
   &--active {
@@ -87,20 +87,20 @@
   gap: 6px;
   margin-left: $space-xxs;
   padding-left: $space-sm;
-  border-left: 1px solid $color-border;
+  border-left: 1px solid var(--border);
 
   &__symbol,
   &__separator {
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-sm;
   }
 
   &__input {
     width: 70px;
     padding: 6px $space-xs;
-    background: $color-bg-card;
-    color: $color-text;
-    border: 1px solid $color-border;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
     border-radius: $radius-sm;
     font-size: $font-size-sm;
 
@@ -124,14 +124,14 @@
     @include button-reset;
     padding: 6px 10px;
     background: none;
-    border: 1px solid $color-border;
+    border: 1px solid var(--border);
     border-radius: $radius-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
     font-size: $font-size-xs;
 
     &:hover {
-      border-color: $color-accent;
-      color: $color-accent;
+      border-color: var(--accent);
+      color: var(--accent);
     }
   }
 }
@@ -168,14 +168,14 @@
 
   &__media {
     aspect-ratio: 4 / 3;
-    background: $color-bg-elevated;
+    background: var(--bg-elevated);
   }
 
   &__line {
     height: 12px;
     margin: $space-sm $space-sm 0;
     border-radius: $radius-sm;
-    background: $color-bg-elevated;
+    background: var(--bg-elevated);
 
     &--title {
       width: 75%;

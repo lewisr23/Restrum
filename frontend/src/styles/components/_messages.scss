@@ -11,7 +11,7 @@
     flex-shrink: 0;
     width: 320px;
     overflow-y: auto;
-    border-right: 1px solid $color-border-strong;
+    border-right: 1px solid var(--border-strong);
   }
 
   &__list-title {
@@ -23,7 +23,7 @@
   &__list-note {
     padding: 0 $space-md;
     font-size: 14px;
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &__thread {
@@ -35,7 +35,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   // On narrow screens the list takes the full width and the thread opens
@@ -47,23 +47,23 @@
     &__list {
       width: 100%;
       border-right: none;
-      border-bottom: 1px solid $color-border-strong;
+      border-bottom: 1px solid var(--border-strong);
     }
   }
 }
 
 .conversation-row {
   padding: $space-sm $space-md;
-  border-bottom: 1px solid $color-bg-elevated;
+  border-bottom: 1px solid var(--bg-elevated);
   cursor: pointer;
   transition: background $transition;
 
   &:hover {
-    background: rgba($color-bg-raised, 0.6);
+    background: color-mix(in srgb, var(--bg-raised) 60%, transparent);
   }
 
   &--active {
-    background: $color-bg-raised;
+    background: var(--bg-raised);
   }
 
   &__top {
@@ -81,12 +81,12 @@
   &__verified {
     margin-left: 6px;
     font-size: 11px;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__unread {
     padding: 1px 7px;
-    background: $color-accent;
+    background: var(--accent);
     border-radius: 10px;
     color: #fff;
     font-size: 11px;
@@ -95,13 +95,13 @@
   &__listing {
     margin: 2px 0 0;
     font-size: $font-size-xs;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__preview {
     margin: 2px 0 0;
     font-size: $font-size-xs;
-    color: $color-text-faint;
+    color: var(--text-faint);
     @include truncate;
   }
 }
@@ -113,7 +113,7 @@
 
   &__header {
     padding: $space-md;
-    border-bottom: 1px solid $color-border-strong;
+    border-bottom: 1px solid var(--border-strong);
   }
 
   &__header-top {
@@ -131,25 +131,25 @@
   &__verified {
     margin-left: $space-xs;
     font-size: $font-size-sm;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__subject {
     margin: 0;
     font-size: $font-size-sm;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__endorsed {
     font-size: $font-size-xs;
-    color: $color-accent;
+    color: var(--accent);
     white-space: nowrap;
   }
 
   &__error {
     margin: 6px 0 0;
     font-size: $font-size-xs;
-    color: $color-danger;
+    color: var(--danger);
   }
 
   &__body {
@@ -162,7 +162,7 @@
   }
 
   &__empty {
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__suggestions {
@@ -175,16 +175,16 @@
   &__suggestion {
     @include button-reset;
     padding: 10px 14px;
-    background: $color-bg-raised;
-    border: 1px solid $color-border-input;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-input);
     border-radius: $radius-sm + 2px;
-    color: $color-text-soft;
+    color: var(--text-soft);
     text-align: left;
     transition: border-color $transition, color $transition;
 
     &:hover {
-      border-color: $color-accent;
-      color: $color-accent;
+      border-color: var(--accent);
+      color: var(--accent);
     }
   }
 
@@ -192,12 +192,12 @@
     display: flex;
     gap: $space-xs;
     padding: $space-sm $space-md;
-    border-top: 1px solid $color-border-strong;
+    border-top: 1px solid var(--border-strong);
   }
 
   &__composer-prefix {
     align-self: center;
-    color: $color-text-muted;
+    color: var(--text-muted);
   }
 
   &__composer-input {
@@ -217,29 +217,29 @@
 
   &__body {
     padding: 10px 14px;
-    background: $color-bg-raised;
-    border: 1px solid $color-border-strong;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-strong);
     border-radius: $radius-lg - 4px;
     font-size: 14px;
   }
 
   &--mine &__body {
-    background: $color-accent;
+    background: var(--accent);
     border-color: transparent;
-    color: $color-bg;
+    color: var(--bg);
   }
 
   &--offer &__body,
   &--mine.bubble--offer &__body {
-    background: mix($color-accent, $color-bg, 25%);
-    border: 1px solid $color-accent;
-    color: $color-text;
+    background: color-mix(in srgb, var(--accent) 25%, var(--bg));
+    border: 1px solid var(--accent);
+    color: var(--text);
   }
 
   &__offer-amount {
     margin: 0 0 $space-xxs;
     font-weight: 700;
-    color: $color-accent;
+    color: var(--accent);
   }
 
   &__text {
@@ -255,23 +255,45 @@
   &__status {
     margin: 6px 0 0;
     font-size: $font-size-xs;
-    color: $color-text-soft;
+    color: var(--text-soft);
 
     &--accepted {
-      color: $color-accent;
+      color: var(--accent);
       font-weight: 600;
     }
 
     &--declined {
-      color: $color-danger;
+      color: var(--danger);
       font-weight: 600;
     }
+  }
+
+  // An accepted offer the buyer still has to act on. Stacked rather than
+  // inline because the button is the point of the bubble now: accepting
+  // agrees a price, and the sale only happens when this is pressed.
+  &__accepted {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $space-xs;
+    margin-top: 6px;
+
+    .bubble__status {
+      margin: 0;
+    }
+  }
+
+  &__note {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-faint);
   }
 
   &__time {
     margin: 2px $space-xxs 0;
     font-size: 11px;
-    color: $color-text-faint;
+    color: var(--text-faint);
   }
 
   &--mine &__time {
@@ -285,19 +307,19 @@
 .bubble__warning {
   margin-top: $space-xs;
   padding: $space-xs $space-sm;
-  border-left: 3px solid $color-warning;
+  border-left: 3px solid var(--warning);
   border-radius: 0 $radius-sm $radius-sm 0;
-  background: rgba($color-warning, 0.1);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
 
   p {
     margin: 0;
     font-size: $font-size-xs;
     line-height: 1.5;
-    color: $color-text-soft;
+    color: var(--text-soft);
   }
 
   &--severe {
-    border-left-color: $color-danger;
-    background: rgba($color-danger, 0.12);
+    border-left-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
   }
 }
