@@ -43,7 +43,12 @@ function AccountMenu({ username, userId }: { username: string; userId: number })
         aria-expanded={open}
         aria-haspopup="true"
       >
-        Hi, {username} <span className="account-menu__caret">{open ? '▲' : '▼'}</span>
+        {/* "Hi, " and the username are separate spans so a narrow screen can
+            drop the greeting and truncate the name instead of forcing the
+            whole navbar wider than the phone it's on - see _nav.scss. */}
+        <span className="account-menu__greeting">Hi, </span>
+        <span className="account-menu__name">{username}</span>{' '}
+        <span className="account-menu__caret">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
@@ -132,7 +137,9 @@ function Navbar() {
                 the branch that already knows there is somebody to notify. */}
             <NotificationBell />
 
-            <button className="btn-primary" onClick={() => navigate('/create')}>+ Sell Gear</button>
+            <button className="btn-primary nav-cta" onClick={() => navigate('/create')}>
+              +<span className="nav-cta__label"> Sell Gear</span>
+            </button>
             <AccountMenu username={user.username} userId={user.id} />
           </>
         ) : (

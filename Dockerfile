@@ -74,6 +74,19 @@ RUN { \
         echo 'opcache.validate_timestamps=0'; \
     } > /usr/local/etc/php/conf.d/opcache.ini
 
+# The stock image ships upload_max_filesize=2M, post_max_size=8M. A single
+# photo straight off a modern phone camera is routinely 3-8MB before it ever
+# reaches ListingMediaController's own 8MB rule, so PHP was discarding it
+# first and Laravel surfaced that as its generic "The file failed to upload"
+# message - a real upload, rejected before our own validation ever ran.
+# Set above the largest thing ListingMediaController::RULES allows (the 50MB
+# video cap), with room for multipart overhead; nginx's client_max_body_size
+# has to clear the same bar or it rejects the request before PHP sees it.
+RUN { \
+        echo 'upload_max_filesize=60M'; \
+        echo 'post_max_size=60M'; \
+    } > /usr/local/etc/php/conf.d/uploads.ini
+
 WORKDIR /var/www/html
 
 # The composer binary itself, not only the packages. The autoloader is

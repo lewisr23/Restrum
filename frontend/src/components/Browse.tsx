@@ -117,6 +117,7 @@ function BrowseBar({
   search,
   onSearch,
   category,
+  departments,
   total,
   loading,
   sort,
@@ -128,6 +129,7 @@ function BrowseBar({
   search: string;
   onSearch: (v: string) => void;
   category: CategoryContext | null;
+  departments: CatalogCategory[];
   total: number | null;
   loading: boolean;
   sort: string;
@@ -171,8 +173,38 @@ function BrowseBar({
           </button>
         </div>
 
+        {/* The same quick-pick row the hero opens with, kept on screen
+            instead of handed back for a breadcrumb once a department is
+            picked. It used to disappear the moment `browsing` went true, so
+            going from Guitars to Drums & Percussion meant "All gear" to
+            reopen it, then the department you actually wanted - two clicks
+            to do what this row does in one. A single scrollable line rather
+            than the hero's wrapped, animated grid: this bar is meant to stay
+            compact, and every width down to a phone already handles a
+            horizontal scroller better than a second wrapped row eating into
+            the results below it. */}
+        <nav className="browse-bar__depts" aria-label="Department">
+          <button
+            className={`browse-bar__dept${category === null ? ' browse-bar__dept--active' : ''}`}
+            onClick={() => onPickCategory(null)}
+          >
+            <AllCategoriesIcon size={14} />
+            <span>All gear</span>
+          </button>
+          {departments.map(department => (
+            <button
+              key={department.slug}
+              className={`browse-bar__dept${(category?.breadcrumbs[0]?.slug ?? category?.slug) === department.slug ? ' browse-bar__dept--active' : ''}`}
+              onClick={() => onPickCategory(department.slug)}
+            >
+              <CategoryIcon slug={department.slug} size={14} />
+              <span>{department.name}</span>
+            </button>
+          ))}
+        </nav>
+
         <div className="browse-bar__row browse-bar__row--meta">
-          <nav className="browse-bar__crumbs" aria-label="Category">
+          <nav className="browse-bar__crumbs" aria-label="Where you are">
             <button className="browse-bar__crumb" onClick={() => onPickCategory(null)}>All gear</button>
             {(category?.breadcrumbs ?? []).map(crumb => (
               <button
@@ -290,7 +322,14 @@ function Browse() {
   const pickCategory = (slug: string | null) => {
     apply({ ...filters, category: slug, attributes: {} });
     setDrawerOpen(false);
-    setTimeout(() => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    // 'nearest' rather than 'start': on desktop the grid is already on
+    // screen when you pick from the top category bar, so forcing it flush
+    // to the top just relocates content you were already looking at - which
+    // is what made "All gear" after a category feel like it was scrolling
+    // you somewhere new. On mobile, closing the drawer can leave the grid
+    // below the fold, and 'nearest' still scrolls to bring it into view;
+    // it only skips the scroll when there is nothing to bring into view.
+    setTimeout(() => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
   };
 
   const chips = activeFilters(filters);
@@ -308,6 +347,7 @@ function Browse() {
           search={searchText}
           onSearch={setSearchText}
           category={category}
+          departments={catalog?.categories ?? []}
           total={facets?.total ?? null}
           loading={loading && !settled}
           sort={filters.sort}

@@ -359,7 +359,7 @@ function EditListing() {
 
           <div className="field-group">
             <label className="field-label" htmlFor="audio">Add audio demo</label>
-            <input className="field field--file" id="audio" type="file" accept="audio/*" multiple
+            <input className="field field--file" id="audio" type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.aac" multiple
               onChange={e => setNewAudioFiles(e.target.files ? Array.from(e.target.files) : [])} />
             <p className="field-hint">
               {newAudioFiles.length > 0 ? `${newAudioFiles.length} audio file(s) selected` : 'Optional.'}
@@ -368,7 +368,7 @@ function EditListing() {
 
           <div className="field-group">
             <label className="field-label" htmlFor="video">Add video demo</label>
-            <input className="field field--file" id="video" type="file" accept="video/*" multiple
+            <input className="field field--file" id="video" type="file" accept="video/*,.mp4,.mov,.m4v,.webm" multiple
               onChange={e => setNewVideoFiles(e.target.files ? Array.from(e.target.files) : [])} />
             <p className="field-hint">
               {newVideoFiles.length > 0 ? `${newVideoFiles.length} video file(s) selected` : 'Optional.'}

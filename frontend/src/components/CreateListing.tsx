@@ -279,7 +279,7 @@ function CreateListing() {
 
         <div className="field-group">
           <label className="field-label" htmlFor="audio">Audio demo</label>
-          <input className="field field--file" id="audio" type="file" accept="audio/*" multiple
+          <input className="field field--file" id="audio" type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.aac" multiple
             onChange={e => setAudioFiles(e.target.files ? Array.from(e.target.files) : [])} />
           <p className="field-hint">
             {audioFiles.length > 0 ? `${audioFiles.length} audio file(s) selected` : 'A short clip proving it actually sounds good.'}
@@ -288,7 +288,7 @@ function CreateListing() {
 
         <div className="field-group">
           <label className="field-label" htmlFor="video">Video demo</label>
-          <input className="field field--file" id="video" type="file" accept="video/*" multiple
+          <input className="field field--file" id="video" type="file" accept="video/*,.mp4,.mov,.m4v,.webm" multiple
             onChange={e => setVideoFiles(e.target.files ? Array.from(e.target.files) : [])} />
           <p className="field-hint">
             {videoFiles.length > 0 ? `${videoFiles.length} video file(s) selected` : 'Show it being played, and show any cosmetic damage up close.'}

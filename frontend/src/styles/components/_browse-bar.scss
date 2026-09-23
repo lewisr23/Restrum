@@ -109,6 +109,57 @@
     font-size: $font-size-xs;
   }
 
+  // The department quick-pick, kept on screen once you are browsing rather
+  // than handed back to the hero for a plain breadcrumb. Same reasoning as
+  // the crumbs below it: scrolls sideways instead of wrapping, so picking a
+  // department never changes the bar's own height and shifts the results
+  // under it.
+  &__depts {
+    display: flex;
+    align-items: center;
+    gap: $space-xs;
+    overflow-x: auto;
+    scrollbar-width: none;
+    // A little breathing room so the row doesn't read as glued to the
+    // search bar above it or the breadcrumb below.
+    padding: 2px 0;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__dept {
+    @include button-reset;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px $space-sm 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: $radius-pill;
+    color: var(--text-muted);
+    font-size: $font-size-xs;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: border-color $transition, color $transition, background $transition;
+
+    &:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    &--active {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 16%, var(--bg));
+      color: var(--accent-hover);
+    }
+  }
+
   // Breadcrumb. Scrolls sideways rather than wrapping to a second line,
   // which would change the bar's height as you go deeper and shift the
   // results under it every time.

@@ -22,12 +22,23 @@
     gap: $space-md;
     padding-top: $space-sm;
     padding-bottom: $space-sm;
+
+    @include media-down('sm') {
+      gap: $space-xs;
+    }
   }
 
   &__brand {
     display: flex;
     align-items: center;
     gap: $space-xs + 2px;
+    // Deliberately NOT min-width: 0. That was tried first and made things
+    // worse: it let this box shrink below what its own title text needs, so
+    // the text stayed full size and spilled out over the theme toggle next
+    // to it instead of the row simply being too wide. The title's own
+    // font-size below is what actually has to shrink to fit a phone; this
+    // box just needs to be allowed to report that smaller size as its real
+    // minimum, which is the flex default.
     cursor: pointer;
     transition: opacity $transition;
 
@@ -39,6 +50,12 @@
     // only hint that the whole block is a link home.
     svg {
       transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+
+      @include media-down('sm') {
+        width: 30px;
+        height: 30px;
+      }
     }
 
     &:hover svg {
@@ -56,6 +73,14 @@
     font-size: 26px;
     line-height: 1;
     text-transform: uppercase;
+
+    // The tagline is already gone below md; below sm the wordmark itself
+    // gives up some size too. Four controls (theme, bell, sell, account)
+    // plus this at full size do not fit on a phone width, and this is the
+    // one piece with room to lose without losing legibility.
+    @include media-down('sm') {
+      font-size: 20px;
+    }
   }
 
   &__title-accent {
@@ -80,6 +105,26 @@
     display: flex;
     align-items: center;
     gap: $space-sm;
+
+    // Four controls (theme, bell, sell, account) at their normal gap and
+    // size overflow a phone screen outright - this was the direct cause of
+    // the navbar clipping off the right edge and the whole page reading as
+    // pushed left, since a wider-than-viewport nav drags the document's
+    // scrollable width with it. The gap tightens and the two text buttons
+    // below shed their optional words; nothing here is hidden entirely,
+    // because every one of these four is a control someone came to use.
+    @include media-down('sm') {
+      gap: $space-xxs;
+    }
+  }
+}
+
+// "+ Sell Gear" in the navbar. The "+" alone reads fine as "add a listing"
+// once the button is already this recognisable and this close to a bell and
+// an account menu, so the words are the first thing to go at phone widths.
+.nav-cta__label {
+  @include media-down('sm') {
+    display: none;
   }
 }
 
@@ -124,6 +169,35 @@
 
     &:hover {
       border-color: var(--border-strong);
+    }
+
+    @include media-down('sm') {
+      padding: 10px $space-xs;
+      gap: 4px;
+    }
+  }
+
+  &__greeting {
+    @include media-down('sm') {
+      display: none;
+    }
+  }
+
+  // Not just at narrow widths: a username is whatever someone picked at
+  // registration, and one long enough to wrap this trigger onto a second
+  // line would still be a layout bug, just a rarer one. Truncating is a
+  // one-line fix that removes the failure mode outright rather than
+  // shrinking the odds of hitting it.
+  &__name {
+    display: inline-block;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+
+    @include media-down('sm') {
+      max-width: 56px;
     }
   }
 

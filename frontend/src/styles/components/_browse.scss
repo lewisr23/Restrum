@@ -5,8 +5,13 @@
   @include page-container(1300px);
   padding-top: 40px;
   padding-bottom: 64px;
-  // Clears the sticky navbar when a category tile scrolls this into view.
-  scroll-margin-top: 80px;
+  // Clears the sticky navbar AND the sticky browse bar stacked under it, so
+  // a scroll-into-view lands below both rather than tucking the top of the
+  // filter panel behind them. Both heights are measured and published by
+  // their own components (see lib/stickyHeights) because they change with
+  // the breakpoint; this was a flat 80px that only ever cleared the navbar,
+  // left over from before the browse bar existed underneath it.
+  scroll-margin-top: calc(var(--nav-height, 65px) + var(--browse-bar-height, 0px));
 
   &__header {
     display: flex;
