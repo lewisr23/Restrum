@@ -117,7 +117,6 @@ function BrowseBar({
   search,
   onSearch,
   category,
-  departments,
   total,
   loading,
   sort,
@@ -129,7 +128,6 @@ function BrowseBar({
   search: string;
   onSearch: (v: string) => void;
   category: CategoryContext | null;
-  departments: CatalogCategory[];
   total: number | null;
   loading: boolean;
   sort: string;
@@ -172,36 +170,6 @@ function BrowseBar({
             Filters{activeCount > 0 && <span className="browse-bar__filters-count">{activeCount}</span>}
           </button>
         </div>
-
-        {/* The same quick-pick row the hero opens with, kept on screen
-            instead of handed back for a breadcrumb once a department is
-            picked. It used to disappear the moment `browsing` went true, so
-            going from Guitars to Drums & Percussion meant "All gear" to
-            reopen it, then the department you actually wanted - two clicks
-            to do what this row does in one. A single scrollable line rather
-            than the hero's wrapped, animated grid: this bar is meant to stay
-            compact, and every width down to a phone already handles a
-            horizontal scroller better than a second wrapped row eating into
-            the results below it. */}
-        <nav className="browse-bar__depts" aria-label="Department">
-          <button
-            className={`browse-bar__dept${category === null ? ' browse-bar__dept--active' : ''}`}
-            onClick={() => onPickCategory(null)}
-          >
-            <AllCategoriesIcon size={14} />
-            <span>All gear</span>
-          </button>
-          {departments.map(department => (
-            <button
-              key={department.slug}
-              className={`browse-bar__dept${(category?.breadcrumbs[0]?.slug ?? category?.slug) === department.slug ? ' browse-bar__dept--active' : ''}`}
-              onClick={() => onPickCategory(department.slug)}
-            >
-              <CategoryIcon slug={department.slug} size={14} />
-              <span>{department.name}</span>
-            </button>
-          ))}
-        </nav>
 
         <div className="browse-bar__row browse-bar__row--meta">
           <nav className="browse-bar__crumbs" aria-label="Where you are">
@@ -322,23 +290,22 @@ function Browse() {
   const pickCategory = (slug: string | null) => {
     apply({ ...filters, category: slug, attributes: {} });
     setDrawerOpen(false);
-    // 'nearest' rather than 'start': on desktop the grid is already on
-    // screen when you pick from the top category bar, so forcing it flush
-    // to the top just relocates content you were already looking at - which
-    // is what made "All gear" after a category feel like it was scrolling
-    // you somewhere new. On mobile, closing the drawer can leave the grid
-    // below the fold, and 'nearest' still scrolls to bring it into view;
-    // it only skips the scroll when there is nothing to bring into view.
-    setTimeout(() => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
   };
 
   const chips = activeFilters(filters);
 
-  // The front door versus the shop floor. Anything at all narrowing the view
-  // means somebody is shopping rather than arriving, and the hero stands
-  // down for the compact bar. Picking a department counts, which is why
-  // category is in here and not just the filters.
-  const browsing = filters.category !== null || filters.search !== '' || hasActiveFilters(filters);
+  // The front door versus the shop floor - but a department pick is neither
+  // of those, it is just picking a department. This used to also flip on
+  // category alone, on the reasoning that picking one meant you were
+  // "shopping" and the hero's pitch should stand down for a compact bar.
+  // In practice that meant the one row that is supposed to work like a
+  // set of toggle buttons - click Guitars, see guitars - instead tore the
+  // whole page down and rebuilt it in a visibly smaller shape every time,
+  // which reads as the page reloading rather than a filter applying. A
+  // real search or an advanced filter (price, brand, condition...) is a
+  // different kind of commitment to being here to search rather than
+  // browse, and still earns the compact bar; a department click does not.
+  const browsing = filters.search !== '' || hasActiveFilters(filters);
 
   return (
     <div>
@@ -347,7 +314,6 @@ function Browse() {
           search={searchText}
           onSearch={setSearchText}
           category={category}
-          departments={catalog?.categories ?? []}
           total={facets?.total ?? null}
           loading={loading && !settled}
           sort={filters.sort}
@@ -362,7 +328,13 @@ function Browse() {
           onSearch={setSearchText}
           departments={catalog?.categories ?? []}
           onPickCategory={pickCategory}
-          selectedCategory={filters.category}
+          // The resolved category's TOP-LEVEL breadcrumb, not the raw
+          // filter value - Hero now stays mounted while browsing a
+          // subcategory picked from the sidebar (Electric Guitars, say),
+          // and the raw slug would match none of these department chips,
+          // leaving all of them unlit even though you are still shopping
+          // in Guitars.
+          selectedCategory={category?.breadcrumbs[0]?.slug ?? category?.slug ?? null}
         />
       )}
 
