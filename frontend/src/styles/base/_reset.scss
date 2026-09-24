@@ -11,6 +11,17 @@
   box-sizing: border-box;
 }
 
+// A sub-pixel rounding overflow (a fraction of a px from some flex layout
+// somewhere) is invisible with a browser's native overlay scrollbar, but the
+// dark ::-webkit-scrollbar below turns that off on Chromium/Android, so the
+// same overflow shows up as a permanently visible horizontal bar and nudges
+// the page a sliver to the side. There is no legitimate reason to pan the
+// whole site sideways, so this closes off the whole class of bug rather than
+// chasing the exact pixel each time it resurfaces.
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background-color: var(--bg);
