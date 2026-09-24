@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 
 import { mediaUrl } from '../lib/config';
 import { ListingCategory } from '../lib/catalog';
-import { CategoryIcon, PinIcon } from './Icon';
+import { CategoryIcon, PinIcon, PlayIcon, PauseIcon } from './Icon';
 
 // Categories arrive as an object now rather than a shouted enum name, so
 // there is nothing left to prettify: the server sends the name to show. The
@@ -38,7 +38,7 @@ function AudioPreviewButton({ url }: { url: string }) {
         aria-label={playing ? 'Pause audio demo' : 'Play audio demo'}
         title={playing ? 'Pause audio demo' : 'Play audio demo'}
       >
-        {playing ? '⏸' : '▶'}
+        {playing ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
       </button>
       <audio
         ref={audioRef}

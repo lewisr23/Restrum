@@ -276,3 +276,29 @@ export function BellIcon({ size = 16, className }: { size?: number; className?: 
     </Svg>
   );
 }
+
+// The listing card's audio-preview toggle used to be a literal '▶'/'⏸'
+// character. iOS renders those two specifically as full-colour emoji - a
+// blue circle with its own baked-in white triangle - no matter what CSS
+// colour is set on the text, which is how a button already styled as a
+// black circle with a white glyph ended up with a second, blue circle
+// glued on top of it on an iPhone. A path only a browser's text renderer
+// can reinterpret as a pictograph; an SVG shape cannot be, on any device.
+// Solid fill rather than the shared outline stroke, since a play button is
+// conventionally a filled triangle, not a triangular outline.
+export function PlayIcon({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <Svg size={size} className={className}>
+      <path d="M7 4.5v15l13-7.5z" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+export function PauseIcon({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <Svg size={size} className={className}>
+      <rect x="6" y="4.5" width="4.5" height="15" rx="1" fill="currentColor" stroke="none" />
+      <rect x="13.5" y="4.5" width="4.5" height="15" rx="1" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
