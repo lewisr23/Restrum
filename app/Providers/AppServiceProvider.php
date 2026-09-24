@@ -6,9 +6,9 @@ use Anthropic\Client as AnthropicClient;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\StripePaymentGateway;
 use App\Services\Recommender\ListingRecommender;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 

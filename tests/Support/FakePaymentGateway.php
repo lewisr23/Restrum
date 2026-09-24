@@ -5,9 +5,9 @@ namespace Tests\Support;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Payments\AccountState;
-use App\Services\Payments\PaymentHandle;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\PaymentGatewayException;
+use App\Services\Payments\PaymentHandle;
 
 /**
  * Stripe, as far as the tests are concerned.

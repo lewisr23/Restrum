@@ -276,5 +276,4 @@ class CheckoutService
 
         return bcdiv(bcmul($amount, $percent, 6), '100', 2);
     }
-
 }

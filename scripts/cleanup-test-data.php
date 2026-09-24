@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Contracts\Console\Kernel;
+use Stripe\StripeClient;
+
 /**
  * Remove the data left behind by the end-to-end payment test of 2026-09-16.
  *
@@ -18,11 +21,10 @@
  * Everything that runs on the server is shipped as a file and invoked by
  * name, because PowerShell rewrites inline quotes on the way to ssh.
  */
-
 $root = __DIR__.'/..';
 require $root.'/vendor/autoload.php';
 $app = require_once $root.'/bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 $key = config('services.stripe.secret');
 
@@ -45,7 +47,7 @@ echo "And will close these TEST Stripe accounts:\n";
 echo "  - {$strayAccount} (holds your real name, DOB and address)\n";
 echo "  - {$testAccount} (Jenny Testerson)\n\n";
 echo "The catalogue and everything else is untouched.\n\n";
-echo "Type DELETE to continue: ";
+echo 'Type DELETE to continue: ';
 
 $answer = trim((string) fgets(STDIN));
 
@@ -54,7 +56,7 @@ if ($answer !== 'DELETE') {
     exit(0);
 }
 
-$client = new Stripe\StripeClient($key);
+$client = new StripeClient($key);
 
 foreach ([$strayAccount, $testAccount] as $id) {
     try {

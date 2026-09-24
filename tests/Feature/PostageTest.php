@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Listing;
 use App\Models\User;
 use App\Services\Payments\CheckoutService;
@@ -115,7 +116,7 @@ class PostageTest extends TestCase
 
     public function test_a_seller_can_set_postage_when_listing(): void
     {
-        $category = \App\Models\Category::where('is_leaf', true)->firstOrFail();
+        $category = Category::where('is_leaf', true)->firstOrFail();
 
         $this->actingAs($this->seller)
             ->postJson('/api/listings', [
@@ -133,7 +134,7 @@ class PostageTest extends TestCase
 
     public function test_an_absurd_postage_price_is_refused(): void
     {
-        $category = \App\Models\Category::where('is_leaf', true)->firstOrFail();
+        $category = Category::where('is_leaf', true)->firstOrFail();
 
         $this->actingAs($this->seller)
             ->postJson('/api/listings', [

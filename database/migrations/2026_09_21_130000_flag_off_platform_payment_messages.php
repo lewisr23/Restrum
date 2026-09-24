@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -50,7 +51,7 @@ return new class extends Migration
         // column becoming NOT NULL again. Removing them is the only honest
         // way back, and they are reproducible: the messages that caused
         // them still carry their flags.
-        \Illuminate\Support\Facades\DB::table('reports')->whereNull('reporter_id')->delete();
+        DB::table('reports')->whereNull('reporter_id')->delete();
 
         Schema::table('reports', function (Blueprint $table) {
             $table->dropForeign(['reporter_id']);

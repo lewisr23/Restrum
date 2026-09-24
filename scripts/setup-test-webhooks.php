@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Contracts\Console\Kernel;
+use Stripe\StripeClient;
+
 /**
  * Create this integration's TEST-mode webhook destinations and push their
  * signing secrets to the server.
@@ -30,11 +33,10 @@
  * PowerShell rewrites quotes on the way to ssh and silently produces
  * commands that mean something else entirely.
  */
-
 $root = __DIR__.'/..';
 require $root.'/vendor/autoload.php';
 $app = require_once $root.'/bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 $secret = config('services.stripe.secret');
 
@@ -47,7 +49,7 @@ const URL = 'https://restrum.uk/api/stripe/webhook';
 const SERVER = 'lewis@158.220.117.209';
 const TAG = 'Restrum auto-created (test)';
 
-$client = new Stripe\StripeClient($secret);
+$client = new StripeClient($secret);
 
 echo "Removing any destinations this script created before...\n";
 

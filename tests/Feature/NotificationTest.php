@@ -17,6 +17,7 @@ use App\Notifications\PayoutSent;
 use App\Services\Payments\EscrowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Tests\Support\InteractsWithPayments;
 use Tests\TestCase;
 
@@ -211,6 +212,7 @@ class NotificationTest extends TestCase
 
         Notification::assertSentTo($this->buyer, OfferAnswered::class);
     }
+
     /**
      * The bell endpoint itself.
      *
@@ -221,7 +223,7 @@ class NotificationTest extends TestCase
     public function test_the_bell_lists_your_own_notifications_and_marks_them_read(): void
     {
         $this->seller->notifications()->create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'type' => MessageReceived::class,
             'data' => ['kind' => 'message', 'title' => 'Message from someone', 'body' => 'Hello', 'path' => '/messages/1'],
         ]);
@@ -247,7 +249,7 @@ class NotificationTest extends TestCase
     public function test_the_bell_shows_nobody_elses_notifications(): void
     {
         $this->seller->notifications()->create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id' => (string) Str::uuid(),
             'type' => MessageReceived::class,
             'data' => ['kind' => 'message', 'title' => 'Private', 'body' => '', 'path' => '/'],
         ]);
@@ -262,5 +264,4 @@ class NotificationTest extends TestCase
 
         $this->assertSame(1, $this->seller->unreadNotifications()->count());
     }
-
 }

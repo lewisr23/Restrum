@@ -4,12 +4,12 @@ namespace App\Models;
 
 use App\Notifications\VerifyEmailAddress;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -66,7 +66,7 @@ class User extends Authenticatable implements MustVerifyEmail
     /** Feedback written about this user. */
     public function reviewsReceived()
     {
-        return $this->hasMany(\App\Models\Review::class, 'subject_id');
+        return $this->hasMany(Review::class, 'subject_id');
     }
 
     public function canReceivePayments(): bool
