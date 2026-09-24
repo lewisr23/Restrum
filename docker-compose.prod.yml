@@ -37,7 +37,7 @@ name: restrum
 # protects private channels. It does have to match REVERB_APP_KEY in the env
 # file, though, or the browser will be refused by a server it can reach.
 x-frontend-build-args: &frontend-build-args
-  REACT_APP_REVERB_APP_KEY: ${REVERB_APP_KEY:?set REVERB_APP_KEY in .env.production}
+  REACT_APP_REVERB_PUBLIC_APP_KEY: ${REVERB_APP_KEY:?set REVERB_APP_KEY in .env.production}
   REACT_APP_REVERB_HOST: restrum.uk
   REACT_APP_REVERB_PORT: '443'
   REACT_APP_REVERB_SCHEME: https

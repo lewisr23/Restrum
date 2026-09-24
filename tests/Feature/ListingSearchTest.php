@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Catalog\ListingFilter;
 use App\Models\Listing;
 use App\Search\ListingIndex;
 use Elastic\Elasticsearch\Client;
@@ -143,7 +144,9 @@ class ListingSearchTest extends TestCase
 
         $this->assertSame(
             ['Fender Stratocaster'],
-            $this->titles($this->getJson('/api/listings?search=fender&category=GUITAR')->assertOk()->json('data'))
+            // The department, not the leaf, so this also proves a department
+            // takes in everything filed underneath it.
+            $this->titles($this->getJson('/api/listings?search=fender&category=guitars')->assertOk()->json('data'))
         );
 
         $this->assertSame(
@@ -204,12 +207,13 @@ class ListingSearchTest extends TestCase
 
     public function test_results_are_paginated(): void
     {
-        Listing::factory()->count(25)->create(['title' => 'Fender Stratocaster']);
+        $perPage = ListingFilter::PER_PAGE;
+        Listing::factory()->count($perPage + 5)->create(['title' => 'Fender Stratocaster']);
         $this->index->refresh();
 
         $first = $this->getJson('/api/listings?search=stratocaster')->assertOk();
-        $first->assertJsonCount(20, 'data');
-        $this->assertSame(25, $first->json('meta.total'));
+        $first->assertJsonCount($perPage, 'data');
+        $this->assertSame($perPage + 5, $first->json('meta.total'));
 
         $this->getJson('/api/listings?search=stratocaster&page=2')
             ->assertOk()

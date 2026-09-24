@@ -35,7 +35,7 @@ export function mediaUrl(url: string): string {
  * keeps private channels private, not this value being hidden.
  */
 export const REVERB_CONFIG = {
-  key: process.env.REACT_APP_REVERB_APP_KEY || '',
+  key: process.env.REACT_APP_REVERB_PUBLIC_APP_KEY || '',
   host: process.env.REACT_APP_REVERB_HOST || 'localhost',
   port: Number(process.env.REACT_APP_REVERB_PORT || 8080),
   scheme: process.env.REACT_APP_REVERB_SCHEME || 'http',

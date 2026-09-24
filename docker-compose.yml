@@ -71,7 +71,7 @@ services:
       args:
         # Baked into the JS bundle at build time, so they describe how the
         # BROWSER reaches Reverb - the host's port, not the container's.
-        REACT_APP_REVERB_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
+        REACT_APP_REVERB_PUBLIC_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
         REACT_APP_REVERB_HOST: ${REVERB_HOST:-localhost}
         REACT_APP_REVERB_PORT: '8081'
         REACT_APP_REVERB_SCHEME: http
@@ -117,7 +117,7 @@ services:
       context: .
       target: web
       args:
-        REACT_APP_REVERB_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
+        REACT_APP_REVERB_PUBLIC_APP_KEY: ${REVERB_APP_KEY:-local-development-key}
         REACT_APP_REVERB_HOST: ${REVERB_HOST:-localhost}
         REACT_APP_REVERB_PORT: '8081'
         REACT_APP_REVERB_SCHEME: http
