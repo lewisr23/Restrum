@@ -144,8 +144,8 @@ function Navbar() {
           </>
         ) : (
           <>
-            <button className="btn-ghost" onClick={() => navigate('/login')}>Log in</button>
-            <button className="btn-primary" onClick={() => navigate('/register')}>Register</button>
+            <button className="btn-ghost nav-auth" onClick={() => navigate('/login')}>Log in</button>
+            <button className="btn-primary nav-auth" onClick={() => navigate('/register')}>Register</button>
           </>
         )}
       </div>

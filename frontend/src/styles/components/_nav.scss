@@ -128,6 +128,18 @@
   }
 }
 
+// "Log in" and "Register" for a signed-out visitor. These missed the same
+// narrow-screen pass the signed-in controls (account menu, sell button)
+// already got, so at phone widths the logo plus two full-size buttons
+// genuinely did not fit in 360px and Register rendered partly off the edge
+// of the screen rather than just looking cramped.
+.nav-auth {
+  @include media-down('sm') {
+    padding: 8px $space-sm;
+    font-size: 13px;
+  }
+}
+
 // Square, quiet, and the same height as the buttons beside it. A setting
 // nobody came here to change should not be the brightest thing in the bar.
 .theme-toggle {
@@ -149,6 +161,14 @@
 
   &:focus-visible {
     @include focus-ring;
+  }
+
+  // A little back further at phone widths, matching the other controls
+  // beside it, so the row keeps a safety margin rather than fitting exactly
+  // to the pixel on one browser's font metrics and overflowing on another's.
+  @include media-down('sm') {
+    width: 34px;
+    height: 34px;
   }
 }
 
