@@ -60,6 +60,14 @@ function Terms() {
           <li>selling it does not break any law or infringe anyone's rights.</li>
         </ul>
         <p>
+          If you give a serial number, we check it against our{' '}
+          <Link to="/stolen">stolen gear register</Link>. If it matches gear
+          reported stolen, the listing cannot be bought until we have reviewed
+          it, and we may share the details with the police. A match is not an
+          accusation: serial numbers do sometimes coincide, and a person looks
+          at every match before anything is decided.
+        </p>
+        <p>
           Prices are in pounds sterling and include everything you are charging
           for the item itself. Set your postage cost on the listing, or mark it
           collection only. The buyer pays the item price and the postage

@@ -51,7 +51,26 @@ function Privacy() {
         <p>
           <strong>What you put on the site.</strong> Your listings, including
           descriptions, prices, locations, condition ratings, gear history
-          entries, and any photographs, audio or video you upload.
+          entries, serial numbers, and any photographs, audio or video you
+          upload.
+        </p>
+        <p>
+          <strong>Stolen gear reports.</strong> If you report gear stolen: its
+          serial number, brand and description, when and where it was taken,
+          and your police crime reference if you give one. Anyone checking a
+          serial on the register can see the description, brand, place and
+          dates. They never see who reported it or the crime reference.
+        </p>
+        <p>
+          <strong>Photos used to fill in a listing.</strong> If you use "Start
+          from your photos", those photos are sent to Anthropic to draft the
+          listing. We do not keep them for this purpose; they only stay on the
+          site if you go on to post the listing with them.
+        </p>
+        <p>
+          <strong>Questions to the gear adviser.</strong> What you type into
+          the adviser is sent to Anthropic to answer it. We do not store the
+          conversation.
         </p>
         <p>
           <strong>Messages.</strong> The content of conversations between you
@@ -100,6 +119,18 @@ function Privacy() {
           that needs.
         </p>
         <p>
+          <strong>To run the stolen gear register.</strong> Checking serial
+          numbers on listings against reported thefts, holding a matching
+          listing while we review it, and telling the person who reported the
+          theft. Lawful basis: our legitimate interest, and theirs, in stolen
+          instruments not being resold here.
+        </p>
+        <p>
+          <strong>To draft a listing from your photos, or answer an adviser
+          question.</strong> Only when you ask for it. Lawful basis:
+          performance of our contract with you.
+        </p>
+        <p>
           <strong>To meet legal obligations.</strong> Keeping business and tax
           records, and reporting seller information to HMRC under the UK's
           digital platform reporting rules. Lawful basis: legal obligation.
@@ -125,15 +156,30 @@ function Privacy() {
           processing payments, verifying sellers and making payouts.
         </p>
         <p>
+          <strong>Anthropic</strong> (Anthropic PBC), which provides the AI
+          model behind the gear adviser and drafting a listing from photos. It
+          receives only what you send through those two features. Its{' '}
+          <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noreferrer noopener">
+            privacy policy
+          </a>{' '}
+          explains how it handles that.
+        </p>
+        <p>
           <strong>Our hosting and network providers.</strong> The site runs on
-          servers hosted by Hetzner Online GmbH in Germany, behind Cloudflare,
-          which handles our domain and sits in front of the site. Cloudflare
-          sees the IP addresses of people visiting.
+          servers hosted by Contabo GmbH in France, behind Cloudflare, which
+          handles our domain and sits in front of the site. Cloudflare sees the
+          IP addresses of people visiting.
+        </p>
+        <p>
+          <strong>Whoever reported a theft</strong>, if your listing's serial
+          number matches their report. They are told which listing matched. It
+          is public anyway, and nothing else about you is passed to them.
         </p>
         <p>
           <strong>HMRC</strong>, where the digital platform reporting rules
-          require it, and any other authority where we are legally obliged to
-          disclose.
+          require it, <strong>the police</strong>, where they are investigating
+          a theft or fraud connected to the site, and any other authority where
+          we are legally obliged to disclose.
         </p>
         <p>
           We do not sell your personal data, and we do not share it with
@@ -143,8 +189,10 @@ function Privacy() {
 
       <Clause n={5} title="Where your data goes">
         <p>
-          Our servers are in Germany. Stripe and Cloudflare are international
+          Our servers are in France. Stripe and Cloudflare are international
           and may process data outside the UK, including in the United States.
+          Anthropic is based in the United States and processes what it
+          receives there.
           Where that happens, the transfer is covered by UK adequacy
           regulations or by the International Data Transfer Agreement, which is
           the safeguard UK law requires.
@@ -169,6 +217,12 @@ function Privacy() {
           the same period, because they are the evidence if a dispute is raised
           later. Messages not connected to an order are deleted with your
           account.
+        </p>
+        <p>
+          <strong>Stolen gear reports</strong>, for as long as your account is
+          open. Marking one recovered stops it matching listings but keeps the
+          record, because it may be needed if a match is being reviewed.
+          Closing your account deletes them.
         </p>
         <p>
           <strong>Server logs</strong>, for 90 days.

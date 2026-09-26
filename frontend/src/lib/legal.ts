@@ -43,7 +43,7 @@ export const OPERATOR = {
   website: 'https://restrum.uk',
 
   /** Shown on both documents, and the date people rely on when they disagree. */
-  lastUpdated: '13 September 2026',
+  lastUpdated: '26 September 2026',
 } as const;
 
 /** The platform's cut, kept in step with STRIPE_PLATFORM_FEE_PERCENT. */
