@@ -81,22 +81,31 @@ class StripePaymentGateway implements PaymentGateway
         ])->id);
     }
 
-    public function createOnboardingLink(string $accountId, string $refreshUrl, string $returnUrl): string
+    public function createOnboardingSession(string $accountId): string
     {
-        return $this->call(fn () => $this->client()->v2->core->accountLinks->create([
+        // A v1 endpoint on a v2 account, and that is correct: Account
+        // Sessions have no v2 equivalent, and Stripe accepts v2 account ids
+        // here (probed against test mode on 2026-09-26).
+        //
+        // Stripe's own sign-in step stays on. It cannot be turned off for an
+        // Express account: Stripe answers that disable_stripe_user_authentication
+        // is only for accounts where the platform owns requirements
+        // collection, and taking that on would make Restrum responsible for
+        // verifying every seller's identity itself.
+        return $this->call(fn () => $this->client()->accountSessions->create([
             'account' => $accountId,
-            'use_case' => [
-                'type' => 'account_onboarding',
-                'account_onboarding' => [
-                    // Collect only what the recipient configuration needs.
-                    // Naming the configuration is what keeps the form short
-                    // for someone who just wants to sell a guitar.
-                    'configurations' => ['recipient'],
-                    'refresh_url' => $refreshUrl,
-                    'return_url' => $returnUrl,
-                ],
+            'components' => [
+                'account_onboarding' => ['enabled' => true],
+
+                // For a seller who is already set up: change bank details,
+                // see what has been paid out, and hear from Stripe when it
+                // needs something more, all without a trip to the Express
+                // dashboard.
+                'account_management' => ['enabled' => true],
+                'payouts' => ['enabled' => true],
+                'notification_banner' => ['enabled' => true],
             ],
-        ])->url);
+        ])->client_secret);
     }
 
     public function fetchAccountState(string $accountId): AccountState

@@ -33,15 +33,18 @@ interface PaymentGateway
     public function createConnectedAccount(User $seller): string;
 
     /**
-     * A single-use URL where the seller finishes Stripe's onboarding.
+     * A client secret that lets Stripe's embedded components act for one
+     * connected account inside our own page.
      *
-     * Short-lived by Stripe's design, so it is generated on demand and never
-     * stored. $refreshUrl is where Stripe sends them if it expires before
-     * they use it, which is a request for a new link rather than an error.
+     * This replaced a redirect to Stripe's hosted onboarding. The form is
+     * still Stripe's, in a cross-origin iframe, so identity and bank details
+     * still go straight to Stripe; the seller just never leaves Restrum to
+     * fill it in. Short-lived by Stripe's design, so it is generated on
+     * demand and never stored.
      *
      * @throws PaymentGatewayException
      */
-    public function createOnboardingLink(string $accountId, string $refreshUrl, string $returnUrl): string;
+    public function createOnboardingSession(string $accountId): string;
 
     /**
      * Ask Stripe what it currently thinks of an account.

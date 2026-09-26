@@ -1,0 +1,77 @@
+@use '../abstracts' as *;
+
+// The stolen gear register page.
+
+.stolen {
+  @include page-container(720px);
+  padding-top: 40px;
+  padding-bottom: $space-xxl;
+
+  &__title {
+    margin: 0 0 $space-sm;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+  }
+
+  &__lede {
+    margin: 0 0 $space-lg;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  &__section {
+    margin-bottom: $space-lg;
+  }
+
+  &__heading {
+    margin: 0 0 $space-sm;
+    font-size: $font-size-lg;
+  }
+
+  &__check {
+    display: flex;
+    gap: $space-sm;
+    margin-bottom: $space-md;
+
+    .field {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__match {
+    margin: $space-xs 0 0;
+  }
+
+  &__muted {
+    margin: 0 0 $space-md;
+    color: var(--text-muted);
+    font-size: $font-size-sm;
+    line-height: 1.6;
+  }
+
+  &__mine {
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $space-md;
+
+    .stolen__muted {
+      margin: 0;
+    }
+  }
+
+  &__item-title {
+    margin: 0 0 $space-xxs;
+    font-weight: 600;
+  }
+}

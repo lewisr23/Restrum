@@ -37,14 +37,14 @@ class StripeConnectTest extends TestCase
             ]);
     }
 
-    public function test_starting_onboarding_creates_an_account_and_returns_a_link(): void
+    public function test_starting_onboarding_creates_an_account_and_returns_a_session(): void
     {
         $seller = User::factory()->create();
 
         $this->actingAs($seller)
             ->postJson('/api/stripe/connect')
             ->assertOk()
-            ->assertJsonStructure(['url']);
+            ->assertJsonStructure(['client_secret', 'publishable_key']);
 
         $seller->refresh();
         $this->assertNotNull($seller->stripe_account_id);
@@ -66,7 +66,25 @@ class StripeConnectTest extends TestCase
 
         $this->assertSame($accountId, $seller->fresh()->stripe_account_id);
         $this->assertSame(1, $this->gateway->timesCalled('createConnectedAccount'));
-        $this->assertSame(2, $this->gateway->timesCalled('createOnboardingLink'));
+        $this->assertSame(2, $this->gateway->timesCalled('createOnboardingSession'));
+    }
+
+    /**
+     * The session secret opens the account's payout details, bank account
+     * included, in whoever's browser holds it. So it must only ever be minted
+     * for the account belonging to the person asking.
+     */
+    public function test_a_session_is_only_ever_for_the_callers_own_account(): void
+    {
+        User::factory()->payoutReady()->create();
+        $seller = User::factory()->payoutReady()->create();
+
+        $this->actingAs($seller)->postJson('/api/stripe/connect')->assertOk();
+
+        $this->assertSame(
+            $seller->stripe_account_id,
+            $this->gateway->firstCall('createOnboardingSession')['account'],
+        );
     }
 
     /**

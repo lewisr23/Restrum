@@ -17,6 +17,16 @@
     color: var(--text-muted);
   }
 
+  &__check {
+    margin: $space-xxs 0 $space-sm;
+    font-size: $font-size-sm;
+    color: var(--accent-hover);
+
+    a {
+      color: inherit;
+    }
+  }
+
   &__empty {
     margin: $space-md 0;
     font-size: 14px;

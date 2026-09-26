@@ -1,30 +1,87 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { loadConnectAndInitialize, StripeConnectInstance, AppearanceOptions } from '@stripe/connect-js';
+import {
+  ConnectComponentsProvider,
+  ConnectAccountOnboarding,
+  ConnectAccountManagement,
+  ConnectNotificationBanner,
+  ConnectPayouts,
+} from '@stripe/react-connect-js';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 import { API } from '../lib/config';
 
 // Where a seller sets up getting paid.
 //
-// Restrum never asks for a bank account here. The button hands the seller to
-// Stripe's own hosted onboarding, and what comes back is whether Stripe is
-// willing to pay them. That is the whole page: everything sensitive happens
-// somewhere this codebase cannot see.
+// Restrum never asks for a bank account here. The form below is Stripe's own
+// onboarding, mounted into this page as a cross-origin iframe, so identity
+// and bank details go straight from the seller's browser to Stripe. This used
+// to redirect to connect.stripe.com instead; it changed for the same reason
+// checkout did, that being sent to another domain halfway through reads as
+// less trustworthy, not more.
+//
+// Stripe may still show its own short verification step (a code by text).
+// That cannot be switched off for accounts where Stripe does the identity
+// checks, and Stripe doing them is the point.
+
+type Session = { client_secret: string; publishable_key: string };
+
+async function requestSession(token: string): Promise<Session> {
+  const res = await fetch(`${API}/api/stripe/connect`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body?.client_secret) {
+    throw new Error(body?.message || 'Could not start setting up payments. Try again shortly.');
+  }
+
+  return body;
+}
+
+/**
+ * Dress Stripe's components in the site's own palette, read from the live
+ * custom properties for the same reason Checkout does: the iframe cannot see
+ * our stylesheet, and a hardcoded copy is a second palette to forget.
+ */
+function appearance(): AppearanceOptions {
+  const css = getComputedStyle(document.documentElement);
+  const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+
+  return {
+    overlays: 'dialog',
+    variables: {
+      colorPrimary: token('--accent', '#6446d0'),
+      colorBackground: token('--bg-card', '#ffffff'),
+      colorText: token('--text', '#18181b'),
+      colorSecondaryText: token('--text-muted', '#67676f'),
+      colorBorder: token('--border-input', '#b4b4bf'),
+      colorDanger: token('--danger', '#c62828'),
+      fontFamily: token('--font-body', 'Georgia, serif'),
+      borderRadius: token('--radius', '10px'),
+    },
+  };
+}
+
+// The iframe cannot use the page's webfont unless it is told where to load it.
+const FONTS = [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..600&display=swap' }];
+
 function SellerPayments() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
   const { user } = useAuth();
+  const { theme } = useTheme();
 
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [problem, setProblem] = useState('');
+  const [connect, setConnect] = useState<StripeConnectInstance | null>(null);
 
-  // Stripe returns the seller here when they finish, and sends them here with
-  // stripe=refresh when the single-use onboarding link expired before they
-  // used it. Both want a fresh read rather than the cached one, because the
-  // account.updated webhook may be seconds behind the person.
-  const returning = params.get('stripe') !== null;
+  // Guards against opening two sessions at once, which StrictMode's double
+  // effect would otherwise do in development.
+  const opening = useRef(false);
 
   const load = useCallback(async (refresh: boolean) => {
     if (!user) return;
@@ -42,32 +99,63 @@ function SellerPayments() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (!user) { navigate('/login'); return; }
-    load(returning);
-  }, [user, navigate, load, returning]);
-
-  const handleStart = async () => {
-    if (!user) return;
+  /**
+   * Open a Stripe session and mount the components.
+   *
+   * The first secret arrives with the publishable key, so it is handed over
+   * directly rather than fetched twice. After that Stripe.js calls back for
+   * a fresh one whenever a session expires, and each of those is a new POST.
+   */
+  const open = useCallback(async () => {
+    if (!user || opening.current) return;
+    opening.current = true;
     setStarting(true);
     setProblem('');
     try {
-      const res = await fetch(`${API}/api/stripe/connect`, {
-        method: 'POST',
-        headers: { Accept: 'application/json', Authorization: `Bearer ${user.token}` },
-      });
-      const body = await res.json().catch(() => null);
-      if (res.ok && body?.url) {
-        window.location.href = body.url;
-        return;
-      }
-      setProblem(body?.message || 'Could not start setting up payments. Try again shortly.');
-    } catch {
-      setProblem('Could not reach the server.');
+      const first = await requestSession(user.token);
+      let unused: string | null = first.client_secret;
+
+      setConnect(loadConnectAndInitialize({
+        publishableKey: first.publishable_key,
+        fetchClientSecret: async () => {
+          if (unused) {
+            const secret = unused;
+            unused = null;
+            return secret;
+          }
+          return (await requestSession(user.token)).client_secret;
+        },
+        appearance: appearance(),
+        fonts: FONTS,
+      }));
+    } catch (e) {
+      setProblem(e instanceof Error ? e.message : 'Could not reach the server.');
+      opening.current = false;
     } finally {
       setStarting(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) { navigate('/login'); return; }
+    load(false);
+  }, [user, navigate, load]);
+
+  // A seller who already has an account goes straight to Stripe's form or
+  // their payout details. One who has not must press the button first,
+  // because opening a session is what creates their Stripe account, and
+  // that should not happen to everyone who merely looks at this page.
+  useEffect(() => {
+    if (status?.onboarded && !connect) open();
+  }, [status, connect, open]);
+
+  // The palette is read once at initialisation, so a theme switch has to be
+  // passed on. Deferred a frame so the new custom properties have applied.
+  useEffect(() => {
+    if (!connect) return;
+    const frame = requestAnimationFrame(() => connect.update({ appearance: appearance() }));
+    return () => cancelAnimationFrame(frame);
+  }, [theme, connect]);
 
   if (loading) return <div className="page text-muted">Loading...</div>;
 
@@ -80,9 +168,9 @@ function SellerPayments() {
 
       {problem && <div className="notice notice--error">{problem}</div>}
 
-      <div className="panel">
-        {canSell ? (
-          <>
+      {canSell ? (
+        <>
+          <div className="panel">
             <div className="seller-payments__state seller-payments__state--ready">
               <span className="seller-payments__tick">✓</span>
               <div>
@@ -97,39 +185,67 @@ function SellerPayments() {
 
             <div className="seller-payments__actions">
               <Link className="btn-primary" to="/create">List some gear</Link>
-              <button className="btn-ghost" onClick={handleStart} disabled={starting}>
-                {starting ? 'Opening Stripe...' : 'Update your details on Stripe'}
-              </button>
             </div>
-          </>
-        ) : (
-          <>
-            <h2 className="seller-payments__state-title">
-              {started ? 'Stripe still needs a few details' : 'Set up payments before you sell'}
-            </h2>
-            <p className="seller-payments__state-text">
-              {started
-                ? 'You started setting up with Stripe but it is not finished, so buyers cannot check out on your listings yet. Picking up where you left off takes a couple of minutes.'
-                : 'Buyers pay Restrum by card, and we pass the money on to you once they confirm the gear arrived. To receive that, Stripe needs to verify who you are and where to pay.'}
-            </p>
+          </div>
 
-            <ul className="seller-payments__points">
-              <li>Takes a few minutes, on Stripe's own secure pages.</li>
-              <li>You'll need your address, date of birth and bank details.</li>
-              <li>Restrum never sees your bank details.</li>
-              <li>No HMRC or company registration needed to sell as an individual.</li>
-            </ul>
+          {connect && (
+            <ConnectComponentsProvider connectInstance={connect}>
+              <div className="seller-payments__embed">
+                <ConnectNotificationBanner />
+              </div>
 
-            <button className="btn-primary btn-lg" onClick={handleStart} disabled={starting}>
-              {starting ? 'Opening Stripe...' : started ? 'Finish setting up' : 'Set up payments with Stripe'}
+              <section className="seller-payments__section">
+                <h2 className="seller-payments__section-title">Your payouts</h2>
+                <div className="panel seller-payments__embed seller-payments__embed-panel">
+                  <ConnectPayouts />
+                </div>
+              </section>
+
+              <section className="seller-payments__section">
+                <h2 className="seller-payments__section-title">Bank and contact details</h2>
+                <div className="panel seller-payments__embed seller-payments__embed-panel">
+                  <ConnectAccountManagement />
+                </div>
+              </section>
+            </ConnectComponentsProvider>
+          )}
+        </>
+      ) : (
+        <div className="panel">
+          <h2 className="seller-payments__state-title">
+            {started ? 'Stripe still needs a few details' : 'Set up payments before you sell'}
+          </h2>
+          <p className="seller-payments__state-text">
+            {started
+              ? 'You started setting up but it is not finished, so buyers cannot check out on your listings yet. Pick up where you left off below.'
+              : 'Buyers pay Restrum by card, and we pass the money on to you once they confirm the gear arrived. To receive that, our payments partner Stripe needs to verify who you are and where to pay.'}
+          </p>
+
+          <ul className="seller-payments__points">
+            <li>Takes a few minutes, right here on this page.</li>
+            <li>You'll need your address, date of birth and bank details.</li>
+            <li>The form is Stripe's own, so your details go straight to Stripe. Restrum never sees your bank details.</li>
+            <li>Stripe may text you a code to confirm it's you.</li>
+            <li>No HMRC or company registration needed to sell as an individual.</li>
+          </ul>
+
+          {connect ? (
+            <div className="seller-payments__embed seller-payments__embed--onboarding">
+              <ConnectComponentsProvider connectInstance={connect}>
+                <ConnectAccountOnboarding onExit={() => load(true)} />
+              </ConnectComponentsProvider>
+            </div>
+          ) : (
+            <button className="btn-primary btn-lg" onClick={open} disabled={starting}>
+              {starting ? 'Loading...' : 'Set up payments'}
             </button>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {started && !canSell && (
         <p className="seller-payments__footnote">
-          Already finished on Stripe's side? Verification can take a few minutes.{' '}
+          Finished the form? Verification can take a few minutes.{' '}
           <button className="link-button" onClick={() => load(true)}>Check again</button>
         </p>
       )}

@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Safety\StolenGearRegister;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +24,10 @@ use Illuminate\Validation\ValidationException;
  */
 class CheckoutService
 {
-    public function __construct(private readonly PaymentGateway $gateway) {}
+    public function __construct(
+        private readonly PaymentGateway $gateway,
+        private readonly StolenGearRegister $stolenGear,
+    ) {}
 
     /**
      * Reserve the listing for this buyer and open a Stripe PaymentIntent.
@@ -92,6 +96,15 @@ class CheckoutService
             if ($locked->status !== 'ACTIVE') {
                 throw ValidationException::withMessages([
                     'listing' => 'This listing is no longer available.',
+                ]);
+            }
+
+            // Its serial matches gear reported stolen and a moderator has not
+            // looked yet. Worded to say nothing about why: the seller may
+            // well be innocent, and the buyer loses nothing by waiting.
+            if ($this->stolenGear->isHeld($locked)) {
+                throw ValidationException::withMessages([
+                    'listing' => 'This listing is being checked by our team and cannot be bought right now. Try again later.',
                 ]);
             }
 

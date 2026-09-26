@@ -10,6 +10,7 @@ import Checkout from './components/Checkout';
 import Orders from './components/Orders';
 import OrderDetail from './components/OrderDetail';
 import SellerPayments from './components/SellerPayments';
+import StolenGear from './components/StolenGear';
 import About from './components/About';
 import Faq from './components/Faq';
 import Terms from './components/Terms';
@@ -62,6 +63,7 @@ function App() {
                 <Route path="/messages/:id" element={<MessagesPage />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/faq" element={<Faq />} />
+                <Route path="/stolen" element={<StolenGear />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/login" element={<Login />} />

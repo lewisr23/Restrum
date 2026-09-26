@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\EndorsementController;
 use App\Http\Controllers\Api\FollowController;
 use App\Http\Controllers\Api\ListingController;
+use App\Http\Controllers\Api\ListingDraftController;
 use App\Http\Controllers\Api\ListingMediaController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\StolenGearController;
 use App\Http\Controllers\Api\StripeConnectController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\UserController;
@@ -56,6 +58,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // swallow "saved" as if it were an id.
     Route::get('/listings/saved', [ListingController::class, 'saved']);
 
+    // Photo to listing. Also above {listing} for the same reason as saved.
+    // Costs real money per call, hence its own limiter.
+    Route::get('/listings/draft/status', [ListingDraftController::class, 'status']);
+    Route::post('/listings/draft', [ListingDraftController::class, 'store'])
+        ->middleware(['verified', 'throttle:listing-drafter']);
+
     Route::post('/listings', [ListingController::class, 'store'])->middleware('verified');
     Route::put('/listings/{listing}', [ListingController::class, 'update']);
     Route::delete('/listings/{listing}', [ListingController::class, 'destroy']);
@@ -74,7 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{order}/review', [ReviewController::class, 'store']);
 
     // Seller payouts. GET reports where Stripe has got to, POST returns a
-    // fresh link into Stripe's hosted onboarding.
+    // session for Stripe's onboarding form, embedded in our own page.
     Route::get('/stripe/connect', [StripeConnectController::class, 'show']);
     Route::post('/stripe/connect', [StripeConnectController::class, 'store']);
 
@@ -113,6 +121,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/listings/{listing}/remove', [AdminController::class, 'removeListing']);
     });
 
+    // The stolen gear register: your own reports, filing one, and marking
+    // one recovered. Checking a serial is public, below.
+    Route::get('/stolen', [StolenGearController::class, 'index']);
+    Route::post('/stolen', [StolenGearController::class, 'store'])->middleware('verified');
+    Route::post('/stolen/{report}/recovered', [StolenGearController::class, 'recovered']);
+
     Route::post('/listings/{listing}/passport/entries', [PassportController::class, 'addEntry']);
     Route::put('/listings/{listing}/passport/entries/{entry}', [PassportController::class, 'updateEntry']);
 });
@@ -129,6 +143,12 @@ Route::post('/recommendations', [RecommendationController::class, 'chat'])
 // filter panel and the sell form.
 Route::get('/catalog', [CatalogController::class, 'index']);
 Route::get('/catalog/categories/{category}', [CatalogController::class, 'show']);
+
+// Public so anyone can check a serial before buying, here or anywhere else.
+// Throttled because it is also a way to probe the register one serial at a
+// time, and a person checking a guitar needs a handful of tries, not
+// hundreds.
+Route::get('/stolen/check', [StolenGearController::class, 'check'])->middleware('throttle:20,1');
 
 Route::get('/listings', [ListingController::class, 'index']);
 Route::get('/listings/{listing}', [ListingController::class, 'show']);

@@ -56,16 +56,12 @@ class FakePaymentGateway implements PaymentGateway
         return 'acct_fake'.(++$this->counter);
     }
 
-    public function createOnboardingLink(string $accountId, string $refreshUrl, string $returnUrl): string
+    public function createOnboardingSession(string $accountId): string
     {
         $this->guard();
-        $this->record('createOnboardingLink', [
-            'account' => $accountId,
-            'refresh_url' => $refreshUrl,
-            'return_url' => $returnUrl,
-        ]);
+        $this->record('createOnboardingSession', ['account' => $accountId]);
 
-        return "https://connect.stripe.test/onboard/{$accountId}";
+        return "accs_secret_fake_{$accountId}";
     }
 
     public function fetchAccountState(string $accountId): AccountState

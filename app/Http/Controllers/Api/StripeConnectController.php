@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\Log;
  * reach their bank.
  *
  * Restrum never sees a bank account number. The seller fills Stripe's own
- * hosted form, and what comes back here is two booleans saying whether Stripe
- * is willing to pay them. That division is the whole reason for using Connect
- * rather than collecting payment details directly.
+ * form, embedded in our page as a cross-origin iframe, and what comes back
+ * here is two booleans saying whether Stripe is willing to pay them. That
+ * division is the whole reason for using Connect rather than collecting
+ * payment details directly.
  */
 class StripeConnectController extends Controller
 {
@@ -27,8 +28,8 @@ class StripeConnectController extends Controller
      * Where the seller stands with Stripe.
      *
      * Reads the local mirror, and refreshes it from Stripe when asked. The
-     * refresh matters at exactly one moment: the seller has just come back
-     * from onboarding and the account.updated webhook has not landed yet, so
+     * refresh matters at exactly one moment: the seller has just finished
+     * onboarding and the account.updated webhook has not landed yet, so
      * the honest local answer is out of date by seconds.
      */
     public function show(Request $request): JsonResponse
@@ -55,8 +56,9 @@ class StripeConnectController extends Controller
     /**
      * Start or resume Stripe onboarding.
      *
-     * Safe to call repeatedly. A seller who abandoned the form halfway gets a
-     * fresh link into the same account rather than a second account, which
+     * Safe to call repeatedly, and it will be: Stripe.js calls it again
+     * whenever a session expires. A seller who abandoned the form halfway gets
+     * a fresh session on the same account rather than a second account, which
      * matters because Stripe would happily create as many as it is asked to
      * and only one of them can be paid into.
      */
@@ -76,11 +78,7 @@ class StripeConnectController extends Controller
                 $user->save();
             }
 
-            $url = $this->gateway->createOnboardingLink(
-                $user->stripe_account_id,
-                $this->frontend('/sell/payments?stripe=refresh'),
-                $this->frontend('/sell/payments?stripe=return'),
-            );
+            $clientSecret = $this->gateway->createOnboardingSession($user->stripe_account_id);
         } catch (PaymentGatewayException $e) {
             Log::error('Could not start Stripe onboarding.', [
                 'user_id' => $user->id,
@@ -92,7 +90,13 @@ class StripeConnectController extends Controller
             ], 503);
         }
 
-        return response()->json(['url' => $url]);
+        return response()->json([
+            'client_secret' => $clientSecret,
+            // Served here for the same reason CheckoutController serves it:
+            // switching to live keys is then a server config change, not a
+            // frontend rebuild.
+            'publishable_key' => (string) config('services.stripe.key'),
+        ]);
     }
 
     /**
@@ -131,10 +135,5 @@ class StripeConnectController extends Controller
             'can_sell' => $user->canReceivePayments(),
             'synced_at' => $user->stripe_synced_at,
         ];
-    }
-
-    private function frontend(string $path): string
-    {
-        return rtrim((string) config('app.frontend_url'), '/').$path;
     }
 }

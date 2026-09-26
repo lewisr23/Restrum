@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import ListingCard from './ListingCard';
@@ -19,6 +19,9 @@ interface Passport {
   id: number;
   serial_number: string | null;
   year_manufactured: number | null;
+  // 'clear' when the serial was checked and is not on the stolen register.
+  // Null otherwise, including when it matched: see PassportResource.
+  stolen_check: 'clear' | null;
   entries: PassportEntry[];
 }
 
@@ -117,6 +120,12 @@ function PassportSection({ listingId, isSeller }: { listingId: string; isSeller:
         <p className="passport__serial">
           Serial: {passport.serial_number}
           {passport.year_manufactured && ` · Made: ${passport.year_manufactured}`}
+        </p>
+      )}
+
+      {passport?.stolen_check === 'clear' && (
+        <p className="passport__check">
+          ✓ Not on the <Link to="/stolen">Restrum stolen gear register</Link>
         </p>
       )}
 

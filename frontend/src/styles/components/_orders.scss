@@ -400,4 +400,36 @@ a.btn-ghost {
     color: var(--text-faint);
     font-size: $font-size-xs;
   }
+
+  // Stripe's embedded components. They size their own height, but refuse to
+  // draw narrower than 320px, which on a 375px phone is more than a padded
+  // panel leaves. Below 'sm' they are given the panel's padding to use, or
+  // the right edge of Stripe's form is clipped off.
+  &__embed {
+    min-width: 0;
+    margin-top: $space-md;
+
+    &--onboarding {
+      margin-top: $space-lg;
+
+      @include media-down('sm') {
+        margin-inline: -$space-lg;
+      }
+    }
+  }
+
+  &__embed-panel {
+    @include media-down('sm') {
+      padding: $space-sm;
+    }
+  }
+
+  &__section {
+    margin-top: $space-xl;
+  }
+
+  &__section-title {
+    margin: 0 0 $space-sm;
+    font-size: $font-size-lg;
+  }
 }

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { API } from '../lib/config';
 import { useCatalog } from '../lib/catalog';
 import CategoryPicker from './CategoryPicker';
 import CategoryFields from './CategoryFields';
+import PhotoDraft, { ListingDraft } from './PhotoDraft';
 
 // No POOR - the backend's condition enum is MINT/EXCELLENT/GOOD/FAIR only,
 // one fewer step than the old API supported.
@@ -39,6 +40,7 @@ function CreateListing() {
     location: '',
     condition: 'GOOD',
     description: '',
+    serialNumber: '',
   });
 
   // Held apart from the rest of the form because they are not text inputs
@@ -54,6 +56,10 @@ function CreateListing() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+
+  // What the photo draft said, kept on screen after the form is filled so the
+  // seller reads its caveats while they check the fields it touched.
+  const [draft, setDraft] = useState<ListingDraft | null>(null);
 
   // Whether Stripe will actually pay this seller. Asked here rather than only
   // at checkout because of who loses out otherwise: the listing goes up, a
@@ -88,6 +94,34 @@ function CreateListing() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Fill the form from a photo draft. Fields the draft left blank keep
+  // whatever the seller had typed, so a partial answer never wipes work.
+  const applyDraft = (next: ListingDraft, photos: File[]) => {
+    setDraft(next);
+    setImages(photos);
+    if (!next.identified) return;
+
+    // Middle of the usual range, to the nearest five pounds. A starting
+    // point the seller is told is an estimate, not a valuation.
+    const suggested = next.price_low && next.price_high
+      ? String(Math.round((next.price_low + next.price_high) / 2 / 5) * 5)
+      : null;
+
+    setForm(f => ({
+      ...f,
+      title: next.title || f.title,
+      description: next.description || f.description,
+      condition: next.condition || f.condition,
+      price: suggested ?? f.price,
+      serialNumber: next.serial_number || f.serialNumber,
+    }));
+    if (next.category) {
+      setCategory(next.category);
+      setBrand(next.brand || '');
+      setAttributes(next.attributes || {});
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -113,6 +147,7 @@ function CreateListing() {
           category,
           brand: brand || null,
           condition: form.condition,
+          serial_number: form.serialNumber.trim() || null,
           attributes,
         }),
       });
@@ -172,6 +207,25 @@ function CreateListing() {
           <button type="button" className="link-button" onClick={() => navigate('/sell/payments')}>
             Set that up now
           </button>
+        </div>
+      )}
+
+      <PhotoDraft token={user.token} onDraft={applyDraft} />
+
+      {draft && (
+        <div className={`notice ${draft.identified ? 'notice--muted' : 'notice--error'}`}>
+          {draft.identified ? (
+            <>
+              <strong>Filled in from your photos. Check every field before posting:</strong>{' '}
+              it can only go on what the photos show.
+              {draft.price_low && draft.price_high && (
+                <> Similar items usually sell for about £{draft.price_low} to £{draft.price_high} used. That is an estimate, not a valuation.</>
+              )}
+              {draft.notes && <> {draft.notes}</>}
+            </>
+          ) : (
+            <><strong>Could not fill in the form from those photos.</strong> {draft.notes}</>
+          )}
         </div>
       )}
 
@@ -253,6 +307,15 @@ function CreateListing() {
           <select className="field field--select" id="condition" name="condition" value={form.condition} onChange={handleChange}>
             {conditionOptions.map(c => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
           </select>
+        </div>
+
+        <div className="field-group">
+          <label className="field-label" htmlFor="serialNumber">Serial number</label>
+          <input className="field" id="serialNumber" name="serialNumber" value={form.serialNumber} onChange={handleChange} placeholder="e.g. MX21012345" maxLength={100} />
+          <p className="field-hint">
+            Optional. It is checked against the <Link to="/stolen">stolen gear register</Link>,
+            and a listing that passes says so, which buyers look for.
+          </p>
         </div>
 
         <div className="field-group">

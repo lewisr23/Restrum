@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 import { API, mediaUrl } from '../lib/config';
@@ -75,6 +75,17 @@ function EditListing() {
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newAudioFiles, setNewAudioFiles] = useState<File[]>([]);
   const [newVideoFiles, setNewVideoFiles] = useState<File[]>([]);
+
+  // Null until the passport has been read. Only sent back once it has, so a
+  // failed read can never be saved as "clear the serial".
+  const [serialNumber, setSerialNumber] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API}/api/listings/${id}/passport`, { headers: { Accept: 'application/json' } })
+      .then(res => (res.ok ? res.json() : null))
+      .then(body => { if (body) setSerialNumber(body.data?.serial_number ?? ''); })
+      .catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     fetch(`${API}/api/listings/${id}`, { headers: { Accept: 'application/json' } })
@@ -179,6 +190,7 @@ function EditListing() {
           category,
           brand: brand || null,
           condition: form.condition,
+          ...(serialNumber !== null ? { serial_number: serialNumber.trim() || null } : {}),
           attributes,
         }),
       });
@@ -308,6 +320,16 @@ function EditListing() {
             {conditionOptions.map(c => <option key={c} value={c}>{c.charAt(0) + c.slice(1).toLowerCase()}</option>)}
           </select>
         </div>
+
+        {serialNumber !== null && (
+          <div className="field-group">
+            <label className="field-label" htmlFor="serialNumber">Serial number</label>
+            <input className="field" id="serialNumber" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} placeholder="e.g. MX21012345" maxLength={100} />
+            <p className="field-hint">
+              Optional. Checked against the <Link to="/stolen">stolen gear register</Link>.
+            </p>
+          </div>
+        )}
 
         <div className="field-group">
           <label className="field-label" htmlFor="description">Description</label>

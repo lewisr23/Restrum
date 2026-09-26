@@ -13,6 +13,7 @@ use App\Models\Listing;
 use App\Models\Message;
 use App\Search\ListingSearch;
 use App\Services\PriceInsightService;
+use App\Services\Safety\StolenGearRegister;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -353,6 +354,8 @@ class ListingController extends Controller
         $data['category_id'] = $category->id;
         unset($data['category']);
 
+        [$data, $serial] = $this->splitSerial($data);
+
         $listing = $request->user()->listings()->make($data);
         // 'status' is deliberately NOT in Listing's #[Fillable] list - request
         // input must never set it directly. Passing it through make()/create()
@@ -365,6 +368,7 @@ class ListingController extends Controller
         $listing->save();
 
         $listing->syncAttributes($attributes);
+        $this->applySerial($listing, $serial);
 
         // 'media' is loaded even though a brand-new listing has none yet:
         // ListingResource only emits that key when the relation is loaded, so
@@ -441,11 +445,15 @@ class ListingController extends Controller
         $data['category_id'] = $category->id;
         unset($data['category']);
 
+        [$data, $serial] = $this->splitSerial($data);
+
         $listing->update($data);
 
         if ($request->has('attributes') || $listing->wasChanged('category_id')) {
             $listing->syncAttributes($attributes);
         }
+
+        $this->applySerial($listing, $serial);
 
         return new ListingResource($listing->load('seller', 'media', 'category', 'attributeValues'));
     }
@@ -478,7 +486,54 @@ class ListingController extends Controller
             'category' => [$required, 'string', 'exists:categories,slug'],
             'brand' => ['nullable', 'string', Rule::in(Brands::all())],
             'condition' => ['nullable', 'string', Rule::in(self::CONDITIONS)],
+            'serial_number' => ['nullable', 'string', 'max:100'],
         ]);
+    }
+
+    /**
+     * Take the serial out of the listing's own fields.
+     *
+     * It lives on the passport, not the listing, and leaving it in would have
+     * mass assignment drop it silently. The second value is false when the
+     * request did not mention a serial at all, which is different from
+     * clearing one.
+     *
+     * @return array{0: array<string, mixed>, 1: string|null|false}
+     */
+    private function splitSerial(array $data): array
+    {
+        $serial = array_key_exists('serial_number', $data) ? $data['serial_number'] : false;
+        unset($data['serial_number']);
+
+        return [$data, $serial];
+    }
+
+    /**
+     * Store the serial on the passport and check it against the stolen
+     * register. Checked only when it actually changed, so re-saving a
+     * listing does not re-run a match a moderator has already dismissed.
+     */
+    private function applySerial(Listing $listing, string|null|false $serial): void
+    {
+        if ($serial === false) {
+            return;
+        }
+
+        $serial = $serial === null || trim($serial) === '' ? null : trim($serial);
+        $passport = $listing->passport;
+
+        if ($passport === null && $serial === null) {
+            return;
+        }
+
+        $passport ??= $listing->passport()->make();
+        $passport->serial_number = $serial;
+        $passport->save();
+        $listing->setRelation('passport', $passport);
+
+        if ($passport->wasChanged('serial_normalized') || $passport->wasRecentlyCreated) {
+            app(StolenGearRegister::class)->checkListing($listing);
+        }
     }
 
     /**

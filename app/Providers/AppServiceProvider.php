@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Anthropic\Client as AnthropicClient;
+use App\Services\Drafting\ListingDrafter;
 use App\Services\Payments\PaymentGateway;
 use App\Services\Payments\StripePaymentGateway;
 use App\Services\Recommender\ListingRecommender;
@@ -39,6 +40,16 @@ class AppServiceProvider extends ServiceProvider
                 $key === '' ? null : new AnthropicClient(apiKey: $key),
             );
         });
+
+        // Same key, same off switch: no key and the sell form simply does not
+        // offer to fill itself in.
+        $this->app->singleton(ListingDrafter::class, function () {
+            $key = (string) config('services.anthropic.key');
+
+            return new ListingDrafter(
+                $key === '' ? null : new AnthropicClient(apiKey: $key),
+            );
+        });
     }
 
     /**
@@ -61,6 +72,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('gear-adviser', fn (Request $request) => [
             Limit::perMinute(6)->by($request->ip()),
             Limit::perDay(60)->by($request->ip()),
+        ]);
+
+        /*
+         * Drafting a listing from photos. Behind a login, so limited per
+         * account rather than per IP, and dearer per call than an adviser
+         * question (several photos, a stronger effort setting), so tighter.
+         * Nobody honestly lists thirty items a day on a site this size.
+         */
+        RateLimiter::for('listing-drafter', fn (Request $request) => [
+            Limit::perMinute(3)->by((string) $request->user()?->id),
+            Limit::perDay(30)->by((string) $request->user()?->id),
         ]);
 
         /*

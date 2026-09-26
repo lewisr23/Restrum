@@ -31,6 +31,7 @@ function Footer() {
           <button className="site-footer__link" onClick={() => navigate('/create')}>Sell gear</button>
           <button className="site-footer__link" onClick={() => navigate('/saved')}>Saved listings</button>
           <button className="site-footer__link" onClick={() => navigate('/orders')}>Your orders</button>
+          <button className="site-footer__link" onClick={() => navigate('/stolen')}>Stolen gear check</button>
           <button className="site-footer__link" onClick={() => navigate('/messages')}>Messages</button>
         </div>
 
