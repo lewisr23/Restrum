@@ -22,11 +22,12 @@ import { API } from '../lib/config';
 // checkout did, that being sent to another domain halfway through reads as
 // less trustworthy, not more.
 //
-// Stripe may still show its own short verification step (a code by text).
-// That cannot be switched off for accounts where Stripe does the identity
-// checks, and Stripe doing them is the point.
+// Setting up happens entirely on this page, with no Stripe pop-up. Changing
+// bank details afterwards does ask Stripe to text the seller a code, on
+// purpose: see createOnboardingSession in StripePaymentGateway.
 
-type Session = { client_secret: string; publishable_key: string };
+type Mode = 'setup' | 'manage';
+type Session = { client_secret: string; publishable_key: string; mode: Mode };
 
 async function requestSession(token: string): Promise<Session> {
   const res = await fetch(`${API}/api/stripe/connect`, {
@@ -79,6 +80,11 @@ function SellerPayments() {
   const [problem, setProblem] = useState('');
   const [connect, setConnect] = useState<StripeConnectInstance | null>(null);
 
+  // Which kind of session the mounted components belong to. The server picks
+  // it, and a setup session does not contain the payouts or bank details
+  // components, so finishing setup means starting a new one.
+  const [mode, setMode] = useState<Mode | null>(null);
+
   // Guards against opening two sessions at once, which StrictMode's double
   // effect would otherwise do in development.
   const opening = useRef(false);
@@ -114,6 +120,13 @@ function SellerPayments() {
     try {
       const first = await requestSession(user.token);
       let unused: string | null = first.client_secret;
+      setMode(first.mode);
+
+      // A first session is also what creates the Stripe account, so the
+      // status read on page load is out of date from here on. Without this
+      // the page still thinks nothing was started, and never offers to
+      // check again.
+      load(false);
 
       setConnect(loadConnectAndInitialize({
         publishableKey: first.publishable_key,
@@ -134,7 +147,7 @@ function SellerPayments() {
     } finally {
       setStarting(false);
     }
-  }, [user]);
+  }, [user, load]);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -148,6 +161,19 @@ function SellerPayments() {
   useEffect(() => {
     if (status?.onboarded && !connect) open();
   }, [status, connect, open]);
+
+  // Setup just finished (or an account fell back to needing details): the
+  // mounted session is the wrong kind, so drop it and let the effect above
+  // open the right one.
+  useEffect(() => {
+    if (!connect || !status?.onboarded) return;
+    const wanted: Mode = status.can_sell ? 'manage' : 'setup';
+    if (mode !== wanted) {
+      setConnect(null);
+      setMode(null);
+      opening.current = false;
+    }
+  }, [status, connect, mode]);
 
   // The palette is read once at initialisation, so a theme switch has to be
   // passed on. Deferred a frame so the new custom properties have applied.
@@ -203,6 +229,11 @@ function SellerPayments() {
 
               <section className="seller-payments__section">
                 <h2 className="seller-payments__section-title">Bank and contact details</h2>
+                <p className="seller-payments__state-text">
+                  Changing these asks Stripe to text you a code first, so
+                  nobody who got into your Restrum account could redirect your
+                  money.
+                </p>
                 <div className="panel seller-payments__embed seller-payments__embed-panel">
                   <ConnectAccountManagement />
                 </div>
@@ -224,8 +255,7 @@ function SellerPayments() {
           <ul className="seller-payments__points">
             <li>Takes a few minutes, right here on this page.</li>
             <li>You'll need your address, date of birth and bank details.</li>
-            <li>The form is Stripe's own, so your details go straight to Stripe. Restrum never sees your bank details.</li>
-            <li>Stripe may text you a code to confirm it's you.</li>
+            <li>The form is run by Stripe, our payments partner, so your details go straight to Stripe. Restrum never sees your bank details.</li>
             <li>No HMRC or company registration needed to sell as an individual.</li>
           </ul>
 

@@ -33,12 +33,25 @@ class StripePaymentGateway implements PaymentGateway
             'contact_email' => $seller->email,
             'display_name' => $seller->username,
 
-            // Express: Stripe hosts the onboarding form and the payouts
-            // dashboard, which is the difference between asking a private
-            // seller for their bank details and sending them to Stripe to
-            // hand them over. 'full' would drop them into the real Stripe
-            // dashboard; 'none' would mean building one ourselves.
-            'dashboard' => 'express',
+            // No Stripe dashboard for the seller, and that one setting is
+            // what makes Restrum, not Stripe, responsible for collecting
+            // their verification details (Stripe reports it back as
+            // requirements_collector: application). That in turn is the only
+            // way Stripe allows its sign-in pop-up to be skipped, so a seller
+            // sets up without leaving the page.
+            //
+            // The collecting is still done by Stripe's own embedded form,
+            // not by anything here, so Restrum still never sees a bank
+            // account number. What Restrum takes on is making sure a seller
+            // hears about it when Stripe needs more from them, which the
+            // notification banner on the payouts page does, and being where
+            // sellers come with questions about payouts, since they have no
+            // Stripe login of their own.
+            //
+            // It cannot be changed on an existing account. Accounts created
+            // as 'express' before 2026-09-26 were all test mode and are
+            // cleared when the site switches to live keys.
+            'dashboard' => 'none',
 
             'identity' => [
                 'country' => 'GB',
@@ -81,30 +94,39 @@ class StripePaymentGateway implements PaymentGateway
         ])->id);
     }
 
-    public function createOnboardingSession(string $accountId): string
+    public function createOnboardingSession(string $accountId, bool $settingUp): string
     {
         // A v1 endpoint on a v2 account, and that is correct: Account
         // Sessions have no v2 equivalent, and Stripe accepts v2 account ids
         // here (probed against test mode on 2026-09-26).
         //
-        // Stripe's own sign-in step stays on. It cannot be turned off for an
-        // Express account: Stripe answers that disable_stripe_user_authentication
-        // is only for accounts where the platform owns requirements
-        // collection, and taking that on would make Restrum responsible for
-        // verifying every seller's identity itself.
+        // Two kinds of session, because Stripe requires every component in
+        // one session to agree on disable_stripe_user_authentication.
+        //
+        // Setting up skips Stripe's sign-in step. There is no money in the
+        // account yet, so nothing for an intruder to take, and the pop-up is
+        // the thing that made sellers feel sent away.
+        //
+        // Managing keeps it. That is where the bank account can be changed,
+        // and Stripe's text code is the one thing standing between someone
+        // who has guessed a seller's Restrum password and that seller's
+        // payouts: Restrum has no two-factor login of its own.
+        $auth = ['disable_stripe_user_authentication' => $settingUp];
+
+        $components = $settingUp
+            ? [
+                'account_onboarding' => ['enabled' => true, 'features' => $auth],
+                'notification_banner' => ['enabled' => true, 'features' => $auth],
+            ]
+            : [
+                'account_management' => ['enabled' => true, 'features' => $auth],
+                'payouts' => ['enabled' => true, 'features' => $auth],
+                'notification_banner' => ['enabled' => true, 'features' => $auth],
+            ];
+
         return $this->call(fn () => $this->client()->accountSessions->create([
             'account' => $accountId,
-            'components' => [
-                'account_onboarding' => ['enabled' => true],
-
-                // For a seller who is already set up: change bank details,
-                // see what has been paid out, and hear from Stripe when it
-                // needs something more, all without a trip to the Express
-                // dashboard.
-                'account_management' => ['enabled' => true],
-                'payouts' => ['enabled' => true],
-                'notification_banner' => ['enabled' => true],
-            ],
+            'components' => $components,
         ])->client_secret);
     }
 

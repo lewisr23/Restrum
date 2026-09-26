@@ -56,10 +56,10 @@ class FakePaymentGateway implements PaymentGateway
         return 'acct_fake'.(++$this->counter);
     }
 
-    public function createOnboardingSession(string $accountId): string
+    public function createOnboardingSession(string $accountId, bool $settingUp): string
     {
         $this->guard();
-        $this->record('createOnboardingSession', ['account' => $accountId]);
+        $this->record('createOnboardingSession', ['account' => $accountId, 'setting_up' => $settingUp]);
 
         return "accs_secret_fake_{$accountId}";
     }

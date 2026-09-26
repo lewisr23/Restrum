@@ -74,6 +74,29 @@ class StripeConnectTest extends TestCase
      * included, in whoever's browser holds it. So it must only ever be minted
      * for the account belonging to the person asking.
      */
+    /**
+     * The setup session skips Stripe's sign-in step, and the manage session
+     * is where bank details can be changed. So a seller who can already be
+     * paid must only ever get the one that keeps the sign-in step, whatever
+     * the request says.
+     */
+    public function test_only_a_seller_still_setting_up_gets_the_session_without_stripes_sign_in(): void
+    {
+        $this->actingAs(User::factory()->payoutPending()->create())
+            ->postJson('/api/stripe/connect')
+            ->assertOk()
+            ->assertJsonPath('mode', 'setup');
+        $this->assertTrue($this->gateway->firstCall('createOnboardingSession')['setting_up']);
+
+        $this->gateway->calls = [];
+
+        $this->actingAs(User::factory()->payoutReady()->create())
+            ->postJson('/api/stripe/connect', ['mode' => 'setup', 'setting_up' => true])
+            ->assertOk()
+            ->assertJsonPath('mode', 'manage');
+        $this->assertFalse($this->gateway->firstCall('createOnboardingSession')['setting_up']);
+    }
+
     public function test_a_session_is_only_ever_for_the_callers_own_account(): void
     {
         User::factory()->payoutReady()->create();

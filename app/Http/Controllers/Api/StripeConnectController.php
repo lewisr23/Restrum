@@ -78,7 +78,12 @@ class StripeConnectController extends Controller
                 $user->save();
             }
 
-            $clientSecret = $this->gateway->createOnboardingSession($user->stripe_account_id);
+            // Decided here from what Restrum knows, never from the request,
+            // since the setup session is the one without Stripe's sign-in
+            // step and a client must not be able to ask for it.
+            $settingUp = ! $user->canReceivePayments();
+
+            $clientSecret = $this->gateway->createOnboardingSession($user->stripe_account_id, $settingUp);
         } catch (PaymentGatewayException $e) {
             Log::error('Could not start Stripe onboarding.', [
                 'user_id' => $user->id,
@@ -92,6 +97,9 @@ class StripeConnectController extends Controller
 
         return response()->json([
             'client_secret' => $clientSecret,
+            // So the page mounts the components this session actually
+            // contains, rather than guessing from state that may have moved.
+            'mode' => $settingUp ? 'setup' : 'manage',
             // Served here for the same reason CheckoutController serves it:
             // switching to live keys is then a server config change, not a
             // frontend rebuild.

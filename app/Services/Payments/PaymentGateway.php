@@ -36,15 +36,19 @@ interface PaymentGateway
      * A client secret that lets Stripe's embedded components act for one
      * connected account inside our own page.
      *
-     * This replaced a redirect to Stripe's hosted onboarding. The form is
-     * still Stripe's, in a cross-origin iframe, so identity and bank details
-     * still go straight to Stripe; the seller just never leaves Restrum to
-     * fill it in. Short-lived by Stripe's design, so it is generated on
-     * demand and never stored.
+     * The form is Stripe's, in a cross-origin iframe, so identity and bank
+     * details still go straight to Stripe; the seller just never leaves
+     * Restrum to fill it in. Short-lived by Stripe's design, so it is
+     * generated on demand and never stored.
+     *
+     * $settingUp picks between two different sessions, because Stripe will
+     * not mix them: setting up (no Stripe sign-in step) and managing an
+     * account that already works (Stripe sign-in step kept, since that is
+     * where the bank details can be changed).
      *
      * @throws PaymentGatewayException
      */
-    public function createOnboardingSession(string $accountId): string;
+    public function createOnboardingSession(string $accountId, bool $settingUp): string;
 
     /**
      * Ask Stripe what it currently thinks of an account.
