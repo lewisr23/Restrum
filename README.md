@@ -1,11 +1,10 @@
 # Restrum
+https://restrum.uk/
 
 A peer to peer marketplace for buying and selling secondhand musical
 instruments in the UK. Sellers list gear with photos, audio and video, buyers
 search it, and the two talk in real time. Every instrument carries a service
 history that moves with it between owners.
-
-Live site: https://restrum.uk/
 
 ## Stack
 
